@@ -1,6 +1,6 @@
 Currently this is just a tool for simulating the Home Menu code handling theme-data decompression.
 
-When Home Menu is starting up, it can load theme-data from the home-menu theme SD extdata. The flaw can be triggered from here.
+When Home Menu is starting up, it can load theme-data from the home-menu theme SD extdata. The flaw can be triggered from here. Note that when triggered at startup, no networking system-modules are loaded yet(including dlp module).
 
 Home Menu allocates a 0x2a0000-byte heap buffer using the ctrsdk heap code: offset 0x0 size 0x150000 is for the output decompressed data, offset 0x150000 size 0x150000 is for the input compressed data. Immediately after this buffer is a heap freemem memchunkhdr, successfully overwriting it results a crash(when the data written there is junk) in the heap memchunk handling code with the linked-lists.
 
