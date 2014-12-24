@@ -73,7 +73,7 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
 
         if(len > outsize || pos-disp < 0)
         {
-             printf("Invalid compressed block. len=0x%x outsize=0x%x pos=0x%x disp=0x%x\n", len, outsize, pos, disp);
+             printf("Invalid compressed block. len=0x%x outsize=0x%x pos=0x%x disp=0x%x i=0x%x flags=0x%x srcpos=0x%x\n", len, outsize, pos, disp, i, flags, srcpos);
              return -4;
         }
 
