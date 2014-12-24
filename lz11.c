@@ -9,7 +9,7 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
   unsigned char *original_dstval = dst;
   unsigned char *original_dst = dst;
   int corruption_detected = 0;
-  int dumpdata = 0;
+  int dumpeddata = 0;
   FILE *f;
 
   while(outsize > 0) {
@@ -83,18 +83,17 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
              {
                    printf("compressed block copy output addr overwrites the data at src: pos2=0x%x pos=0x%x actualoffset=0x%x len=0x%x len-pos2=0x%x i=0x%x flags=0x%x\n", pos2, pos, pos2+pos, len, len-pos2, i, flags);
                    corruption_detected |= 0x2;
-                   dumpdata = 1;
              }
              if(&original_dst[pos2+pos-disp] == src)
              {
                   printf("compressed block copy input addr matches the data at src: pos2=0x%x pos=0x%x disp=0x%x actualoffset=0x%x len=0x%x len-pos2=0x%x i=0x%x flags=0x%x\n", pos2, pos, disp, pos2+pos-disp, len, len-pos2, i, flags);
                   corruption_detected |= 0x4;
-                  dumpdata = 1;
              }
 
-             if(dumpdata)
+             if(!dumpeddata && corruption_detected)
              {
-                  dumpdata = 0;
+                  dumpeddata = 1;
+                  printf("Writing decompressed data pre-corruption to file, with size 0x%x...\n", pos2+pos);
                   f = fopen("decompressed_data_precorruption.bin", "wb");
                   if(f)
                   {
