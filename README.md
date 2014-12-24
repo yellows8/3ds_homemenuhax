@@ -8,3 +8,8 @@ The decompression code only has an input-size parameter, no output size paramete
 
 Triggering overwriting of the memchunk after the buffer is difficult, due to the input-compressed-data overwrite described above. Doing so would require two layers of compression somehow, basically.
 
+# System Versions
+This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X. In Japan according to Nintendo, theme support was added with 9.1.0-XJ.
+
+This flaw still exists with system-version 9.4.0-X, the newest version this flaw was checked for at the time of writing.
+
