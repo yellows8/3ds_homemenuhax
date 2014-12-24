@@ -3,7 +3,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-//Build with: gcc -o generate_themelz lz11.c generate_themelz.c
+//Build with: gcc -o homemenu_themelz_tool lz11.c homemenu_themelz_tool.c
 
 //This code simulates how Home Menu handles theme data decompression.
 
