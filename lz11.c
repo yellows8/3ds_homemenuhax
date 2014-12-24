@@ -8,14 +8,20 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
   int pos=0, pos2;
   unsigned char *original_dstval = dst;
   unsigned char *original_dst = dst;
+  int corruption_detected = 0;
 
   while(outsize > 0) {
     // read in the flags data
     // from bit 7 to bit 0, following blocks:
     //     0: raw byte
     //     1: compressed block
-    if(insize==0)return -2;
+    if(insize==0)
+    {
+        printf("input end reached early, outsize=0x%x\n", outsize);
+        return -2;
+    }
     flags = *src++;
+    //if(corruption_detected)flags = 0;
     insize--;
     for(i = 0; i < 8 && outsize > 0; i++, flags <<= 1) {
       if(flags&0x80) { // compressed block
@@ -23,14 +29,22 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
         int disp; // displacement
         switch((*src)>>4) {
           case 0: // extended block
-            if(insize==0)return -2;
+            if(insize==0)
+            {
+                 printf("input end reached early, outsize=0x%x\n", outsize);
+                 return -2;
+            }
             len   = (*src++)<<4;
             len  |= ((*src)>>4);
             len  += 0x11;
             insize--;
             break;
           case 1: // extra extended block
-            if(insize<=1)return -2;
+            if(insize<=1)
+            {
+                 printf("input end reached early, outsize=0x%x\n", outsize);
+                 return -2;
+            }
             len   = ((*src++)&0x0F)<<12;
             len  |= (*src++)<<4;
             len  |= ((*src)>>4);
@@ -41,7 +55,11 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
             len   = ((*src)>>4)+1;
         }
 
-        if(insize<=1)return -2;
+        if(insize<=1)
+        {
+                 printf("input end reached early, outsize=0x%x\n", outsize);
+                 return -2;
+        }
         disp  = ((*src++)&0x0F)<<8;
         disp |= *src++;
         disp++;
@@ -59,8 +77,16 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
         // to the current buffer position
         for(pos2=0; pos2<len; pos2++)
         {
-             if(&original_dst[pos2+pos] == src)printf("compressed block copy output addr overwrites the data at src: pos2=0x%x pos=0x%x actualoffset=0x%x len=0x%x len-pos2=0x%x\n", pos2, pos, pos2+pos, len, len-pos2);
-             if(&original_dst[pos2+pos-disp] == src)printf("compressed block copy input addr matches the data at src: pos2=0x%x pos=0x%x disp=0x%x actualoffset=0x%x len=0x%x len-pos2=0x%x\n", pos2, pos, disp, pos2+pos-disp, len, len-pos2);
+             if(&original_dst[pos2+pos] == src)
+             {
+                   printf("compressed block copy output addr overwrites the data at src: pos2=0x%x pos=0x%x actualoffset=0x%x len=0x%x len-pos2=0x%x i=0x%x flags=0x%x\n", pos2, pos, pos2+pos, len, len-pos2, i, flags);
+                   corruption_detected = 1;
+             }
+             if(&original_dst[pos2+pos-disp] == src)
+             {
+                  printf("compressed block copy input addr matches the data at src: pos2=0x%x pos=0x%x disp=0x%x actualoffset=0x%x len=0x%x len-pos2=0x%x i=0x%x flags=0x%x\n", pos2, pos, disp, pos2+pos-disp, len, len-pos2, i, flags);
+                  corruption_detected = 1;
+             }
              original_dst[pos2+pos] = original_dst[pos2+pos-disp];
         }
         dst += len;
@@ -69,7 +95,11 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
 
       else { // uncompressed block
         // copy a raw byte from the input to the output
-        if(dst == src)printf("current output ptr == current input ptr, dst pos = 0x%x (raw byte copy)\n", pos);
+        if(dst == src)
+        {
+             printf("current output ptr == current input ptr, dst pos = 0x%x (raw byte copy)\n", pos);
+             corruption_detected = 1;
+        }
         *dst++ = *src++;
         pos++;
         insize--;
