@@ -9,6 +9,8 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
   unsigned char *original_dstval = dst;
   unsigned char *original_dst = dst;
   int corruption_detected = 0;
+  int dumpdata = 0;
+  FILE *f;
 
   while(outsize > 0) {
     // read in the flags data
@@ -80,13 +82,27 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
              if(&original_dst[pos2+pos] == src)
              {
                    printf("compressed block copy output addr overwrites the data at src: pos2=0x%x pos=0x%x actualoffset=0x%x len=0x%x len-pos2=0x%x i=0x%x flags=0x%x\n", pos2, pos, pos2+pos, len, len-pos2, i, flags);
-                   corruption_detected = 1;
+                   corruption_detected |= 0x2;
+                   dumpdata = 1;
              }
              if(&original_dst[pos2+pos-disp] == src)
              {
                   printf("compressed block copy input addr matches the data at src: pos2=0x%x pos=0x%x disp=0x%x actualoffset=0x%x len=0x%x len-pos2=0x%x i=0x%x flags=0x%x\n", pos2, pos, disp, pos2+pos-disp, len, len-pos2, i, flags);
-                  corruption_detected = 1;
+                  corruption_detected |= 0x4;
+                  dumpdata = 1;
              }
+
+             if(dumpdata)
+             {
+                  dumpdata = 0;
+                  f = fopen("decompressed_data_precorruption.bin", "wb");
+                  if(f)
+                  {
+                         fwrite(original_dst, 1, pos2+pos, f);
+                         fclose(f);
+                  }
+             }
+
              original_dst[pos2+pos] = original_dst[pos2+pos-disp];
         }
         dst += len;
@@ -98,7 +114,7 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
         if(dst == src)
         {
              printf("current output ptr == current input ptr, dst pos = 0x%x (raw byte copy)\n", pos);
-             corruption_detected = 1;
+             corruption_detected |= 0x1;
         }
         *dst++ = *src++;
         pos++;
