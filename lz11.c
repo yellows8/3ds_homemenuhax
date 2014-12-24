@@ -5,7 +5,7 @@
 int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsize) { //Based on the code from here, modified to mostly match the Home Menu code: https://github.com/mtheall/decompress/blob/master/source/lz11.c
   unsigned int i;
   unsigned char flags;
-  int pos=0, pos2;
+  int pos=0, pos2, srcpos=0;
   unsigned char *original_dstval = dst;
   unsigned char *original_dst = dst;
   int corruption_detected = 0;
@@ -23,6 +23,7 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
         return -2;
     }
     flags = *src++;
+    srcpos++;
     //if(corruption_detected)flags = 0;
     insize--;
     for(i = 0; i < 8 && outsize > 0; i++, flags <<= 1) {
@@ -40,6 +41,7 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
             len  |= ((*src)>>4);
             len  += 0x11;
             insize--;
+            srcpos++;
             break;
           case 1: // extra extended block
             if(insize<=1)
@@ -52,6 +54,7 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
             len  |= ((*src)>>4);
             len  += 0x111;
             insize-=2;
+            srcpos+=2;
             break;
           default: // normal block
             len   = ((*src)>>4)+1;
@@ -66,6 +69,7 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
         disp |= *src++;
         disp++;
         insize-=2;
+        srcpos+=2;
 
         if(len > outsize || pos-disp < 0)
         {
@@ -81,12 +85,12 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
         {
              if(&original_dst[pos2+pos] == src)
              {
-                   printf("compressed block copy output addr overwrites the data at src: pos2=0x%x pos=0x%x actualoffset=0x%x len=0x%x len-pos2=0x%x i=0x%x flags=0x%x\n", pos2, pos, pos2+pos, len, len-pos2, i, flags);
+                   printf("compressed block copy output addr overwrites the data at src: pos2=0x%x pos=0x%x disp=0x%x actualoffset=0x%x len=0x%x len-pos2=0x%x i=0x%x flags=0x%x srcpos=0x%x\n", pos2, pos, disp, pos2+pos, len, len-pos2, i, flags, srcpos);
                    corruption_detected |= 0x2;
              }
              if(&original_dst[pos2+pos-disp] == src)
              {
-                  printf("compressed block copy input addr matches the data at src: pos2=0x%x pos=0x%x disp=0x%x actualoffset=0x%x len=0x%x len-pos2=0x%x i=0x%x flags=0x%x\n", pos2, pos, disp, pos2+pos-disp, len, len-pos2, i, flags);
+                  printf("compressed block copy input addr matches the data at src: pos2=0x%x pos=0x%x disp=0x%x actualoffset=0x%x len=0x%x len-pos2=0x%x i=0x%x flags=0x%x srcpos=0x%x\n", pos2, pos, disp, pos2+pos-disp, len, len-pos2, i, flags, srcpos);
                   corruption_detected |= 0x4;
              }
 
@@ -119,6 +123,7 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
         pos++;
         insize--;
         outsize--;
+        srcpos++;
       }
 
       if(outsize==0)
