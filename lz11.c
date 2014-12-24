@@ -53,13 +53,19 @@ int lz11Decompress(unsigned char *src, unsigned char *dst, int insize, int outsi
 
         // for len, copy data from the displacement
         // to the current buffer position
-        for(pos2=0; pos2<len; pos2++)original_dst[pos2+pos] = original_dst[pos2+pos-disp];
+        for(pos2=0; pos2<len; pos2++)
+        {
+             if(&original_dst[pos2+pos] == src)printf("compressed block copy output addr overwrites the data at src %p: pos2 %x pos %x actualoffset %x\n", src, pos2, pos, pos2+pos);
+             if(&original_dst[pos2+pos-disp] == src)printf("compressed block copy input addr matches the data at src %p: pos2 %x pos %x disp %x actualoffset %x\n", src, pos2, pos, disp, pos2+pos-disp);
+             original_dst[pos2+pos] = original_dst[pos2+pos-disp];
+        }
         dst += len;
         pos += len;
       }
 
       else { // uncompressed block
         // copy a raw byte from the input to the output
+        if(dst == src)printf("current output ptr(%p) == current input ptr(%p), dst pos = %x (raw byte copy)\n", dst, src, pos);
         *dst++ = *src++;
         pos++;
         insize--;
