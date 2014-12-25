@@ -21,4 +21,4 @@ payload.py generates an lz11 compressed file which will first decompress a given
 This works correctly with the pc-side simulator. It also works fine on hardware: the memchunk-hdr after the buffer is overwritten with the intended data, resulting in a crash with the heap memory-free code.
 
 Example use :
-	python payload.py uncompressed_rop_data.bin payload.bin 000102030405060708090a0b0c0d0e0f
+	python payload.py uncompressed_rop_data.bin payload.bin 0xDEADBABE 0xBADBEEF 0xDEADC0DE 0xCAFE

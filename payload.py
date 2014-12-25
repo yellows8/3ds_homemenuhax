@@ -1,4 +1,5 @@
 import compress
+import struct
 import math
 import sys
 
@@ -61,9 +62,10 @@ def cutAsMuch(t, l, a):
 	return (a - d, l - d)
 
 # data which will be written right after the buffer
-if len(sys.argv)>=4:
-	overwriteDataString = sys.argv[3].strip()
-	overwriteData = [int("0x"+overwriteDataString[i:i+2],0) for i in range(0,0x10*2,2)]
+if len(sys.argv)>=7:
+	val = [int(v,0) for v in sys.argv[3:3+4]]
+	data = struct.pack("<IIII",val[0],val[1],val[2],val[3])
+	overwriteData = list(data)
 else:
 	overwriteData = [0x68, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x69, 0x20, 0x61, 0x6D, 0x20, 0x64, 0x61, 0x74, 0x61, 0x2E]
 
