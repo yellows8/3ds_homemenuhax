@@ -21,3 +21,6 @@ One of the ways to write to the theme extdata is with ctrclient-yls8(extdataID b
 # payload.py
 payload.py generates an lz11 compressed file which will first decompress a given file (first argument) and then overwrite the 0x10 bytes immediately after the buffer with the data specified in the script's "overwriteData" list.
 It has so far only been tested on the pc-side simulator.
+
+Example use :
+	python payload.py uncompressed_rop_data.bin payload.bin 000102030405060708090a0b0c0d0e0f
