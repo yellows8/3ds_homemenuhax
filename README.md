@@ -1,5 +1,3 @@
-Currently this is just a tool for simulating the Home Menu code handling theme-data decompression.
-
 When Home Menu is starting up, it can load theme-data from the home-menu theme SD extdata. The flaw can be triggered from here, it seems this can be triggered from extdata without having any theme DLC installed. Note that when triggered at startup, no networking system-modules are loaded yet(including dlp module).
 
 Home Menu allocates a 0x2a0000-byte heap buffer using the ctrsdk heap code: offset 0x0 size 0x150000 is for the output decompressed data, offset 0x150000 size 0x150000 is for the input compressed data. Immediately after this buffer is a heap freemem memchunkhdr, successfully overwriting it results a crash(when the data written there is junk) in the heap memchunk handling code with the linked-lists.
@@ -21,4 +19,4 @@ payload.py generates an lz11 compressed file which will first decompress a given
 This works correctly with the pc-side simulator. It also works fine on hardware: the memchunk-hdr after the buffer is overwritten with the intended data, resulting in a crash with the heap memory-free code.
 
 Example use :
-	python payload.py uncompressed_rop_data.bin payload.bin 0xDEADBABE 0xBADBEEF 0xDEADC0DE 0xCAFE
+	python3 payload.py uncompressed_rop_data.bin payload.bin 0xDEADBABE 0xBADBEEF 0xDEADC0DE 0xCAFE
