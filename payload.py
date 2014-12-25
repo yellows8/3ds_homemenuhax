@@ -110,7 +110,7 @@ fillCmdLength += int(math.floor(float(len(fillList)-1)/8))+1 #headers
 fillCmdLength += 8-(len(fillList)%8) #end 00s
 fillCmdLength += 9 #start DAs
 
-cutLength = fillCmdLength+len(out)
+cutLength = fillCmdLength+ropDecompSize
 dataOffset = 8+(8-(len(fillList)%8))
 
 for i in range(0, 0x150000-fillCmdLength-len(endStuff)-len(out)-9, 9):
