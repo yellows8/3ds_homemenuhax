@@ -8,6 +8,11 @@
 
 _start:
 
+themeheader:
+.word 1 @ version
+
+.space ((themeheader + 0xc4) - .)
+
 object:
 .word HEAPBUF + (vtable - _start) @ object+0, vtable ptr
 .word 0
