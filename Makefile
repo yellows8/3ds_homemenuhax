@@ -17,7 +17,7 @@ clean:
 	rm -f themedata_payload_v94.elf themedata_payload_v94.bin themedatahax_v94.lz
 
 themedatahax_v94.lz:	themedata_payload_v94.bin
-	python3 payload.py $< $@ 0x4652 0x100000 0x00313734 0x35052144
+	python3 payload.py $< $@ 0x4652 0x100000 0x0FFFFEA4 0x35052144
 
 themedata_payload_v94.bin:	themedata_payload_v94.elf
 	$(OBJCOPY) -O binary $< $@
