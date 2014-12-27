@@ -17,7 +17,7 @@ This flaw still exists with system-version 9.4.0-X, the newest version this flaw
 Just run "make", or even "make clean && make".
 
 # Usage
-Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. Currently this haxx only has control of an objectptr + PC, no full ROP yet.
+Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. See themedata_payload.s for what the ROP currently does.
 
 # Installation
 One of the ways to write to the theme extdata is with ctrclient-yls8(extdataID below is for USA, extdataID is different for other regions). The built filename for ThemeManage is this: themedatahax_v{systemversion}.lz
