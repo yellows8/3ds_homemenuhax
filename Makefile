@@ -23,5 +23,5 @@ themedata_payload_v94.bin:	themedata_payload_v94.elf
 	$(OBJCOPY) -O binary $< $@
 
 themedata_payload_v94.elf:	themedata_payload.s
-	$(CC) -x assembler-with-cpp -nostartfiles -nostdlib $< -o $@
+	$(CC) -x assembler-with-cpp -nostartfiles -nostdlib -DSYSVER=94 $< -o $@
 
