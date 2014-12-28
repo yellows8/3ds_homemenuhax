@@ -22,9 +22,11 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #if SYSVER>=93 //v9.3-v9.4
 #define ROP_LOADR4_FROMOBJR0 0x10b574 //load r4 from r0+16, return if r4==r5. obj/r0 = r4-32. call vtable funcptr +12 from this obj.
 #define ROP_POPPC 0x10203c
+#define POP_R4LR_BXR1 0x0011df68 //"pop {r4, lr}" "bx r1"
 #else
 #define ROP_LOADR4_FROMOBJR0 0x10b64c
 #define ROP_POPPC 0x102028
+#define POP_R4LR_BXR1 0x0011dda4
 #endif
 
 #if SYSVER == 93
