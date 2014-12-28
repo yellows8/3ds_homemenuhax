@@ -29,12 +29,16 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 #if SYSVER == 93
 #define SRV_GETSERVICEHANDLE 0x0022472c
+#define POP_R1PC 0x002262bc
 #elif SYSVER == 94
 #define SRV_GETSERVICEHANDLE 0x0022470c
+#define POP_R1PC 0x0022629c
 #endif
 
 #if SYSVER>=93 //v9.3-v9.4
 #define POP_R0PC 0x00154f0c
+#define POP_R3PC 0x00102a40
+#define POP_R2R6PC 0x001512c4 //pop {r2, r3, r4, r5, r6, pc}
 
 #define ROP_STR_R1TOR0 0x00103f58
 #define ROP_LDR_R0FROMR0 0x0010f01c
@@ -57,6 +61,9 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 #if SYSVER == 92
 #define POP_R0PC 0x001575ac
+#define POP_R1PC 0x00214988
+#define POP_R3PC 0x00102a24
+#define POP_R2R6PC 0x00150160
 
 #define ROP_LDRR1R1_STRR1R0 0x001f1e7c
 #define ROP_MOVR1R3_BXIP 0x001b8708
@@ -72,6 +79,9 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 #if SYSVER <= 91 //v9.0-v9.1j
 #define POP_R0PC 0x00157554
+#define POP_R1PC 0x002149f0
+#define POP_R3PC 0x00102a24
+#define POP_R2R6PC 0x00150108
 
 #define ROP_LDRR1R1_STRR1R0 0x001f1ee4
 #define ROP_MOVR1R3_BXIP 0x001b8848
