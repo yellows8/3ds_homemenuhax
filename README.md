@@ -7,9 +7,13 @@ Home Menu allocates a 0x2a0000-byte heap buffer using the ctrsdk heap code: offs
 The decompression code only has an input-size parameter, no output size parameter. Hence, the output size is not restricted/checked at all. Since the decompressed data is located before the compressed data, the buf overflow results in the input compressed data being overwritten first. Eventually this overflow will result in the input data actually being used by the decompression function being overwritten, which can later result in an error before the function ever writes to the memchunk-hdr(if the input compressed data doesn't workaround that).
 
 # Supported System Versions
+* v9.0 non-JPN (not tested, unknown if the heap/stack addrs are correct)
+* v9.1j (not tested, unknown if the heap/stack addrs are correct)
+* v9.2 (not tested, unknown if the heap/stack addrs are correct)
+* v9.3 (not tested, unknown if the heap/stack addrs are correct)
 * v9.4
 
-This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X. In Japan according to Nintendo, theme support was added with 9.1.0-XJ. Therefore, the lowest system-version supported by this is v9.0(non-JPN), and in JPN v9.1.
+This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X. In Japan according to Nintendo, theme support was added with 9.1.0-XJ. Therefore, the lowest system-version supported by this is v9.0(non-JPN), and JPN v9.1.
 
 This flaw still exists with system-version 9.4.0-X, the newest version this flaw was checked for at the time of writing.
 
