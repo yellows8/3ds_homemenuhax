@@ -1,5 +1,5 @@
 # Summary
-When Home Menu is starting up, it can load theme-data from the home-menu theme SD extdata. The flaw can be triggered from here, it seems this can be triggered from extdata without having any theme DLC installed. Note that when triggered at startup, no networking system-modules are loaded yet(including dlp module).
+When Home Menu is starting up, it can load theme-data from the home-menu theme SD extdata. The flaw can be triggered from here. Note that when triggered at startup, no networking system-modules are loaded yet(including dlp module).
 
 # Vuln
 Home Menu allocates a 0x2a0000-byte heap buffer using the ctrsdk heap code: offset 0x0 size 0x150000 is for the output decompressed data, offset 0x150000 size 0x150000 is for the input compressed data. Immediately after this buffer is a heap freemem memchunkhdr, successfully overwriting it results a crash(when the data written there is junk) in the heap memchunk handling code with the linked-lists.
@@ -9,7 +9,7 @@ The decompression code only has an input-size parameter, no output size paramete
 # Supported System Versions
 * v9.0 non-JPN (not tested, unknown if the heap/stack addrs are correct)
 * v9.1j (not tested, unknown if the heap/stack addrs are correct)
-* v9.2 (not tested, unknown if the heap/stack addrs are correct)
+* v9.2
 * v9.3 (not tested, unknown if the heap/stack addrs are correct)
 * v9.4
 
@@ -24,9 +24,14 @@ Just run "make", or even "make clean && make".
 Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. See themedata_payload.s for what the ROP currently does.
 
 # Installation
-One of the ways to write to the theme extdata is with ctrclient-yls8(extdataID below is for USA, extdataID is different for other regions). The built filename for ThemeManage is this: themedatahax_v{systemversion}.lz
+One of the ways to write to the theme extdata is with ctrclient-yls8(extdataIDs below is for USA, extdataID is different for other regions). The built filename for ThemeManage is this: themedatahax_v{systemversion}.lz
+
+Theme-data cache from this extdata is only loaded at startup when cetain fields in the home-menu SD extdata Savedata.dat are set to certain values, see here: http://3dbrew.org/wiki/Home_Menu
+
 * Write to BodyCache: ctrclient-yls8 --serveradr={ipaddr} "--customcmd=directfilerw 0x6 0x2 0xc 0x4 0x1e 0x2 0x150000 01000000cd02000000000000 2f0042006f0064007900430061006300680065002e00620069006e000000 @BodyCache_mod.bin"
 * Write to ThemeManage: ctrclient-yls8 --serveradr={ipaddr} "--customcmd=directfilerw 0x6 0x2 0xc 0x4 0x22 0x2 0x800 01000000cd02000000000000 2F005400680065006D0065004D0061006E006100670065002E00620069006E000000 @ThemeManage_mod.bin"
+* Read homemenu SaveData.dat: ctrclient-yls8 --serveradr={ipaddr} "--customcmd=directfilerw 0x6 0x2 0xc 0x4 0x1c 0x1 010000008f00000000000000  2F00530061007600650044006100740061002E006400610074000000 @out.bin"
+* Write homemenu SaveData.dat: ctrclient-yls8 --serveradr={ipaddr} "--customcmd=directfilerw 0x6 0x2 0xc 0x4 0x1c 0x2 0x2da0 010000008f00000000000000  2F00530061007600650044006100740061002E006400610074000000 @in.bin"
 
 # payload.py
 payload.py generates an lz11 compressed file which will first decompress a given file (first argument) and then overwrite the 0x10 bytes immediately after the buffer with the data specified in the script's "overwriteData" list.

