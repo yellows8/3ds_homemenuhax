@@ -37,8 +37,8 @@ clean:
 	@make cleanbuild --no-print-directory SYSVER=90
 
 buildtheme:
-	@make $(THEMEPREFIX)$(SYSVER)_old3ds.lz --no-print-directory -f Makefile_new BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_old3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_OLD3DS)
-	@make $(THEMEPREFIX)$(SYSVER)_new3ds.lz --no-print-directory -f Makefile_new BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_new3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_NEW3DS)
+	@make $(THEMEPREFIX)$(SYSVER)_old3ds.lz --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_old3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_OLD3DS) NEW3DS=0
+	@make $(THEMEPREFIX)$(SYSVER)_new3ds.lz --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_new3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_NEW3DS) NEW3DS=1
 
 cleanbuild:
 	rm -f $(THEMEPREFIX)$(SYSVER)_old3ds.elf $(THEMEPREFIX)$(SYSVER)_old3ds.bin $(THEMEPREFIX)$(SYSVER)_old3ds.lz
@@ -51,5 +51,5 @@ $(BUILDPREFIX).bin:	$(BUILDPREFIX).elf
 	$(OBJCOPY) -O binary $< $@
 
 $(BUILDPREFIX).elf:	themedata_payload.s
-	$(CC) -x assembler-with-cpp -nostartfiles -nostdlib -DSYSVER=$(SYSVER) -DHEAPBUF=$(HEAPBUF) $< -o $@
+	$(CC) -x assembler-with-cpp -nostartfiles -nostdlib -DSYSVER=$(SYSVER) -DHEAPBUF=$(HEAPBUF) -DNEW3DS=$(NEW3DS) $< -o $@
 
