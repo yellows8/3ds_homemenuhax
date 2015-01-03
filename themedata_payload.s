@@ -380,7 +380,7 @@ nsslaunchtitle_regload_programidlow:
 .word 0 @ r5
 .word 0 @ r6
 
-.word NSS_LaunchTitle @ Launch the web-browser. The above programID is currently hardcoded for the Old3DS USA browser.
+.word NSS_LaunchTitle @ Launch the web-browser.
 
 .word 0 @ r2 / sp0 (mediatype, 0=NAND)
 .word 0 @ r3
