@@ -119,7 +119,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 #define svcControlMemory 0x002246b4
 
-#define ROP_INITOBJARRAY 0x002190a5
+#define ROP_INITOBJARRAY 0x002190a5 //inr0=arrayptr* inr1=funcptr inr2=entrysize inr3=totalentries This basically does: curptr = inr0; while(inr3){<call inr1 funcptr with r0=curptr>; curptr+=inr2; inr3--;}
 #endif
 
 #if SYSVER == 93
@@ -148,7 +148,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #if NEW3DS==0
 #define NSS_PROCLOADTEXT_LINEARMEMADR 0x36500000
 #else
-#define NSS_PROCLOADTEXT_LINEARMEMADR ((0x3d900000-0x400000))//+0x162000
+#define NSS_PROCLOADTEXT_LINEARMEMADR ((0x3d900000-0x400000)+0x21b000)//+0x162000
 #endif
 
 .macro ROP_SETLR lr
@@ -177,29 +177,33 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 .word \lr
 .endm
 
-.macro CALL_GXCMD4 srcadr, dstadr, cpysize
+.macro CALLFUNC funcadr, r0, r1, r2, r3, sp0, sp4, sp8, sp12
 ROP_SETLR POP_R2R6PC
 
 .word POP_R0PC
-.word \srcadr @ r0
+.word \r0
 
 .word POP_R1PC
-.word \dstadr @ r1
+.word \r1
 
 .word POP_R2R6PC
-.word \cpysize @ r2, size
-.word 0 @ r3, width0
+.word \r2
+.word \r3
 .word 0 @ r4
 .word 0 @ r5
 .word 0 @ r6
 
-.word GXLOW_CMD4
+.word \funcadr
 
-.word 0 @ r2 / sp0 (height0)
-.word 0 @ r3 / sp4 (width1)
-.word 0 @ r4 / sp8 (height1)
-.word 0x8 @ r5 / sp12 (flags)
+.word \sp0
+.word \sp4
+.word \sp8
+.word \sp12
 .word 0 @ r6
+.endm
+
+.macro CALL_GXCMD4 srcadr, dstadr, cpysize
+CALLFUNC GXLOW_CMD4, \srcadr, \dstadr, \cpysize, 0, 0, 0, 0, 0x8
 .endm
 
 .macro RET2MENUCODE
@@ -299,7 +303,7 @@ nsslaunchtitle_programidlow_list:
 .word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ "AUS"(no 3DS systems actually have this region set)
 .word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ CHN (the rest of the IDs here are probably wrong but whatever)
 .word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ KOR
-.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ TWN 
+.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ TWN
 
 tmp_scratchdata:
 .space 0x400
@@ -388,8 +392,16 @@ nsslaunchtitle_regload_programidlow:
 .word 0 @ r5
 .word 0 @ r6
 
-//Overwrite the start of the browser .text with the below code.
+#if NEW3DS==1//Use this as a waitbyloop.
+CALLFUNC ROP_INITOBJARRAY, 0, ROP_BXLR, 0, 0x10000000, 0, 0, 0, 0
+#endif
+
+//Overwrite the browser .text with the below code.
 CALL_GXCMD4 (HEAPBUF + (codedatastart - _start)), NSS_PROCLOADTEXT_LINEARMEMADR, (codedataend-codedatastart)
+
+#if NEW3DS==1//Use this as a waitbyloop.
+CALLFUNC ROP_INITOBJARRAY, 0, ROP_BXLR, 0, 0x10000000, 0, 0, 0, 0
+#endif
 
 ROP_SETLR ROP_POPPC
 
@@ -413,7 +425,7 @@ codedatastart:
 #if NEW3DS==0
 .space 0x200 @ nop-sled
 #else
-.space 0x200//0x1000
+.space 0x1000
 #endif
 ldr r0, =0x58584148
 ldr r0, [r0]
