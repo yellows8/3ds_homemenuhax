@@ -148,7 +148,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #if NEW3DS==0
 #define NSS_PROCLOADTEXT_LINEARMEMADR 0x36500000
 #else
-#define NSS_PROCLOADTEXT_LINEARMEMADR ((0x3d900000-0x400000)+0x21b000)//+0x162000
+#define NSS_PROCLOADTEXT_LINEARMEMADR ((0x3d900000-0x400000)+0x21b000)//In SKATER, overwrite the code which gets called for assert/svcBreak when allocating the main heap fails.
 #endif
 
 .macro ROP_SETLR lr
