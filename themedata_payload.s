@@ -501,6 +501,8 @@ bne codecrash
 mov r1, #0xf @ flags
 str r1, [r4, #0x48]
 mov r0, r4
+adr r1, codecrash
+mov lr, r1
 b codebinpayload_start
 #else
 b codecrash
@@ -508,8 +510,8 @@ b codecrash
 .pool
 
 codecrash:
-ldr r0, =0x58584148
-ldr r0, [r0]
+ldr r3, =0x58584148
+ldr r3, [r3]
 code_end:
 b code_end
 .pool
