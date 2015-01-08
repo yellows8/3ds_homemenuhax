@@ -29,8 +29,16 @@ ifneq ($(strip $(ENABLE_RET2MENU)),)
 	PARAMS	:=	$(PARAMS) ENABLE_RET2MENU=1
 endif
 
+ifneq ($(strip $(CODEBINPAYLOAD)),)
+	PARAMS	:=	$(PARAMS) CODEBINPAYLOAD=$(CODEBINPAYLOAD)
+endif
+
 ifneq ($(strip $(ENABLE_RET2MENU)),)
 	DEFINES	:=	$(DEFINES) -DENABLE_RET2MENU
+endif
+
+ifneq ($(strip $(CODEBINPAYLOAD)),)
+	DEFINES	:=	$(DEFINES) -DCODEBINPAYLOAD=\"$(CODEBINPAYLOAD)\"
 endif
 
 all:	

