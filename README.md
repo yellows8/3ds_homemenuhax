@@ -1,5 +1,5 @@
 # Summary
-When Home Menu is starting up, it can load theme-data from the home-menu theme SD extdata. The flaw can be triggered from here. Note that when triggered at startup, no networking system-modules are loaded yet(including dlp module).
+When Home Menu is starting up, it can load theme-data from the home-menu theme SD extdata. The flaw can be triggered from here.
 
 # Vuln
 Home Menu allocates a 0x2a0000-byte heap buffer using the ctrsdk heap code: offset 0x0 size 0x150000 is for the output decompressed data, offset 0x150000 size 0x150000 is for the input compressed data. Immediately after this buffer is a heap freemem memchunkhdr, successfully overwriting it results a crash(when the data written there is junk) in the heap memchunk handling code with the linked-lists.
@@ -13,7 +13,7 @@ The decompression code only has an input-size parameter, no output size paramete
 * v9.3 (not tested, unknown if the heap/stack addrs are correct)
 * v9.4
 
-This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X. In Japan according to Nintendo, theme support was added with 9.1.0-XJ. Therefore, the lowest system-version supported by this is v9.0(non-JPN), and JPN v9.1.
+This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X. In Japan according to Nintendo, theme support was "added" with 9.1.0-XJ(but the code binary for v9.0j appears to have theme support too). Therefore, the lowest system-version supported by this is v9.0(non-JPN), and JPN v9.1.
 
 This flaw still exists with system-version 9.4.0-X, the newest version this flaw was checked for at the time of writing.
 
