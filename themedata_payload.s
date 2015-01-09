@@ -492,14 +492,16 @@ mov r4, #3 @ permissions
 
 mov r1, #0 @ addr0
 mov r2, #0 @ addr1
-ldr r3, =0x3000 @ size
+ldr r3, =0xc000 @ size
 svc 0x01 @ Allocate 0x3000-bytes of linearmem.
 mov r4, r1
 cmp r0, #0
 bne codecrash
 
-mov r1, #0xf @ flags
-str r1, [r4, #0x48]
+mov r1, #0xf
+str r1, [r4, #0x48] @ flags
+ldr r1, =0x101
+str r1, [r4, #0x5c] @ NS appID
 mov r0, r4
 adr r1, codecrash
 mov lr, r1
