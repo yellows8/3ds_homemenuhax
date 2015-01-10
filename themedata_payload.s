@@ -355,28 +355,7 @@ RET2MENUCODE
 #endif
 
 #if NEW3DS==1 //On New3DS the end-address of the GPU-accessible FCRAM area increased, relative to the SYSTEM-memregion end address. Therefore, in order to get the below process to run under memory that's GPU accessible, 0x400000-bytes are allocated here.
-ROP_SETLR POP_R2R6PC
-
-.word POP_R0PC
-.word HEAPBUF + (tmp_scratchdata - _start)  @ r0, outaddr*
-
-.word POP_R1PC
-.word 0x0f000000 @ r1, addr0
-
-.word POP_R2R6PC
-.word 0 @ r2, addr1
-.word 0x00400000 @ r3, size
-.word 0 @ r4
-.word 0 @ r5
-.word 0 @ r6
-
-.word svcControlMemory
-
-.word 0x3 @ r2 / sp0 (operation)
-.word 0x3 @ r3 / sp4 (permissions)
-.word 0 @ r4
-.word 0 @ r5
-.word 0 @ r6
+CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata - _start)), 0x0f000000, 0, 0x00400000, 0x3, 0x3, 0, 0
 #endif
 
 CALLFUNC_NOSP GSPGPU_FlushDataCache, (HEAPBUF + (codedatastart - _start)), (codedataend-codedatastart), 0, 0
@@ -438,6 +417,10 @@ CALLFUNC ROP_INITOBJARRAY, 0, ROP_BXLR, 0, 0x10000000, 0, 0, 0, 0
 //Overwrite the browser .text with the below code.
 CALL_GXCMD4 (HEAPBUF + (codedatastart - _start)), NSS_PROCLOADTEXT_LINEARMEMADR, (codedataend-codedatastart)
 
+#if NEW3DS==1 //Free the memory which was allocated above on new3ds.
+CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata - _start)), 0x0f000000, 0, 0x00400000, 0x1, 0x0, 0, 0
+#endif
+
 #if NEW3DS==1//Use this as a waitbyloop.
 CALLFUNC ROP_INITOBJARRAY, 0, ROP_BXLR, 0, 0x10000000, 0, 0, 0, 0
 #endif
@@ -482,9 +465,15 @@ codedatastart:
 .space 0x1000
 #endif
 
+#if NEW3DS==0
 ldr r0, =3000000000
 mov r1, #0
 svc 0x0a @ Sleep 3 seconds.
+#else
+ldr r0, =0x540BE400
+mov r1, #2
+svc 0x0a @ Sleep 10 seconds, so that hopefully the payload doesn't interfere with sysmodule loading. (maybe try decreasing this later?)
+#endif
 
 #ifdef CODEBINPAYLOAD
 ldr r0, =0x10003 @ operation
@@ -498,7 +487,7 @@ mov r4, r1
 cmp r0, #0
 bne codecrash
 
-mov r1, #0xf
+mov r1, #0xb
 str r1, [r4, #0x48] @ flags
 ldr r1, =0x101
 str r1, [r4, #0x5c] @ NS appID
