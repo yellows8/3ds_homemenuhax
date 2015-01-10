@@ -33,6 +33,9 @@ Theme-data cache from this extdata is only loaded at startup when cetain fields 
 * Read homemenu SaveData.dat: ctrclient-yls8 --serveradr={ipaddr} "--customcmd=directfilerw 0x6 0x2 0xc 0x4 0x1c 0x1 010000008f00000000000000 2F00530061007600650044006100740061002E006400610074000000 @out.bin"
 * Write homemenu SaveData.dat: ctrclient-yls8 --serveradr={ipaddr} "--customcmd=directfilerw 0x6 0x2 0xc 0x4 0x1c 0x2 0x2da0 010000008f00000000000000  2F00530061007600650044006100740061002E006400610074000000 @in.bin"
 
+# Demo Video
+https://dl.dropboxusercontent.com/u/20520664/startuphaxx.webm
+
 # payload.py
 payload.py generates an lz11 compressed file which will first decompress a given file (first argument) and then overwrite the 0x10 bytes immediately after the buffer with the data specified in the script's "overwriteData" list.
 This works correctly with the pc-side simulator. It also works fine on hardware: the memchunk-hdr after the buffer is overwritten with the intended data, resulting in a crash with the heap memory-free code.
