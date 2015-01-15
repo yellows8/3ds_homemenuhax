@@ -20,6 +20,11 @@ This flaw still exists with system-version 9.4.0-X, the newest version this flaw
 # Building
 Just run "make", or even "make clean && make".
 
+Build options:
+* "ENABLE_RET2MENU=1" Just return from the haxx to the Home Menu code after writing to the framebufs.
+* "CODEBINPAYLOAD=path" Code binary payload to load into the launched process.
+* "BOOTGAMECARD=1" Launch the gamecard app instead of the usual titlelaunch+takeover. This doesn't actually work: app starts running but hangs somewhere.
+
 # Usage
 Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. See themedata_payload.s for what the ROP currently does.
 

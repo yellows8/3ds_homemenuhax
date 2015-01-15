@@ -369,6 +369,7 @@ CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata - _start)), 0x0f000000, 0
 
 CALLFUNC_NOSP GSPGPU_FlushDataCache, (HEAPBUF + (codedatastart - _start)), (codedataend-codedatastart), 0, 0
 
+#ifndef BOOTGAMECARD
 ROP_SETLR POP_R2R6PC
 
 .word POP_R0PC
@@ -395,6 +396,7 @@ ROP_SETLR_OTHER ROP_POPPC
 .word HEAPBUF + (nsslaunchtitle_regload_programidlow - _start) @ r0
 
 .word ROP_STR_R1TOR0 //Write the programID-low value for this region to the below reg-data which would be used for the programID-low in the NSS_LaunchTitle call.
+#endif
 
 ROP_SETLR POP_R2R6PC
 
@@ -406,19 +408,28 @@ ROP_SETLR POP_R2R6PC
 .word POP_R2R6PC
 nsslaunchtitle_regload_programidlow:
 .word 0 @ r2, programID low (overwritten by the above ROP)
+#ifndef BOOTGAMECARD
 .word 0x00040030 @ r3, programID high
+#else
+.word 0
+#endif
 .word 0 @ r4
 .word 0 @ r5
 .word 0 @ r6
 
 .word NSS_LaunchTitle @ Launch the web-browser.
 
+#ifndef BOOTGAMECARD
 .word 0 @ r2 / sp0 (mediatype, 0=NAND)
+#else
+.word 2
+#endif
 .word 0 @ r3
 .word 0 @ r4
 .word 0 @ r5
 .word 0 @ r6
 
+#ifndef BOOTGAMECARD
 #if NEW3DS==1//Use this as a waitbyloop.
 CALLFUNC ROP_INITOBJARRAY, 0, ROP_BXLR, 0, 0x10000000, 0, 0, 0, 0
 #endif
@@ -443,6 +454,7 @@ ROP_SETLR ROP_POPPC
 .word 0x0//0x100 @ r1
 
 .word svcSleepThread @ Sleep 1 second, call GSPGPU_Shutdown() etc, then execute svcSleepThread in an "infinite loop". The ARM11-kernel does not allow this homemenu thread and the browser thread to run at the same time(homemenu thread has priority over the browser thread). Therefore an "infinite loop" like the bx one below will result in execution of the browser thread completely stopping once any homemenu "infinite loop" begin execution. On Old3DS this means the below code will overwrite .text while the browser is attempting to clear .bss. On New3DS since overwriting .text+0 doesn't quite work(context-switching doesn't trigger at the right times), a different location in .text has to be overwritten instead.
+#endif
 
 CALLFUNC_NOARGS GSPGPU_Shutdown
 
