@@ -40,6 +40,11 @@ ifneq ($(strip $(BOOTGAMECARD)),)
 	DEFINES	:=	$(DEFINES) -DBOOTGAMECARD
 endif
 
+ifneq ($(strip $(USE_PADCHECK)),)
+	PARAMS	:=	$(PARAMS) USE_PADCHECK=$(USE_PADCHECK)
+	DEFINES	:=	$(DEFINES) -DUSE_PADCHECK=$(USE_PADCHECK)
+endif
+
 all:	
 	@make buildtheme --no-print-directory SYSVER=94
 	@make buildtheme --no-print-directory SYSVER=93

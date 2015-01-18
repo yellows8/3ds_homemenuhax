@@ -24,6 +24,7 @@ Build options:
 * "ENABLE_RET2MENU=1" Just return from the haxx to the Home Menu code after writing to the framebufs.
 * "CODEBINPAYLOAD=path" Code binary payload to load into the launched process.
 * "BOOTGAMECARD=1" Launch the gamecard app instead of the usual titlelaunch+takeover. This doesn't actually work: app starts running but hangs somewhere.
+* "USE_PADCHECK=1" When set, at the very start of the menu ROP it will check if current HID PAD state is set to the specified value. When they match, it continues the ROP, otherwise it returns to the homemenu code. This is done before writing to the framebuffers.
 
 # Usage
 Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. See themedata_payload.s for what the ROP currently does.
