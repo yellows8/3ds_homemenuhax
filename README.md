@@ -26,6 +26,7 @@ Build options:
 * "BOOTGAMECARD=1" Reboot the system to launch the gamecard. If GAMECARD_PADCHECK isn't used, the ROP will always execute this without executing the title-launch + takeover ROP.
 * "USE_PADCHECK=val" When set, at the very start of the menu ROP it will check if current HID PAD state is set to the specified value. When they match, it continues the ROP, otherwise it returns to the homemenu code. This is done before writing to the framebuffers.
 * "GAMECARD_PADCHECK=val" Similar to USE_PADCHECK except for BOOTGAMECARD: the BOOTGAMECARD ROP only gets executed when the specified HID PAD state matches the current one. After writing to framebufs the ROP will delay 3 seconds, then run this PADCHECK ROP.
+* "EXITMENU=1" Terminate homemenu X seconds(see source) after getting code exec under the launched process.
 
 # Usage
 Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. See themedata_payload.s for what the ROP currently does.

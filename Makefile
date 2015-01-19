@@ -50,6 +50,11 @@ ifneq ($(strip $(GAMECARD_PADCHECK)),)
 	DEFINES	:=	$(DEFINES) -DGAMECARD_PADCHECK=$(GAMECARD_PADCHECK)
 endif
 
+ifneq ($(strip $(EXITMENU)),)
+	PARAMS	:=	$(PARAMS) EXITMENU=1
+	DEFINES	:=	$(DEFINES) -DEXITMENU
+endif
+
 all:	
 	@make buildtheme --no-print-directory SYSVER=94
 	@make buildtheme --no-print-directory SYSVER=93

@@ -600,6 +600,28 @@ aptsendparam_handle:
 .word 0 @ r6*/
 
 ropfinish_sleepthread:
+#ifdef EXITMENU
+ROP_SETLR ROP_POPPC
+
+#if NEW3DS==0
+.word POP_R0PC
+.word 4000000000 @ r0
+
+.word POP_R1PC @ Sleep 4 seconds.
+.word 0 @ r1
+#else
+.word POP_R0PC
+.word 3000000000 @ r0
+
+.word POP_R1PC  @ Sleep 3 seconds.
+.word 0 @ r1
+#endif
+
+.word svcSleepThread
+
+.word 0x00100020 @ LR of main(), svcExitProcess.
+#endif
+
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
@@ -652,7 +674,7 @@ mov r4, r1
 cmp r0, #0
 bne codecrash
 
-mov r1, #0xb//#0x49
+mov r1, #0x49
 str r1, [r4, #0x48] @ flags
 ldr r1, =0x101
 str r1, [r4, #0x5c] @ NS appID (use the homemenu appID since the browser appID wouldn't be registered yet)
