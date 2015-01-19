@@ -45,6 +45,11 @@ ifneq ($(strip $(USE_PADCHECK)),)
 	DEFINES	:=	$(DEFINES) -DUSE_PADCHECK=$(USE_PADCHECK)
 endif
 
+ifneq ($(strip $(GAMECARD_PADCHECK)),)
+	PARAMS	:=	$(PARAMS) GAMECARD_PADCHECK=$(GAMECARD_PADCHECK)
+	DEFINES	:=	$(DEFINES) -DGAMECARD_PADCHECK=$(GAMECARD_PADCHECK)
+endif
+
 all:	
 	@make buildtheme --no-print-directory SYSVER=94
 	@make buildtheme --no-print-directory SYSVER=93

