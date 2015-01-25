@@ -201,7 +201,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #ifndef LOADSDPAYLOAD
 #define CODEBINPAYLOAD_SIZE (codedataend-codedatastart)
 #else
-#define CODEBINPAYLOAD_SIZE 0x10000
+#define CODEBINPAYLOAD_SIZE 0x4000
 #endif
 
 .macro ROP_SETLR lr
