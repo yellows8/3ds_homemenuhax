@@ -33,7 +33,7 @@ Build options:
 Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. See themedata_payload.s for what the ROP currently does.
 
 # Installation
-One of the ways to write to the theme extdata is with ctrclient-yls8(extdataIDs below is for USA, extdataID is different for other regions). The built filename for BodyCache.bin/Body_LZ.bin is this: themedatahax_v{systemversion}.lz
+One of the ways to write to the theme extdata is with ctrclient-yls8(extdataIDs below is for USA, extdataID is different for other regions). The built filename for BodyCache.bin/Body_LZ.bin is this: themedatahax_v{systemversion}_{old/new}3ds.lz
 
 Theme-data cache from this extdata is only loaded at startup when cetain fields in the home-menu SD extdata Savedata.dat are set to certain values, see here: http://3dbrew.org/wiki/Home_Menu
 
