@@ -15,7 +15,7 @@ The decompression code only has an input-size parameter, no output size paramete
 
 This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X. In Japan according to Nintendo, theme support was "added" with 9.1.0-XJ(but the code binary for v9.0j appears to have theme support too). Therefore, the lowest system-version supported by this is v9.0(non-JPN), and JPN v9.1.
 
-This flaw still exists with system-version 9.4.0-X, the newest version this flaw was checked for at the time of writing.
+This flaw still exists with system-version 9.5.0-X, the newest version this flaw was checked for at the time of writing.
 
 # Building
 Just run "make", or even "make clean && make".
@@ -33,7 +33,7 @@ Build options:
 Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. See themedata_payload.s for what the ROP currently does.
 
 # Installation
-One of the ways to write to the theme extdata is with ctrclient-yls8(extdataIDs below is for USA, extdataID is different for other regions). The built filename for ThemeManage is this: themedatahax_v{systemversion}.lz
+One of the ways to write to the theme extdata is with ctrclient-yls8(extdataIDs below is for USA, extdataID is different for other regions). The built filename for BodyCache.bin/Body_LZ.bin is this: themedatahax_v{systemversion}.lz
 
 Theme-data cache from this extdata is only loaded at startup when cetain fields in the home-menu SD extdata Savedata.dat are set to certain values, see here: http://3dbrew.org/wiki/Home_Menu
 
