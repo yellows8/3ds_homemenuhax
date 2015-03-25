@@ -15,7 +15,7 @@ The decompression code only has an input-size parameter, no output size paramete
 
 This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X. In Japan according to Nintendo, theme support was "added" with 9.1.0-XJ(but the code binary for v9.0j appears to have theme support too). Therefore, the lowest system-version supported by this is v9.0(non-JPN), and JPN v9.1.
 
-This flaw still exists with system-version 9.5.0-X, the newest version this flaw was checked for at the time of writing.
+This flaw still exists with system-version 9.6.0-X, the newest version this flaw was checked for at the time of writing.
 
 # Building
 Just run "make", or even "make clean && make".
@@ -51,4 +51,3 @@ This works correctly with the pc-side simulator. It also works fine on hardware:
 
 Example use :
 	python3 payload.py uncompressed_rop_data.bin payload.bin 0xDEADBABE 0xBADBEEF 0xDEADC0DE 0xCAFE
-
