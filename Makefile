@@ -61,6 +61,7 @@ ifneq ($(strip $(LOADSDPAYLOAD)),)
 endif
 
 all:	
+	@make buildtheme --no-print-directory SYSVER=95
 	@make buildtheme --no-print-directory SYSVER=94
 	@make buildtheme --no-print-directory SYSVER=93
 	@make buildtheme --no-print-directory SYSVER=92
@@ -68,6 +69,7 @@ all:
 	@make buildtheme --no-print-directory SYSVER=90
 
 clean:
+	@make cleanbuild --no-print-directory SYSVER=95
 	@make cleanbuild --no-print-directory SYSVER=94
 	@make cleanbuild --no-print-directory SYSVER=93
 	@make cleanbuild --no-print-directory SYSVER=92

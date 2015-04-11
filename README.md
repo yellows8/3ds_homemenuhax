@@ -12,6 +12,7 @@ The decompression code only has an input-size parameter, no output size paramete
 * v9.2
 * v9.3 (not tested, unknown if the heap/stack addrs are correct)
 * v9.4
+* v9.5
 
 This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X. In Japan according to Nintendo, theme support was "added" with 9.1.0-XJ(but the code binary for v9.0j appears to have theme support too). Therefore, the lowest system-version supported by this is v9.0(non-JPN), and JPN v9.1.
 
