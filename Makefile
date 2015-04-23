@@ -68,6 +68,7 @@ all:
 	@make buildtheme --no-print-directory SYSVER=94
 	@make buildtheme --no-print-directory SYSVER=95
 	@make buildtheme --no-print-directory SYSVER=96
+	@make buildtheme --no-print-directory SYSVER=97
 
 clean:
 	@make cleanbuild --no-print-directory SYSVER=90
@@ -77,6 +78,7 @@ clean:
 	@make cleanbuild --no-print-directory SYSVER=94
 	@make cleanbuild --no-print-directory SYSVER=95
 	@make cleanbuild --no-print-directory SYSVER=96
+	@make cleanbuild --no-print-directory SYSVER=97
 
 buildtheme:
 	@make $(THEMEPREFIX)$(SYSVER)_old3ds.lz --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_old3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_OLD3DS) NEW3DS=0 $(PARAMS)
