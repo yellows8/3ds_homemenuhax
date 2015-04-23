@@ -61,20 +61,22 @@ ifneq ($(strip $(LOADSDPAYLOAD)),)
 endif
 
 all:	
-	@make buildtheme --no-print-directory SYSVER=95
-	@make buildtheme --no-print-directory SYSVER=94
-	@make buildtheme --no-print-directory SYSVER=93
-	@make buildtheme --no-print-directory SYSVER=92
-	@make buildtheme --no-print-directory SYSVER=91
 	@make buildtheme --no-print-directory SYSVER=90
+	@make buildtheme --no-print-directory SYSVER=91
+	@make buildtheme --no-print-directory SYSVER=92
+	@make buildtheme --no-print-directory SYSVER=93
+	@make buildtheme --no-print-directory SYSVER=94
+	@make buildtheme --no-print-directory SYSVER=95
+	@make buildtheme --no-print-directory SYSVER=96
 
 clean:
-	@make cleanbuild --no-print-directory SYSVER=95
-	@make cleanbuild --no-print-directory SYSVER=94
-	@make cleanbuild --no-print-directory SYSVER=93
-	@make cleanbuild --no-print-directory SYSVER=92
-	@make cleanbuild --no-print-directory SYSVER=91
 	@make cleanbuild --no-print-directory SYSVER=90
+	@make cleanbuild --no-print-directory SYSVER=91
+	@make cleanbuild --no-print-directory SYSVER=92
+	@make cleanbuild --no-print-directory SYSVER=93
+	@make cleanbuild --no-print-directory SYSVER=94
+	@make cleanbuild --no-print-directory SYSVER=95
+	@make cleanbuild --no-print-directory SYSVER=96
 
 buildtheme:
 	@make $(THEMEPREFIX)$(SYSVER)_old3ds.lz --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_old3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_OLD3DS) NEW3DS=0 $(PARAMS)

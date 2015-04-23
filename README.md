@@ -13,6 +13,7 @@ The decompression code only has an input-size parameter, no output size paramete
 * v9.3 (not tested, unknown if the heap/stack addrs are correct)
 * v9.4
 * v9.5
+* v9.6
 
 This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X. In Japan according to Nintendo, theme support was "added" with 9.1.0-XJ(but the code binary for v8.1j/v9.0j appears to have theme support too). Therefore, the lowest system-version supported by this is v9.0(non-JPN), and JPN v9.1.
 
@@ -23,8 +24,8 @@ Just run "make", or even "make clean && make".
 
 Build options:
 * "ENABLE_RET2MENU=1" Just return from the haxx to the Home Menu code after writing to the framebufs.
-* "CODEBINPAYLOAD=path" Code binary payload to load into the launched process.
-* "LOADSDPAYLOAD=1" Enable loading a code binary from SD for loading into the launched process. The total size of the code(including additional code prior to the binary from SD) loaded into the process is 0x4000-bytes. Therefore, the max size of the code binary from SD is a bit less than 0x3000-bytes.
+* "CODEBINPAYLOAD=path" Code binary payload to load into the launched process. This will be included in the theme-data itself.
+* "LOADSDPAYLOAD=1" Enable loading a code binary from SD for loading into the launched process("/menuhax_payload.bin"). The total size of the code(including additional code prior to the binary from SD) loaded into the process is 0x4000-bytes. Therefore, the max size of the code binary from SD is a bit less than 0x3000-bytes.
 * "BOOTGAMECARD=1" Reboot the system to launch the gamecard. If GAMECARD_PADCHECK isn't used, the ROP will always execute this without executing the title-launch + takeover ROP.
 * "USE_PADCHECK=val" When set, at the very start of the menu ROP it will check if current HID PAD state is set to the specified value. When they match, it continues the ROP, otherwise it returns to the homemenu code. This is done before writing to the framebuffers.
 * "GAMECARD_PADCHECK=val" Similar to USE_PADCHECK except for BOOTGAMECARD: the BOOTGAMECARD ROP only gets executed when the specified HID PAD state matches the current one. After writing to framebufs the ROP will delay 3 seconds, then run this PADCHECK ROP.

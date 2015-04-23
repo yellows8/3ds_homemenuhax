@@ -21,6 +21,42 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 	#define STACKPIVOT_ADR 0x00100fb8
 #endif
 
+#if SYSVER==96
+	#define ROP_LOADR4_FROMOBJR0 0x0010b4b8
+	#define ROP_POPPC 0x0010201c
+	#define POP_R0PC 0x001576d4
+	#define POP_R1PC 0x00237040
+	#define POP_R3PC 0x00102a80
+	#define POP_R2R6PC 0x001502c8
+	#define POP_R4LR_BXR1 0x0011a2c4
+	#define POP_R4R8LR_BXR2 0x001333dc
+	#define POP_R4R5R6PC 0x00101b74
+
+	#define ROP_STR_R1TOR0 0x00104020
+	#define ROP_LDR_R0FROMR0 0x00118d38
+	#define ROP_LDRR1R1_STRR1R0 0x00213f9c
+	#define ROP_MOVR1R3_BXIP 0x001ce768
+	#define ROP_ADDR0_TO_R1 0x0012b0dc
+	#define ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX 0x001038c4
+	#define ROP_CMPR0R1 0x002a19a8
+
+	#define ROP_INITOBJARRAY 0x0022bf44
+
+	#define MEMCPY 0x001535ac
+
+	#define svcControlMemory 0x00235730
+	#define svcSleepThread 0x0012b0a0
+
+	#define SRV_GETSERVICEHANDLE 0x00235788
+
+	#define GXLOW_CMD4 0x0014b858
+
+	#define NSS_LaunchTitle 0x0023125c
+	#define NSS_RebootSystem 0x001373e8
+
+	#define CFGIPC_SecureInfoGetRegion 0x0013780c
+#endif
+
 #if SYSVER==93 || SYSVER==94
 	#define POP_R4LR_BXR1 0x0011df68 //"pop {r4, lr}" "bx r1"
 	#define POP_R4R8LR_BXR2 0x00133f8c //"pop {r4, r5, r6, r7, r8, lr}" "bx r2"
@@ -57,6 +93,17 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 	#define IFile_Open 0x00218b90
 	#define IFile_Close 0x0021dc48
 	#define IFile_Read 0x00218aa8
+#elif SYSVER==96
+	#define GSPGPU_Shutdown 0x00119f78
+	#define GSPGPU_FlushDataCache 0x0014b754
+
+	#define APT_SendParameter 0x00227700
+
+	#define FS_MountSdmc 0x00118bc4
+
+	#define IFile_Open 0x0022babc
+	#define IFile_Close 0x0022f854
+	#define IFile_Read 0x0022b9a8
 #endif
 
 #if SYSVER>=93 && SYSVER<=95 //v9.3-v9.5
@@ -81,6 +128,10 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 	#define NSS_RebootSystem 0x00139874
 
 	#define ROP_COND_THROWFATALERR 0x001028dc
+#endif
+
+#if SYSVER==96
+	#define ROP_COND_THROWFATALERR 0x001028e4
 #endif
 
 #if SYSVER == 93
@@ -122,7 +173,11 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 	#define GXLOW_CMD4 0x0014ac8c
 #endif
 
-#if SYSVER>=93 //v9.3-v9.5
+#if SYSVER==96
+	#define ORIGINALOBJPTR_LOADADR (0x0032e848+8)
+#endif
+
+#if SYSVER>=93 && SYSVER<=95 //v9.3-v9.5
 	#define POP_R3PC 0x00102a40
 
 	#define ROP_STR_R1TOR0 0x00103f58
@@ -131,7 +186,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 	#define ORIGINALOBJPTR_LOADADR (0x0031382c+8) //The ptr stored here is the ptr stored in the saved r4 value in the stackframe, which was overwritten by memchunkhax.
 #endif
 
-#if SYSVER <= 92 //v9.0-v9.2
+#if SYSVER>=90 && SYSVER <= 92 //v9.0-v9.2
 	#define ROP_STR_R1TOR0 0x00103f40
 	#define ROP_LDR_R0FROMR0 0x0010efe8
 	#define ROP_ADDR0_TO_R1 0x0012e708
@@ -167,7 +222,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 	#define IFile_Read 0x00209e0c
 #endif
 
-#if SYSVER <= 91 //v9.0-v9.1j
+#if SYSVER>=90 && SYSVER <= 91 //v9.0-v9.1j
 	#define POP_R0PC 0x00157554
 	#define POP_R1PC 0x002149f0
 	#define POP_R3PC 0x00102a24
@@ -420,6 +475,9 @@ stackpivot_pcloadword:
 #if SYSVER <= 92 //Dunno if this applies for versions other than v9.2.
 .word 0 @ The target ptr offset is 0x4-bytes different from v9.4.
 #endif
+#if SYSVER >= 96
+.space 0x40
+#endif
 .word HEAPBUF + (object - _start) @ Ptr loaded by L_1ca5d0, passed to L_1d1ea8() inr0.
 
 vtable:
@@ -466,7 +524,7 @@ sd_archivename:
 .align 2
 
 IFile_ctx:
-.space 20
+.space 0x20
 
 sdfile_path:
 .string16 "sd:/menuhax_payload.bin"
