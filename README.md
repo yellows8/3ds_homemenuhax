@@ -21,7 +21,7 @@ This flaw was introduced with the Home Menu version which added support for them
 This flaw still exists with system-version 9.7.0-X, the newest version this flaw was checked for at the time of writing.
 
 # Building
-Just run "make", or even "make clean && make".
+Just run "make", or even "make clean && make". For building ROP binaries which can be used for general homemenu ROP, this can be used: "{make clean &&} make ropbins".
 
 Build options:
 * "ENABLE_RET2MENU=1" Just return from the haxx to the Home Menu code after writing to the framebufs.

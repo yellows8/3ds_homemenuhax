@@ -18,9 +18,13 @@ THEMEPREFIX	:=	themedatahax_v
 # Relative offset for the heapbuf is 0xD00080.
 TARGETOVERWRITE_MEMCHUNKADR	:=	0x0FFFFEA4
 HEAPBUF_OBJADDR_OLD3DS	:=	0x35052144
-HEAPBUF_OLD3DS	:=	0x35052080
 HEAPBUF_OBJADDR_NEW3DS	:=	0x38c52144
-HEAPBUF_NEW3DS	:=	0x38c52080
+
+HEAPBUF_ROPBIN_OLD3DS	:=	0x35040000
+HEAPBUF_ROPBIN_NEW3DS	:=	0x38C40000
+
+HEAPBUF_THEME_OLD3DS	:=	0x35052080
+HEAPBUF_THEME_NEW3DS	:=	0x38c52080
 
 PARAMS	:=	
 DEFINES	:=	
@@ -60,6 +64,11 @@ ifneq ($(strip $(LOADSDPAYLOAD)),)
 	DEFINES	:=	$(DEFINES) -DLOADSDPAYLOAD -DPAYLOADENABLED
 endif
 
+ifneq ($(strip $(BUILDROPBIN)),)
+	PARAMS	:=	$(PARAMS) BUILDROPBIN=1
+	DEFINES	:=	$(DEFINES) -DBUILDROPBIN
+endif
+
 all:	
 	@make buildtheme --no-print-directory SYSVER=90
 	@make buildtheme --no-print-directory SYSVER=91
@@ -69,6 +78,16 @@ all:
 	@make buildtheme --no-print-directory SYSVER=95
 	@make buildtheme --no-print-directory SYSVER=96
 	@make buildtheme --no-print-directory SYSVER=97
+
+ropbins:	
+	@make buildropbin --no-print-directory SYSVER=90
+	@make buildropbin --no-print-directory SYSVER=91
+	@make buildropbin --no-print-directory SYSVER=92
+	@make buildropbin --no-print-directory SYSVER=93
+	@make buildropbin --no-print-directory SYSVER=94
+	@make buildropbin --no-print-directory SYSVER=95
+	@make buildropbin --no-print-directory SYSVER=96
+	@make buildropbin --no-print-directory SYSVER=97
 
 clean:
 	@make cleanbuild --no-print-directory SYSVER=90
@@ -81,8 +100,12 @@ clean:
 	@make cleanbuild --no-print-directory SYSVER=97
 
 buildtheme:
-	@make $(THEMEPREFIX)$(SYSVER)_old3ds.lz --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_old3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_OLD3DS) NEW3DS=0 $(PARAMS)
-	@make $(THEMEPREFIX)$(SYSVER)_new3ds.lz --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_new3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_NEW3DS) NEW3DS=1 $(PARAMS)
+	@make $(THEMEPREFIX)$(SYSVER)_old3ds.lz --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_old3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_THEME_OLD3DS) NEW3DS=0 $(PARAMS)
+	@make $(THEMEPREFIX)$(SYSVER)_new3ds.lz --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_new3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_THEME_NEW3DS) NEW3DS=1 $(PARAMS)
+
+buildropbin:
+	@make $(THEMEPREFIX)$(SYSVER)_old3ds.bin --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_old3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 BUILDROPBIN=1 $(PARAMS)
+	@make $(THEMEPREFIX)$(SYSVER)_new3ds.bin --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_new3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 BUILDROPBIN=1 $(PARAMS)
 
 cleanbuild:
 	rm -f $(THEMEPREFIX)$(SYSVER)_old3ds.elf $(THEMEPREFIX)$(SYSVER)_old3ds.bin $(THEMEPREFIX)$(SYSVER)_old3ds.lz
