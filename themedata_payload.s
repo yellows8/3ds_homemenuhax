@@ -43,7 +43,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 	#define ROP_ADDR0_TO_R1 0x0012b080
 	#define ROP_CMPR0R1 0x002a1810
 
-	#define ROP_INITOBJARRAY 0x0022be08
+	#define ROP_INITOBJARRAY 0x0022be09
 
 	#define MEMCPY 0x001536f0
 
@@ -74,7 +74,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 	#define ROP_ADDR0_TO_R1 0x0012b0dc
 	#define ROP_CMPR0R1 0x002a19a8
 
-	#define ROP_INITOBJARRAY 0x0022bf44
+	#define ROP_INITOBJARRAY 0x0022bf45
 
 	#define MEMCPY 0x001535ac
 
