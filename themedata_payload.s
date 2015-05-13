@@ -359,7 +359,11 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #ifndef LOADSDPAYLOAD
 	#define CODEBINPAYLOAD_SIZE (codedataend-codedatastart)
 #else
+	#if SYSVER < 96
 	#define CODEBINPAYLOAD_SIZE 0x4000
+	#else
+	#define CODEBINPAYLOAD_SIZE 0x5000
+	#endif
 #endif
 
 .macro ROP_SETLR lr
@@ -880,7 +884,11 @@ codedatastart:
 #if NEW3DS==0
 .space 0x200 @ nop-sled
 #else
+#if SYSVER < 96
 .space 0x1000
+#else
+.space 0x2000 @ Size 0x2000 is needed for SKATER >=v9.6, but doesn't work with the initial version of SKATER for whatever reason.
+#endif
 #endif
 
 #if NEW3DS==0
