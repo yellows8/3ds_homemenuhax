@@ -91,6 +91,12 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 	#define CFGIPC_SecureInfoGetRegion 0x0013780c
 #endif
 
+#if SYSVER==94
+	#define IFile_Read 0x00218b1c //inr0=ctx inr1=u32* total transferred data inr2=buf inr3=size
+#elif SYSVER==93
+	#define IFile_Read 0x00218b3c
+#endif
+
 #if SYSVER==93 || SYSVER==94
 	#define POP_R4LR_BXR1 0x0011df68 //"pop {r4, lr}" "bx r1"
 	#define POP_R4R8LR_BXR2 0x00133f8c //"pop {r4, r5, r6, r7, r8, lr}" "bx r2"
@@ -108,7 +114,6 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 	#define IFile_Open 0x00218c1c //inr0=ctx inr1=utf16* path inr2=openflags
 	#define IFile_Close 0x0021dcbc //inr0=ctx
-	#define IFile_Read 0x00218b1c //inr0=ctx inr1=u32* total transferred data inr2=buf inr3=size
 #elif SYSVER==95
 	#define POP_R4LR_BXR1 0x0011df5c
 	#define POP_R4R8LR_BXR2 0x00133f80
