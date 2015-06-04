@@ -106,7 +106,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 	#define FS_MountSdmc 0x0011cacc //inr0=archivename*
 
-	#define IFile_Open 0x00218c04 //inr0=ctx inr1=utf16* path inr2=openflags
+	#define IFile_Open 0x00218c1c //inr0=ctx inr1=utf16* path inr2=openflags
 	#define IFile_Close 0x0021dcbc //inr0=ctx
 	#define IFile_Read 0x00218b1c //inr0=ctx inr1=u32* total transferred data inr2=buf inr3=size
 #elif SYSVER==95
@@ -124,7 +124,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 	#define FS_MountSdmc 0x0011cac0
 
-	#define IFile_Open 0x00218b90
+	#define IFile_Open 0x00218ba8
 	#define IFile_Close 0x0021dc48
 	#define IFile_Read 0x00218aa8
 #elif SYSVER==96
