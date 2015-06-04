@@ -1,5 +1,9 @@
 #!/bin/bash
 
+echo "v9.8:"
+./menuhax_locateaddrs.sh $1/USA/v19456/*exefs/code.bin
+echo -n -e "\n"
+
 echo "v9.7:"
 ./menuhax_locateaddrs.sh $1/USA/v17415/*exefs/code.bin
 echo -n -e "\n"

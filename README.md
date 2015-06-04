@@ -18,7 +18,7 @@ The decompression code only has an input-size parameter, no output size paramete
 
 This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X on Old3DS, v8.1 on New3DS. Old3DS JPN theme support was "added" 9.1.0-XJ. The lowest system-version supported by this is v9.0(non-JPN), and JPN v9.1.
 
-This flaw still exists with system-version 9.7.0-X, the newest version this flaw was checked for at the time of writing.
+This flaw still exists with system-version 9.8.0-X, the newest version this flaw was checked for at the time of writing.
 
 # Building
 Just run "make", or even "make clean && make". For building ROP binaries which can be used for general homemenu ROP, this can be used: "{make clean &&} make ropbins".
