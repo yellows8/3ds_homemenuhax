@@ -106,7 +106,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 	#define CFGIPC_SecureInfoGetRegion 0x00136ea4 //inr0=u8* out
 
 	#define GSPGPU_Shutdown 0x0011dc1c
-	#define GSPGPU_FlushDataCache 0x0014ab9c
+	#define GSPGPU_FlushDataCache 0x0014ab98
 
 	#define APT_SendParameter 0x00214ab0 //inr0=dst appid inr1=signaltype inr2=parambuf* inr3=parambufsize insp0=handle
 
@@ -123,7 +123,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 	#define CFGIPC_SecureInfoGetRegion 0x00136e98
 
 	#define GSPGPU_Shutdown 0x0011dc10
-	#define GSPGPU_FlushDataCache 0x0014ab8c
+	#define GSPGPU_FlushDataCache 0x0014ab88
 
 	#define APT_SendParameter 0x00214a3c
 
@@ -267,7 +267,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 	#define GXLOW_CMD4 0x0014d65c
 
-	#define GSPGPU_FlushDataCache 0x0014d55c
+	#define GSPGPU_FlushDataCache 0x0014d558
 
 	#define APT_SendParameter 0x00205ba0
 
@@ -298,7 +298,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 	#define GXLOW_CMD4 0x0014d604
 
-	#define GSPGPU_FlushDataCache 0x0014d504
+	#define GSPGPU_FlushDataCache 0x0014d500
 
 	#define NSS_LaunchTitle 0x0020e6a8
 
