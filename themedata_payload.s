@@ -15,6 +15,10 @@ L_2441a0: L_1e95e0(*(inr0+4)); ...
 L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from objectptr> ...//This is where this haxx finally gets control over an objectptr(r0) + PC at the same time.
 */
 
+#ifndef SYSVER
+#error The SYSVER define must be set.
+#endif
+
 #if SYSVER<96
 	#define STACKPIVOT_ADR 0x00100fdc //7814bd30 ldmdavc r4, {r4, r5, r8, sl, fp, ip, sp, pc} (same addr for v9.1j - v9.5 all regions)
 #else
