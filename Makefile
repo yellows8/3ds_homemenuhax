@@ -11,7 +11,7 @@ include $(DEVKITARM)/base_rules
 
 .PHONY: clean all cleanbuild buildtheme
 
-THEMEPREFIX	:=	themedatahax_v
+THEMEPREFIX	:=	themedatahax_
 
 # Heap start on Old3DS is 0x34352000.
 # Heap start on New3DS is 0x37f52000.
@@ -70,53 +70,47 @@ ifneq ($(strip $(BUILDROPBIN)),)
 endif
 
 all:	
-	@make buildtheme --no-print-directory SYSVER=90
-	@make buildtheme --no-print-directory SYSVER=91
-	@make buildtheme --no-print-directory SYSVER=92
-	@make buildtheme --no-print-directory SYSVER=93
-	@make buildtheme --no-print-directory SYSVER=94
-	@make buildtheme --no-print-directory SYSVER=95
-	@make buildtheme --no-print-directory SYSVER=96
-	@make buildtheme --no-print-directory SYSVER=97
+	@mkdir -p themepayload
+	@mkdir -p binpayload
+	@mkdir -p build
+	@if [ ! -d "menurop/JPN" ]; then $$(error "The menurop/JPN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
+	@if [ ! -d "menurop/USA" ]; then $$(error "The menurop/USA directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
+
+	@for path in menurop/JPN/*; do make -f Makefile buildtheme --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
+	@for path in menurop/USA/*; do make -f Makefile buildtheme --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
 
 ropbins:	
-	@make buildropbin --no-print-directory SYSVER=90
-	@make buildropbin --no-print-directory SYSVER=91
-	@make buildropbin --no-print-directory SYSVER=92
-	@make buildropbin --no-print-directory SYSVER=93
-	@make buildropbin --no-print-directory SYSVER=94
-	@make buildropbin --no-print-directory SYSVER=95
-	@make buildropbin --no-print-directory SYSVER=96
-	@make buildropbin --no-print-directory SYSVER=97
+	@mkdir -p binpayload
+	@mkdir -p build
+	@if [ ! -d "menurop/JPN" ]; then $$(error "The menurop/JPN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
+	@if [ ! -d "menurop/USA" ]; then $$(error "The menurop/USA directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
+
+	@for path in menurop/JPN/*; do make -f Makefile buildropbin --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
+	@for path in menurop/USA/*; do make -f Makefile buildropbin --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
 
 clean:
-	@make cleanbuild --no-print-directory SYSVER=90
-	@make cleanbuild --no-print-directory SYSVER=91
-	@make cleanbuild --no-print-directory SYSVER=92
-	@make cleanbuild --no-print-directory SYSVER=93
-	@make cleanbuild --no-print-directory SYSVER=94
-	@make cleanbuild --no-print-directory SYSVER=95
-	@make cleanbuild --no-print-directory SYSVER=96
-	@make cleanbuild --no-print-directory SYSVER=97
+	@rm -R -f themepayload
+	@rm -R -f binpayload
+	@rm -R -f build
 
 buildtheme:
-	@make $(THEMEPREFIX)$(SYSVER)_old3ds.lz --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_old3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_THEME_OLD3DS) NEW3DS=0 $(PARAMS)
-	@make $(THEMEPREFIX)$(SYSVER)_new3ds.lz --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_new3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_THEME_NEW3DS) NEW3DS=1 $(PARAMS)
+	@make -f Makefile themepayload/$(THEMEPREFIX)$(REGION)$(MENUVERSION)_old3ds.lz --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_THEME_OLD3DS) NEW3DS=0 $(PARAMS)
+	@make -f Makefile themepayload/$(THEMEPREFIX)$(REGION)$(MENUVERSION)_new3ds.lz --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_THEME_NEW3DS) NEW3DS=1 $(PARAMS)
 
 buildropbin:
-	@make $(THEMEPREFIX)$(SYSVER)_old3ds.bin --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_old3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 BUILDROPBIN=1 $(PARAMS)
-	@make $(THEMEPREFIX)$(SYSVER)_new3ds.bin --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(SYSVER)_new3ds SYSVER=$(SYSVER) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 BUILDROPBIN=1 $(PARAMS)
+	@make -f Makefile binpayload/$(THEMEPREFIX)$(REGION)$(MENUVERSION)_old3ds.bin --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 BUILDROPBIN=1 $(PARAMS)
+	@make -f Makefile binpayload/$(THEMEPREFIX)$(REGION)$(MENUVERSION)_new3ds.bin --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 BUILDROPBIN=1 $(PARAMS)
 
 cleanbuild:
-	@rm -f $(THEMEPREFIX)$(SYSVER)_old3ds.elf $(THEMEPREFIX)$(SYSVER)_old3ds.bin $(THEMEPREFIX)$(SYSVER)_old3ds.lz
-	@rm -f $(THEMEPREFIX)$(SYSVER)_new3ds.elf $(THEMEPREFIX)$(SYSVER)_new3ds.bin $(THEMEPREFIX)$(SYSVER)_new3ds.lz
+	@rm -f build/$(THEMEPREFIX)$(REGION)$(MENUVERSION)_old3ds.elf payload/$(THEMEPREFIX)$(MENUVERSION)_old3ds.bin themepayload/$(THEMEPREFIX)$(MENUVERSION)_old3ds.lz
+	@rm -f build/$(THEMEPREFIX)$(REGION)$(MENUVERSION)_new3ds.elf payload/$(THEMEPREFIX)$(MENUVERSION)_new3ds.bin themepayload/$(THEMEPREFIX)$(MENUVERSION)_new3ds.lz
 
-$(BUILDPREFIX).lz:	$(BUILDPREFIX).bin
+themepayload/$(BUILDPREFIX).lz:	binpayload/$(BUILDPREFIX).bin
 	python3 payload.py $< $@ 0x4652 0x100000 $(TARGETOVERWRITE_MEMCHUNKADR) $(HEAPBUF_OBJADDR)
 
-$(BUILDPREFIX).bin:	$(BUILDPREFIX).elf
+binpayload/$(BUILDPREFIX).bin:	build/$(BUILDPREFIX).elf
 	$(OBJCOPY) -O binary $< $@
 
-$(BUILDPREFIX).elf:	themedata_payload.s
-	$(CC) -x assembler-with-cpp -nostartfiles -nostdlib -DSYSVER=$(SYSVER) -DHEAPBUF=$(HEAPBUF) -DTARGETOVERWRITE_MEMCHUNKADR=$(TARGETOVERWRITE_MEMCHUNKADR) -DNEW3DS=$(NEW3DS) $(DEFINES) $< -o $@
+build/$(BUILDPREFIX).elf:	themedata_payload.s
+	$(CC) -x assembler-with-cpp -nostartfiles -nostdlib -DREGION=$(REGION) -DREGIONVAL=$(REGIONVAL) -DMENUVERSION=$(MENUVERSION) -DHEAPBUF=$(HEAPBUF) -DTARGETOVERWRITE_MEMCHUNKADR=$(TARGETOVERWRITE_MEMCHUNKADR) -DNEW3DS=$(NEW3DS) $(DEFINES) -include menurop/$(REGION)/$(MENUVERSION) $< -o $@
 
