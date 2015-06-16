@@ -11,7 +11,7 @@ include $(DEVKITARM)/base_rules
 
 .PHONY: clean all cleanbuild buildtheme
 
-THEMEPREFIX	:=	themedatahax_
+BUILDPREFIX	:=	menuhax_
 
 # Heap start on Old3DS is 0x34352000.
 # Heap start on New3DS is 0x37f52000.
@@ -23,8 +23,13 @@ HEAPBUF_OBJADDR_NEW3DS	:=	0x38c52144
 HEAPBUF_ROPBIN_OLD3DS	:=	0x35040000
 HEAPBUF_ROPBIN_NEW3DS	:=	0x38C40000
 
-HEAPBUF_THEME_OLD3DS	:=	0x35052080
-HEAPBUF_THEME_NEW3DS	:=	0x38c52080
+ifeq ($(strip $(HEAPBUF_HAX_OLD3DS)),)
+	HEAPBUF_HAX_OLD3DS	:=	0x35052080
+endif
+
+ifeq ($(strip $(HEAPBUF_HAX_NEW3DS)),)
+	HEAPBUF_HAX_NEW3DS	:=	0x38c52080
+endif
 
 PARAMS	:=	
 DEFINES	:=	
@@ -88,22 +93,31 @@ ropbins:
 	@for path in menurop/JPN/*; do make -f Makefile buildropbin --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
 	@for path in menurop/USA/*; do make -f Makefile buildropbin --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
 
+bins:	
+	@mkdir -p binpayload
+	@mkdir -p build
+	@if [ ! -d "menurop/JPN" ]; then $$(error "The menurop/JPN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
+	@if [ ! -d "menurop/USA" ]; then $$(error "The menurop/USA directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
+
+	@for path in menurop/JPN/*; do make -f Makefile buildbin --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
+	@for path in menurop/USA/*; do make -f Makefile buildbin --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
+
 clean:
 	@rm -R -f themepayload
 	@rm -R -f binpayload
 	@rm -R -f build
 
 buildtheme:
-	@make -f Makefile themepayload/$(THEMEPREFIX)$(REGION)$(MENUVERSION)_old3ds.lz --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_THEME_OLD3DS) NEW3DS=0 $(PARAMS)
-	@make -f Makefile themepayload/$(THEMEPREFIX)$(REGION)$(MENUVERSION)_new3ds.lz --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_THEME_NEW3DS) NEW3DS=1 $(PARAMS)
+	@make -f Makefile themepayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds.lz --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_HAX_OLD3DS) NEW3DS=0 $(PARAMS)
+	@make -f Makefile themepayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds.lz --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_HAX_NEW3DS) NEW3DS=1 $(PARAMS)
 
 buildropbin:
-	@make -f Makefile binpayload/$(THEMEPREFIX)$(REGION)$(MENUVERSION)_old3ds.bin --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 BUILDROPBIN=1 $(PARAMS)
-	@make -f Makefile binpayload/$(THEMEPREFIX)$(REGION)$(MENUVERSION)_new3ds.bin --no-print-directory BUILDPREFIX=$(THEMEPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 BUILDROPBIN=1 $(PARAMS)
+	@make -f Makefile binpayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 BUILDROPBIN=1 $(PARAMS)
+	@make -f Makefile binpayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 BUILDROPBIN=1 $(PARAMS)
 
-cleanbuild:
-	@rm -f build/$(THEMEPREFIX)$(REGION)$(MENUVERSION)_old3ds.elf payload/$(THEMEPREFIX)$(MENUVERSION)_old3ds.bin themepayload/$(THEMEPREFIX)$(MENUVERSION)_old3ds.lz
-	@rm -f build/$(THEMEPREFIX)$(REGION)$(MENUVERSION)_new3ds.elf payload/$(THEMEPREFIX)$(MENUVERSION)_new3ds.bin themepayload/$(THEMEPREFIX)$(MENUVERSION)_new3ds.lz
+buildbin:
+	@make -f Makefile binpayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 $(PARAMS)
+	@make -f Makefile binpayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 $(PARAMS)
 
 themepayload/$(BUILDPREFIX).lz:	binpayload/$(BUILDPREFIX).bin
 	python3 payload.py $< $@ 0x4652 0x100000 $(TARGETOVERWRITE_MEMCHUNKADR) $(HEAPBUF_OBJADDR)

@@ -24,7 +24,7 @@ This flaw was introduced with the Home Menu version which added support for them
 This flaw still exists with system-version 9.8.0-X, the newest version this flaw was checked for at the time of writing. Last system-version this haxx was successfully tested with: 9.8.0-X.
 
 # Building
-Just run "make", or even "make clean && make". For building ROP binaries which can be used for general homemenu ROP, this can be used: "{make clean &&} make ropbins".
+Just run "make", or even "make clean && make". For building ROP binaries which can be used for general homemenu ROP, this can be used: "{make clean &&} make ropbins". "make bins" is the same as "make", except building the .lz is skipped.
 
 Before building, the menurop directories+files must be generated. "./generate_menurop_addrs.sh {path}". See the source of that script for details. Note that the USA/EUR/JPN homemenu exefs:/.code binaries starting with system-version v9.2 are all identical, while USA/EUR binaries for v9.0 differs from the JPN versions.
 
