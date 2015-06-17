@@ -1,5 +1,7 @@
 # Summary
-When Home Menu is starting up, it can load theme-data from the home-menu theme SD extdata. The flaw can be triggered from here.
+When Home Menu is starting up, it can load theme-data from the home-menu theme SD extdata. The flaw can be triggered from here. Although this triggers during Home Menu boot, this can't cause any true bricks: just remove the *SD card if any booting issues ever occur(or delete/rename the theme-cache extdata directory).
+
+Since this is a theme exploit, no actual gfx theme can be used with this hax installed to the *SD card. Gfx theme-data can't be included with the themehax builds either currently, due to HEAPBUF_OBJADDR_*3DS being hard-coded in the Makefile(that value would vary for every gfx theme).
 
 # Vuln
 This was discovered on 12-22-14.
