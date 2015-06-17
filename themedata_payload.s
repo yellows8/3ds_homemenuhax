@@ -261,8 +261,15 @@ sd_archivename:
 IFile_ctx:
 .space 0x20
 
+#ifndef ENABLE_LOADROPBIN
 sdfile_path:
 .string16 "sd:/menuhax_payload.bin"
+.align 2
+#else
+sdfile_ropbin_path:
+.string16 "sd:/menuhax_ropbinpayload.bin"
+.align 2
+#endif
 #endif
 
 tmp_scratchdata:
@@ -320,6 +327,32 @@ CALL_GXCMD4 0x1f000000, 0x1f1e6000, 0x46800*2
 
 #ifdef ENABLE_RET2MENU//Note that when using this Home Menu will have the default theme "selected", however Home Menu will still load the themehax when homemenu starts up again later.
 RET2MENUCODE
+#endif
+
+#ifdef ENABLE_LOADROPBIN
+#ifndef LOADSDPAYLOAD
+CALLFUNC_NOSP MEMCPY, ROPBIN_BUFADR, (HEAPBUF + ((codebinpayload_start) - _start)), (codedataend-codebinpayload_start), 0
+#else
+CALLFUNC_NOSP FS_MountSdmc, (HEAPBUF + (sd_archivename - _start)), 0, 0, 0
+COND_THROWFATALERR
+
+CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_ropbin_path - _start)), 1, 0
+COND_THROWFATALERR
+
+CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), ROPBIN_BUFADR, 0x10000
+COND_THROWFATALERR
+
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word (HEAPBUF + (IFile_ctx - _start))
+
+.word ROP_LDR_R0FROMR0
+
+.word IFile_Close
+#endif
+
+ROPMACRO_STACKPIVOT ROPBIN_BUFADR, ROP_POPPC
 #endif
 
 #ifdef BOOTGAMECARD
@@ -386,6 +419,7 @@ bootgamecard_ropfinish:
 CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata - _start)), 0x0f000000, 0, 0x00400000, 0x3, 0x3, 0, 0
 #endif
 
+#ifndef ENABLE_LOADROPBIN
 #ifdef LOADSDPAYLOAD//When enabled, load the file from SD to codebinpayload_start.
 CALLFUNC_NOSP FS_MountSdmc, (HEAPBUF + (sd_archivename - _start)), 0, 0, 0
 COND_THROWFATALERR
@@ -404,6 +438,7 @@ ROP_SETLR ROP_POPPC
 .word ROP_LDR_R0FROMR0
 
 .word IFile_Close
+#endif
 #endif
 
 CALLFUNC_NOSP GSPGPU_FlushDataCache, (HEAPBUF + (codedatastart - _start)), CODEBINPAYLOAD_SIZE, 0, 0
