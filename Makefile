@@ -9,7 +9,7 @@ endif
 TOPDIR ?= $(CURDIR)
 include $(DEVKITARM)/base_rules
 
-.PHONY: clean all cleanbuild buildtheme
+.PHONY: clean all ropbins bins buildtheme buildropbin buildbin
 
 BUILDPREFIX	:=	menuhax_
 
