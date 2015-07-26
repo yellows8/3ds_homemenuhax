@@ -35,7 +35,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 		#if (REGIONVAL==0 && MENUVERSION<19476) || (REGIONVAL!=0 && MENUVERSION<16404)//Check for system-version <v9.6.
 			#define CODEBINPAYLOAD_SIZE 0x4000
 		#else
-			#define CODEBINPAYLOAD_SIZE 0x5000
+			#define CODEBINPAYLOAD_SIZE 0x6000
 		#endif
 	#endif
 #endif
@@ -597,7 +597,7 @@ codedatastart:
 #if (REGIONVAL==0 && MENUVERSION<19476) || (REGIONVAL!=0 && MENUVERSION<16404)
 .space 0x1000
 #else
-.space 0x2000 @ Size 0x2000 is needed for SKATER >=v9.6, but doesn't work with the initial version of SKATER for whatever reason.
+.space 0x3000 @ Size >=0x2000 is needed for SKATER >=v9.6(0x3000 for SKATER system-version v9.9), but doesn't work with the initial version of SKATER for whatever reason.
 #endif
 #endif
 
