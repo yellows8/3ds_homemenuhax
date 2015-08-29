@@ -325,7 +325,7 @@ rop_r0data_cmphid:
 //Overwrite the top-screen framebuffers. This doesn't affect the framebuffers when returning from an appet to Home Menu.
 CALL_GXCMD4 0x1f000000, 0x1f1e6000, 0x46800*2
 
-#ifdef ENABLE_RET2MENU//Note that when using this Home Menu will have the default theme "selected", however Home Menu will still load the themehax when homemenu starts up again later.
+#ifdef ENABLE_RET2MENU
 RET2MENUCODE
 #endif
 
