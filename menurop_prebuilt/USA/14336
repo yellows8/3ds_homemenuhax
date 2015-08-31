@@ -1,0 +1,50 @@
+#define STACKPIVOT_ADR 0x00100fdc
+#define ROP_LOADR4_FROMOBJR0 0x0010b574
+#define ROP_POPPC 0x0010203c
+#define POP_R0PC 0x00154f0c
+#define POP_R1PC 0x0022629c
+#define POP_R3PC 0x00102a40
+#define POP_R2R6PC 0x001512c4
+#define POP_R4LR_BXR1 0x0011df68
+#define POP_R4R8LR_BXR2 0x00133f8c
+#define POP_R4R5R6PC 0x00101b94
+
+#define ROP_STR_R1TOR0 0x00103f58
+#define ROP_LDR_R0FROMR0 0x0010f01c
+#define ROP_LDRR1R1_STRR1R0 0x002003bc
+#define ROP_MOVR1R3_BXIP 0x001c2e24
+#define ROP_ADDR0_TO_R1 0x0012b64c
+#define ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX 0x001037fc
+#define ROP_CMPR0R1 0x002946d0
+
+#define ROP_INITOBJARRAY 0x002190a5
+
+#define MEMCPY 0x00150940
+
+#define svcControlMemory 0x002246b4
+#define svcSleepThread 0x0012b590
+
+#define SRV_GETSERVICEHANDLE 0x0022470c
+
+#define GXLOW_CMD4 0x0014ac9c
+
+#define NSS_LaunchTitle 0x0022022c
+#define NSS_RebootSystem 0x00136a0c
+
+#define CFGIPC_SecureInfoGetRegion 0x00136ea4
+
+#define GSPGPU_Shutdown 0x0011dc1c
+#define GSPGPU_FlushDataCache 0x0014ab98
+
+#define APT_SendParameter 0x00214ab0
+
+#define FS_MountSdmc 0x0011cacc
+
+#define IFile_Open 0x00218c1c
+#define IFile_Close 0x0021dcbc
+#define IFile_Read 0x00218b1c
+
+#define ROP_COND_THROWFATALERR 0x001028f8
+
+#define ORIGINALOBJPTR_BASELOADADR 0x0031382c
+

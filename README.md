@@ -11,7 +11,7 @@ Home Menu allocates a 0x2a0000-byte heap buffer using the ctrsdk heap code: offs
 The decompression code only has an input-size parameter, no output size parameter. Hence, the output size is not restricted/checked at all. Since the decompressed data is located before the compressed data, the buf overflow results in the input compressed data being overwritten first. Eventually this overflow will result in the input data actually being used by the decompression function being overwritten, which can later result in an error before the function ever writes to the memchunk-hdr(if the input compressed data doesn't workaround that).
 
 # Supported System Versions
-* v9.0 non-JPN (not tested, unknown if the heap/stack addrs are correct)
+* v9.0 (not tested, unknown if the heap/stack addrs are correct)
 * v9.1j (not tested, unknown if the heap/stack addrs are correct)
 * v9.2
 * v9.3 (not tested, unknown if the heap/stack addrs are correct)
@@ -21,14 +21,14 @@ The decompression code only has an input-size parameter, no output size paramete
 * v9.7
 * All homemenu versions with this vuln where the ropgadget-finder successfully finds the required addresses, unless structs involved with the initial ROP-chain change etc.
 
-This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X on Old3DS, v8.1 on New3DS. Old3DS JPN theme support was "added" 9.1.0-XJ. The lowest system-version supported by this is v9.0(non-JPN), and JPN v9.1.
+This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X on Old3DS, v8.1 on New3DS. Old3DS JPN theme support was "added" 9.1.0-XJ. The lowest system-version supported by this is v9.0.
 
 This flaw still exists with system-version 9.9.0-X, the newest version this flaw was checked for at the time of writing. Last system-version this haxx was successfully tested with: 9.9.0-X.
 
 # Building
 Just run "make", or even "make clean && make". For building ROP binaries which can be used for general homemenu ROP, this can be used: "{make clean &&} make ropbins". "make bins" is the same as "make", except building the .lz is skipped.
 
-Before building, the menurop directories+files must be generated. "./generate_menurop_addrs.sh {path}". See the source of that script for details. Note that the USA/EUR/JPN homemenu exefs:/.code binaries starting with system-version v9.2 are all identical, while USA/EUR binaries for v9.0 differs from the JPN versions.
+Before building, the menurop directories+files must be generated. "./generate_menurop_addrs.sh {path}". See the source of that script for details(this requires the Home Menu code-binaries). Note that the USA/EUR/JPN homemenu exefs:/.code binaries starting with system-version v9.2 are all identical, while USA/EUR binaries for v9.0 differs from the JPN versions. If you don't have the required Home Menu code-binaries, you can use the MENUROP_PATH option listed below.
 
 Build options:
 * "ENABLE_RET2MENU=1" Just return from the haxx to the Home Menu code after writing to the framebufs.
@@ -39,6 +39,7 @@ Build options:
 * "GAMECARD_PADCHECK=val" Similar to USE_PADCHECK except for BOOTGAMECARD: the BOOTGAMECARD ROP only gets executed when the specified HID PAD state matches the current one. After writing to framebufs the ROP will delay 3 seconds, then run this PADCHECK ROP.
 * "EXITMENU=1" Terminate homemenu X seconds(see source) after getting code exec under the launched process.
 * "ENABLE_LOADROPBIN=1" Load a homemenu ropbin then stack-pivot to it, see the Makefile HEAPBUF_ROPBIN_* values for the load-address. When LOADSDPAYLOAD isn't used, the binary is the one specified by CODEBINPAYLOAD, otherwise it's loaded from "sd:/menuhax_ropbinpayload.bin". The binary size should be <=0x10000-bytes.
+* "MENUROP_PATH={path}" Use the specified path for the "menurop" directory, instead of the default one which requires running generate_menurop_addrs.sh. To use the prebuilt menurop headers included with this repo, the following can be used: "MENUROP_PATH=menurop_prebuilt".
 
 # Usage
 Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. The ROP right after the ROP for USE_PADCHECK, if that's even enabled, will overwrite the main-screen framebuffers with data from elsewhere, resulting in junk being displayed.

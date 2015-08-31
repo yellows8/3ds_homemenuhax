@@ -79,33 +79,37 @@ ifneq ($(strip $(ENABLE_LOADROPBIN)),)
 	DEFINES	:=	$(DEFINES) -DENABLE_LOADROPBIN
 endif
 
+ifeq ($(strip $(MENUROP_PATH)),)
+	MENUROP_PATH	:=	menurop
+endif
+
 all:	
 	@mkdir -p themepayload
 	@mkdir -p binpayload
 	@mkdir -p build
-	@if [ ! -d "menurop/JPN" ]; then $$(error "The menurop/JPN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-	@if [ ! -d "menurop/USA" ]; then $$(error "The menurop/USA directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
+	@if [ ! -d "$(MENUROP_PATH)/JPN" ]; then $$(error "The $(MENUROP_PATH)/JPN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
+	@if [ ! -d "$(MENUROP_PATH)/USA" ]; then $$(error "The $(MENUROP_PATH)/USA directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
 
-	@for path in menurop/JPN/*; do make -f Makefile buildtheme --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
-	@for path in menurop/USA/*; do make -f Makefile buildtheme --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
+	@for path in $(MENUROP_PATH)/JPN/*; do make -f Makefile buildtheme --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
+	@for path in $(MENUROP_PATH)/USA/*; do make -f Makefile buildtheme --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
 
 ropbins:	
 	@mkdir -p binpayload
 	@mkdir -p build
-	@if [ ! -d "menurop/JPN" ]; then $$(error "The menurop/JPN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-	@if [ ! -d "menurop/USA" ]; then $$(error "The menurop/USA directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
+	@if [ ! -d "$(MENUROP_PATH)/JPN" ]; then $$(error "The $(MENUROP_PATH)/JPN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
+	@if [ ! -d "$(MENUROP_PATH)/USA" ]; then $$(error "The $(MENUROP_PATH)/USA directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
 
-	@for path in menurop/JPN/*; do make -f Makefile buildropbin --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
-	@for path in menurop/USA/*; do make -f Makefile buildropbin --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
+	@for path in $(MENUROP_PATH)/JPN/*; do make -f Makefile buildropbin --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
+	@for path in $(MENUROP_PATH)/USA/*; do make -f Makefile buildropbin --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
 
 bins:	
 	@mkdir -p binpayload
 	@mkdir -p build
-	@if [ ! -d "menurop/JPN" ]; then $$(error "The menurop/JPN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-	@if [ ! -d "menurop/USA" ]; then $$(error "The menurop/USA directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
+	@if [ ! -d "$(MENUROP_PATH)/JPN" ]; then $$(error "The $(MENUROP_PATH)/JPN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
+	@if [ ! -d "$(MENUROP_PATH)/USA" ]; then $$(error "The $(MENUROP_PATH)/USA directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
 
-	@for path in menurop/JPN/*; do make -f Makefile buildbin --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
-	@for path in menurop/USA/*; do make -f Makefile buildbin --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
+	@for path in $(MENUROP_PATH)/JPN/*; do make -f Makefile buildbin --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
+	@for path in $(MENUROP_PATH)/USA/*; do make -f Makefile buildbin --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
 
 clean:
 	@rm -R -f themepayload
