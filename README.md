@@ -1,7 +1,7 @@
 # Summary
 When Home Menu is starting up, it can load theme-data from the home-menu theme SD extdata. The flaw can be triggered from here. Although this triggers during Home Menu boot, this can't cause any true bricks: just remove the *SD card if any booting issues ever occur(or delete/rename the theme-cache extdata directory).
 
-Since this is a theme exploit, no actual gfx/audio theme can be used with this hax installed to the *SD card. Gfx/audio theme-data can't be included with the themehax builds either currently, due to HEAPBUF_OBJADDR_*3DS being hard-coded in the Makefile(that value would vary for every gfx theme).
+Since this is a theme exploit, a normal theme can't be used unless you build with the THEMEDATA_PATH option below(the ROP runs a good while after the theme is loaded). Due to how this hax works, the theme is really only usable for BGM(as described below).
 
 # Vuln
 This was discovered on December 22, 2014.
@@ -40,6 +40,7 @@ Build options:
 * "EXITMENU=1" Terminate homemenu X seconds(see source) after getting code exec under the launched process.
 * "ENABLE_LOADROPBIN=1" Load a homemenu ropbin then stack-pivot to it, see the Makefile HEAPBUF_ROPBIN_* values for the load-address. When LOADSDPAYLOAD isn't used, the binary is the one specified by CODEBINPAYLOAD, otherwise it's loaded from "sd:/menuhax_ropbinpayload.bin". The binary size should be <=0x10000-bytes.
 * "MENUROP_PATH={path}" Use the specified path for the "menurop" directory, instead of the default one which requires running generate_menurop_addrs.sh. To use the prebuilt menurop headers included with this repo, the following can be used: "MENUROP_PATH=menurop_prebuilt".
+* "THEMEDATA_PATH={*decompressed* regular theme body_LZ filepath}" Build hax with the specified theme, instead of using the "default theme" one. When Home Menu starts the actual rendering however, the gfx for the theme doesn't display properly due to the hax. BGM works fine, therefore this should only used for BGM-only themes(where the themedata header is all-zero except for the version and BGM fields). Also note that compression during building takes a *lot* longer with this.
 
 # Usage
 Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. The ROP right after the ROP for USE_PADCHECK, if that's even enabled, will overwrite the main-screen framebuffers with data from elsewhere, resulting in junk being displayed.

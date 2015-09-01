@@ -172,8 +172,12 @@ _start:
 
 themeheader:
 #ifndef BUILDROPBIN
+#ifndef THEMEDATA_PATH
 @ This is the start of the decompressed theme data.
 .word 1 @ version
+#else
+.incbin THEMEDATA_PATH
+#endif
 #else
 .word POP_R0PC @ Stack-pivot to ropstackstart.
 .word HEAPBUF + (object - _start) @ r0
@@ -181,7 +185,9 @@ themeheader:
 .word ROP_LOADR4_FROMOBJR0
 #endif
 
+#ifndef THEMEDATA_PATH
 .space ((themeheader + 0xc4) - .)
+#endif
 
 object:
 .word HEAPBUF + (vtable - _start) @ object+0, vtable ptr
@@ -223,7 +229,7 @@ vtable:
 
 .space ((vtable + 0x100) - .)
 
-.space ((_start + 0x4000) - .) @ Base the stack at heapbuf+0x4000 to make sure homemenu doesn't overwrite the ROP data with the u8 write(see notes on v9.4 func L_1ca5d0).
+.space ((object + 0x4000) - .) @ Base the tmpdata followed by stack, at heapbuf+0x4000 to make sure homemenu doesn't overwrite the ROP data with the u8 write(see notes on v9.4 func L_1ca5d0).
 
 tmpdata:
 
