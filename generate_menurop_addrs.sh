@@ -3,11 +3,12 @@
 # This script builds the ROP address #define headers included via the gcc -include option in the Makefile.
 # The tool from here is required: https://github.com/yellows8/ropgadget_patternfinder
 # Usage: generate_menurop_addrs.sh {path}
-# {path} must contain JPN and USA directories, which contain the following for each title-version: <v{titlever}>/*exefs/code.bin
+# {path} must contain JPN, USA, and EUR directories, which contain the following for each title-version: <v{titlever}>/*exefs/code.bin
 
 mkdir -p menurop
 mkdir -p menurop/USA
 mkdir -p menurop/JPN
+mkdir -p menurop/EUR
 
 if [ ! -d "$1/JPN" ]; then
 	echo "The \"$1/JPN\" directory doesn't exist."
@@ -16,6 +17,11 @@ fi
 
 if [ ! -d "$1/USA" ]; then
 	echo "The \"$1/USA\" directory doesn't exist."
+	exit 1
+fi
+
+if [ ! -d "$1/EUR" ]; then
+	echo "The \"$1/EUR\" directory doesn't exist."
 	exit 1
 fi
 
@@ -44,6 +50,20 @@ do
 		echo "ropgadget_patternfinder returned an error, output from it(which will be deleted after this):"
 		cat "menurop/USA/$version"
 		rm "menurop/USA/$version"
+	fi
+done
+
+for dir in $1/EUR/*
+do
+	version=$(basename "$dir")
+	version=${version:1}
+	echo "EUR $version"
+	ropgadget_patternfinder $dir/*exefs/code.bin --script=homemenu_ropgadget_script --baseaddr=0x100000 --patterntype=sha256 > "menurop/EUR/$version"
+
+	if [[ $? -ne 0 ]]; then
+		echo "ropgadget_patternfinder returned an error, output from it(which will be deleted after this):"
+		cat "menurop/EUR/$version"
+		rm "menurop/EUR/$version"
 	fi
 done
 
