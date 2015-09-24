@@ -1,5 +1,7 @@
 # Summary
-When Home Menu is starting up, it can load theme-data from the home-menu theme SD extdata. The flaw can be triggered from here. Although this triggers during Home Menu boot, this can't cause any true bricks: just remove the *SD card if any booting issues ever occur(or delete/rename the theme-cache extdata directory).
+When Home Menu is starting up, it can load theme-data from the home-menu theme SD extdata. The flaw can be triggered from here. The ROP starts running at roughly the same time the LCD backlight gets turned on.
+
+Although this triggers during Home Menu boot, this can't cause any true bricks: just remove the *SD card if any booting issues ever occur(or delete/rename the theme-cache extdata directory). Note that this also applies when the ROP causes a crash, like when the ROP is for a different version of Home Menu(this can also happen if you boot into a nandimage which has a different Home Menu version, but still uses the exact same SD data).
 
 Since this is a theme exploit, a normal theme can't be used unless you build with the THEMEDATA_PATH option below(the ROP runs a good while after the theme is loaded). Due to how this hax works, the theme is really only usable for BGM(as described below).
 
@@ -30,6 +32,10 @@ Just run "make", or even "make clean && make". For building ROP binaries which c
 
 Before building, the menurop directories+files must be generated. "./generate_menurop_addrs.sh {path}". See the source of that script for details(this requires the Home Menu code-binaries). Note that the USA/EUR/JPN homemenu exefs:/.code binaries starting with system-version v9.2 are all identical(prior to v9.9), while USA/EUR binaries for v9.0 differs from the JPN versions. If you don't have the required Home Menu code-binaries, you can use the MENUROP_PATH option listed below.
 
+The built files for BodyCache.bin/Body_LZ.bin are located under "themepayload/".
+
+Note that the compression done in .py is rather slow: this is why building all versions and such takes a while.
+
 Build options:
 * "ENABLE_RET2MENU=1" Just return from the haxx to the Home Menu code after writing to the framebufs.
 * "CODEBINPAYLOAD=path" Code binary payload to load into the launched process(default is the system web-browser). This will be included in the theme-data itself.
@@ -47,20 +53,20 @@ Just boot the system, the haxx will automatically trigger when Home Menu loads t
 
 When the ROP returns from the haxx to running the actual Home Menu code, such as when USE_PADCHECK is used where the current PAD state doesn't match the specified state, Home Menu will use the "theme" data from this hax: the end result is that it appears to use the same theme as the default one.
 
-When built with ENABLE_LOADROPBIN=1, this can boot into the homebrew-launcher if the ropbin listed above is one for the homebrew-launcher.
+When built with ENABLE_LOADROPBIN=1, this can boot into the homebrew-launcher if the ropbin listed above is one for the homebrew-launcher and was pre-patched.
+
+With the release archive, you have to hold down the L button while Home Menu is booting(at the time the ROP checks for it), in order to boot into the hblauncher payload. Otherwise, Home Menu will boot like normal.
 
 # Installation
-The files for BodyCache.bin/Body_LZ.bin is located under "themepayload/". The built "USA" theme .lz files can be used with both USA and EUR(in the context of this hax, for v9.9 only USA needs the v9.9 build, the rest use v9.8). The built filenames include the Home Menu title-version, see here: http://3dbrew.org/wiki/Title_list#00040030_-_Applets
+To install the exploit for booting hblauncher, you *must* use the themehax_installer app. You must already have a way to boot into the hblauncher payload for running this app(which can include themehax if it's already setup): http://3dbrew.org/wiki/Homebrew_Exploits  
+The app requires an Internet connection for setting up the hblauncher payload. Once the app is booted, all you have to do is confirm that you want to install, the app will then auto detect + install everything.  
+This app uses code based on code from the following repos: https://github.com/yellows8/3ds_homemenu_extdatatool https://github.com/yellows8/3ds_browserhax_common  
+This app includes the theme BGM copying code from 3ds_homemenu_extdatatool, but that BGM won't actually get used by Home Menu unless you build the exploit with the param related to that yourself.
+Whenever the Home Menu version installed on your system changes where the installed exploit is for a different version, or when you want to update the hblauncher payload, you must run the installer again. For this you can do the following: you can remove the SD card before booting the system, then once booted insert the SD card then boot into the hblauncher payload via a different method(http://3dbrew.org/wiki/Homebrew_Exploits).
 
-Theme-data cache from this extdata is only loaded at startup when certain fields in the home-menu SD extdata Savedata.dat are set to certain values, see here(this is handled by the below tool): http://3dbrew.org/wiki/Home_Menu
+To "remove" the exploit, you can just select any theme in the Home Menu theme settings(such as one of the built-in color themes). If you want the default theme, you can then select that option again. See the "Summary" section if you have issues with Home Menu failing to boot.
 
-The following tool can be used for installing the hax: https://github.com/yellows8/3ds_homemenu_extdatatool
-
-The hax can be installed with the following:
-* 1) Setup 3ds_homemenu_extdatatool on your SD card, for use via the homebrew-launcher from another exploit.
-* 2) Copy the .lz from themepayload/ above for your system, to "/3ds/3ds_homemenu_extdatatool/Body_LZ.bin".
-* 3) Boot the tool via homebrew-launcher, then use the following menu options in the tool: "Enable persistent theme-cache"(if it wasn't setup that way already) and "Copy theme-data from sd to extdata".
-* 4) The hax is now setup. You can now exit the tool+hbmenu to reboot for trying the hax.
+If you *really* want to build a NCCH version of the installer, use the same permissions as 3ds_homemenu_extdatatool, with the same data on SD card as from the release archive.
 
 # Credits
 * smea for payload.py. This is where the actual generation for the compressed data which triggers the buf-overflow is done.
