@@ -240,7 +240,7 @@ Result http_getactual_payloadurl(char *requrl, char *outurl, u32 outurl_maxsize)
 	ret = httpcOpenContext(&context, requrl, 0);
 	if(ret!=0)return ret;
 
-	ret = httpcAddRequestHeaderField(&context, "User-Agent", "themehax_installer/v1.0");
+	ret = httpcAddRequestHeaderField(&context, "User-Agent", "themehax_installer/v1.1");
 	if(ret!=0)
 	{
 		httpcCloseContext(&context);

@@ -75,6 +75,7 @@ Result open_extdata()
 	if(ret!=0)
 	{
 		printf("Failed to open theme extdata with extdataID=0x%08x, retval: 0x%08x\n", (unsigned int)extdataID_theme, (unsigned int)ret);
+		printf("Exit this app, then goto Home Menu theme-settings so that Home Menu can create the theme extdata.\n");
 		return ret;
 	}
 	extdata_initialized |= 0x2;
@@ -177,12 +178,7 @@ Result archive_writefile(Archive archive, char *path, u8 *buffer, u32 size)
 		strncpy(filepath, path, 255);
 
 		f = fopen(filepath, "w+");
-		if(f==NULL)
-		{
-			tmpval = errno;
-			printf("fopen('%s') failed: 0x%08x\n", filepath, (unsigned int)tmpval);
-			return tmpval;
-		}
+		if(f==NULL)return errno;
 
 		tmpval = fwrite(buffer, 1, size, f);
 

@@ -86,6 +86,11 @@ ifneq ($(strip $(ENABLE_LOADROPBIN)),)
 	DEFINES	:=	$(DEFINES) -DENABLE_LOADROPBIN
 endif
 
+ifneq ($(strip $(ENABLE_HBLAUNCHER)),)
+	PARAMS	:=	$(PARAMS) ENABLE_HBLAUNCHER=1
+	DEFINES	:=	$(DEFINES) -DENABLE_HBLAUNCHER
+endif
+
 ifeq ($(strip $(MENUROP_PATH)),)
 	MENUROP_PATH	:=	menurop
 endif

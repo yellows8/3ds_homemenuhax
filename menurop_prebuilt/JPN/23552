@@ -20,6 +20,7 @@
 #define ROP_INITOBJARRAY 0x0022bf2d
 
 #define MEMCPY 0x00153720
+#define MEMSET32_OTHER 0x002338e8
 
 #define svcControlMemory 0x00235710
 #define svcSleepThread 0x0012b070

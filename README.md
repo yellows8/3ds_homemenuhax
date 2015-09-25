@@ -44,7 +44,8 @@ Build options:
 * "USE_PADCHECK=val" When set, at the very start of the menu ROP it will check if the current HID PAD state is set to the specified value. When they match, it continues the ROP, otherwise it returns to the homemenu code. This is done before writing to the framebuffers.
 * "GAMECARD_PADCHECK=val" Similar to USE_PADCHECK except for BOOTGAMECARD: the BOOTGAMECARD ROP only gets executed when the specified HID PAD state matches the current one. After writing to framebufs the ROP will delay 3 seconds, then run this PADCHECK ROP.
 * "EXITMENU=1" Terminate homemenu X seconds(see source) after getting code exec under the launched process.
-* "ENABLE_LOADROPBIN=1" Load a homemenu ropbin then stack-pivot to it, see the Makefile HEAPBUF_ROPBIN_* values for the load-address. When LOADSDPAYLOAD isn't used, the binary is the one specified by CODEBINPAYLOAD, otherwise it's loaded from "sd:/menuhax_ropbinpayload.bin". The binary size should be <=0x10000-bytes.
+* "ENABLE_LOADROPBIN=1" Load a homemenu ropbin then stack-pivot to it, see the Makefile HEAPBUF_ROPBIN_* values for the load-address. When LOADSDPAYLOAD isn't used, the binary is the one specified by CODEBINPAYLOAD, otherwise it's loaded from "sd:/menuhax_ropbinpayload.bin". The binary size should be <=0x8000-bytes.
+* "ENABLE_HBLAUNCHER=1" When used with ENABLE_LOADROPBIN, setup the additional data needed by the hblauncher payload.
 * "MENUROP_PATH={path}" Use the specified path for the "menurop" directory, instead of the default one which requires running generate_menurop_addrs.sh. To use the prebuilt menurop headers included with this repo, the following can be used: "MENUROP_PATH=menurop_prebuilt".
 * "THEMEDATA_PATH={*decompressed* regular theme body_LZ filepath}" Build hax with the specified theme, instead of using the "default theme" one. When Home Menu starts the actual rendering however, the gfx for the theme doesn't display properly due to the hax. BGM works fine, therefore this should only used for BGM-only themes(where the themedata header is all-zero except for the version and BGM fields). Also note that compression during building takes a *lot* longer with this.
 
@@ -57,6 +58,8 @@ When built with ENABLE_LOADROPBIN=1, this can boot into the homebrew-launcher if
 
 With the release archive, you have to hold down the L button while Home Menu is booting(at the time the ROP checks for it), in order to boot into the hblauncher payload. Otherwise, Home Menu will boot like normal.
 
+Even with the latest git builds, hblauncher still doesn't work quite right when the app requires booting into another process. It works fine when booting into a different process isn't needed however.
+
 # Installation
 To install the exploit for booting hblauncher, you *must* use the themehax_installer app. You must already have a way to boot into the hblauncher payload for running this app(which can include themehax if it's already setup): http://3dbrew.org/wiki/Homebrew_Exploits  
 The app requires an Internet connection for setting up the hblauncher payload. Once the app is booted, all you have to do is confirm that you want to install, the app will then auto detect + install everything.  
@@ -68,6 +71,8 @@ To "remove" the exploit, you can just select any theme in the Home Menu theme se
 
 If you *really* want to build a NCCH version of the installer, use the same permissions as 3ds_homemenu_extdatatool, with the same data on SD card as from the release archive.
 
+If you haven't already done so before, you may have to enter the Home Menu theme-settings so that Home Menu can create the theme extdata.
+
 # Credits
-* smea for payload.py. This is where the actual generation for the compressed data which triggers the buf-overflow is done.
+* This vuln was, as said on this page(https://smealum.github.io/3ds/), "exploited jointly by yellows8 and smea". The payload.py script was written by smea, this is where the actual generation for the compressed data which triggers the buf-overflow is done.
 
