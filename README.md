@@ -1,7 +1,7 @@
 # Summary
 When Home Menu is starting up, it can load theme-data from the home-menu theme SD extdata. The flaw can be triggered from here. The ROP starts running at roughly the same time the LCD backlight gets turned on.
 
-Although this triggers during Home Menu boot, this can't cause any true bricks: just remove the *SD card if any booting issues ever occur(or delete/rename the theme-cache extdata directory). Note that this also applies when the ROP causes a crash, like when the ROP is for a different version of Home Menu(this can also happen if you boot into a nandimage which has a different Home Menu version, but still uses the exact same SD data).
+Although this triggers during Home Menu boot, this can't cause any true bricks: just remove the *SD card if any booting issues ever occur(or delete/rename the theme-cache extdata directory). Note that this also applies when the ROP causes a crash, like when the ROP is for a different version of Home Menu(this can also happen if you boot into a nandimage which has a different Home Menu version, but still uses the exact same SD data). However, it seems that normally(?) Home Menu crashes with this just result in Home Menu displaying the usual error dialog for system-applet crashes.
 
 Since this is a theme exploit, a normal theme can't be used unless you build with the THEMEDATA_PATH option below(the ROP runs a good while after the theme is loaded). Due to how this hax works, the theme is really only usable for BGM(as described below).
 
@@ -44,7 +44,7 @@ Build options:
 * "USE_PADCHECK=val" When set, at the very start of the menu ROP it will check if the current HID PAD state is set to the specified value. When they match, it continues the ROP, otherwise it returns to the homemenu code. This is done before writing to the framebuffers.
 * "GAMECARD_PADCHECK=val" Similar to USE_PADCHECK except for BOOTGAMECARD: the BOOTGAMECARD ROP only gets executed when the specified HID PAD state matches the current one. After writing to framebufs the ROP will delay 3 seconds, then run this PADCHECK ROP.
 * "EXITMENU=1" Terminate homemenu X seconds(see source) after getting code exec under the launched process.
-* "ENABLE_LOADROPBIN=1" Load a homemenu ropbin then stack-pivot to it, see the Makefile HEAPBUF_ROPBIN_* values for the load-address. When LOADSDPAYLOAD isn't used, the binary is the one specified by CODEBINPAYLOAD, otherwise it's loaded from "sd:/menuhax_ropbinpayload.bin". The binary size should be <=0x8000-bytes.
+* "ENABLE_LOADROPBIN=1" Load a homemenu ropbin then stack-pivot to it, see the Makefile HEAPBUF_ROPBIN_* values for the load-address. When LOADSDPAYLOAD isn't used, the binary is the one specified by CODEBINPAYLOAD, otherwise it's loaded from "sd:/menuhax_ropbinpayload.bin". The binary size should be <=0x10000-bytes.
 * "ENABLE_HBLAUNCHER=1" When used with ENABLE_LOADROPBIN, setup the additional data needed by the hblauncher payload.
 * "MENUROP_PATH={path}" Use the specified path for the "menurop" directory, instead of the default one which requires running generate_menurop_addrs.sh. To use the prebuilt menurop headers included with this repo, the following can be used: "MENUROP_PATH=menurop_prebuilt".
 * "THEMEDATA_PATH={*decompressed* regular theme body_LZ filepath}" Build hax with the specified theme, instead of using the "default theme" one. When Home Menu starts the actual rendering however, the gfx for the theme doesn't display properly due to the hax. BGM works fine, therefore this should only used for BGM-only themes(where the themedata header is all-zero except for the version and BGM fields). Also note that compression during building takes a *lot* longer with this.
@@ -57,8 +57,6 @@ When the ROP returns from the haxx to running the actual Home Menu code, such as
 When built with ENABLE_LOADROPBIN=1, this can boot into the homebrew-launcher if the ropbin listed above is one for the homebrew-launcher and was pre-patched.
 
 With the release archive, you have to hold down the L button while Home Menu is booting(at the time the ROP checks for it), in order to boot into the hblauncher payload. Otherwise, Home Menu will boot like normal.
-
-Even with the latest git builds, hblauncher still doesn't work quite right when the app requires booting into another process. It works fine when booting into a different process isn't needed however.
 
 # Installation
 To install the exploit for booting hblauncher, you *must* use the themehax_installer app. You must already have a way to boot into the hblauncher payload for running this app(which can include themehax if it's already setup): http://3dbrew.org/wiki/Homebrew_Exploits  

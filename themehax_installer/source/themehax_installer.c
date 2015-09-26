@@ -240,7 +240,7 @@ Result http_getactual_payloadurl(char *requrl, char *outurl, u32 outurl_maxsize)
 	ret = httpcOpenContext(&context, requrl, 0);
 	if(ret!=0)return ret;
 
-	ret = httpcAddRequestHeaderField(&context, "User-Agent", "themehax_installer/v1.1");
+	ret = httpcAddRequestHeaderField(&context, "User-Agent", "themehax_installer/v1.2");
 	if(ret!=0)
 	{
 		httpcCloseContext(&context);
@@ -271,7 +271,7 @@ Result http_download_payload(char *url)
 	ret = httpcOpenContext(&context, url, 0);
 	if(ret!=0)return ret;
 
-	ret = httpcAddRequestHeaderField(&context, "User-Agent", "themehax_installer/v1.0");
+	ret = httpcAddRequestHeaderField(&context, "User-Agent", "themehax_installer/v1.2");
 	if(ret!=0)
 	{
 		httpcCloseContext(&context);
@@ -471,7 +471,7 @@ Result install_themehax()
 		return ret;
 	}
 
-	memset(filebuffer, 0, 0xa000);
+	memset(filebuffer, 0, 0x1a000);
 	printf("Downloading the actual payload with HTTP...\n");
 	ret = http_download_payload(payloadurl);
 	if(ret!=0)
@@ -488,8 +488,11 @@ Result install_themehax()
 		return ret;
 	}
 
+	memcpy(&filebuffer[0xa000], &filebuffer[payloadinfo[0]], payloadinfo[1]);
+	memcpy(&filebuffer[0xa000+0x8000], &filebuffer[0xa000], payloadinfo[1]);
+
 	printf("Patching the menuropbin...\n");
-	ret = patchPayload((u32*)&filebuffer[payloadinfo[0]], 0x1, (u32)new3dsflag);
+	ret = patchPayload((u32*)&filebuffer[0xa000], 0x1, (u32)new3dsflag);
 	if(ret!=0)
 	{
 		printf("Patching failed: 0x%08x.\n", (unsigned int)ret);
@@ -498,14 +501,14 @@ Result install_themehax()
 
 	printf("Writing the menuropbin to SD...\n");
 	unlink("sdmc:/menuhax_ropbinpayload.bin");
-	ret = archive_writefile(SDArchive, "/menuhax_ropbinpayload.bin", &filebuffer[payloadinfo[0]], payloadinfo[1]);
+	ret = archive_writefile(SDArchive, "/menuhax_ropbinpayload.bin", &filebuffer[0xa000], 0x10000);
 	if(ret!=0)
 	{
 		printf("Failed to write the menurop to the SD file: 0x%08x.\n", (unsigned int)ret);
 		return ret;
 	}
 
-	memset(filebuffer, 0, 0xa000);
+	memset(filebuffer, 0, 0x1a000);
 
 	printf("Enabling persistent themecache...\n");
 	ret = menu_enablethemecache_persistent();

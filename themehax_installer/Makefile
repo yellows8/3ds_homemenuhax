@@ -32,7 +32,7 @@ SOURCES		:=	source
 DATA		:=	data
 INCLUDES	:=	include
 
-APP_TITLE	:=	themehax_installer v1.1
+APP_TITLE	:=	themehax_installer v1.2
 APP_DESCRIPTION	:=	Tool for installing Home Menu themehax, requires an Internet connection.
 APP_AUTHOR	:=	yellows8
 
