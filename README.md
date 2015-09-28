@@ -13,7 +13,7 @@ Home Menu allocates a 0x2a0000-byte heap buffer using the ctrsdk heap code: offs
 The decompression code only has an input-size parameter, no output size parameter. Hence, the output size is not restricted/checked at all. Since the decompressed data is located before the compressed data, the buf overflow results in the input compressed data being overwritten first. Eventually this overflow will result in the input data actually being used by the decompression function being overwritten, which can later result in an error before the function ever writes to the memchunk-hdr(if the input compressed data doesn't workaround that).
 
 # Supported System Versions
-* v9.0 (not tested)
+* v9.0
 * v9.1j (not tested)
 * v9.2
 * v9.3 (not tested)
