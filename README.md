@@ -23,7 +23,7 @@ The decompression code only has an input-size parameter, no output size paramete
 * v9.7
 * All homemenu versions with this vuln where the ropgadget-finder successfully finds the required addresses, unless structs involved with the initial ROP-chain change etc.
 
-Due to an issue with APT, the <=v1.2 installer will fail to find the .lz for the following system-versions, due to using the wrong Home Menu title-version. This should be fixed in a future release of the installer.
+Due to an issue with APT, the <=v1.2 installer will fail to find the .lz for the following system-versions, due to using the wrong Home Menu title-version. This is fixed in latest git, there should be an updated release-archive for this later.
 * v9.3
 * v9.6
 * v9.7

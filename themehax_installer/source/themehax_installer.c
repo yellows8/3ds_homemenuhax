@@ -240,7 +240,7 @@ Result http_getactual_payloadurl(char *requrl, char *outurl, u32 outurl_maxsize)
 	ret = httpcOpenContext(&context, requrl, 0);
 	if(ret!=0)return ret;
 
-	ret = httpcAddRequestHeaderField(&context, "User-Agent", "themehax_installer/v1.2");
+	ret = httpcAddRequestHeaderField(&context, "User-Agent", "themehax_installer/"VERSION);
 	if(ret!=0)
 	{
 		httpcCloseContext(&context);
@@ -271,7 +271,7 @@ Result http_download_payload(char *url)
 	ret = httpcOpenContext(&context, url, 0);
 	if(ret!=0)return ret;
 
-	ret = httpcAddRequestHeaderField(&context, "User-Agent", "themehax_installer/v1.2");
+	ret = httpcAddRequestHeaderField(&context, "User-Agent", "themehax_installer/"VERSION);
 	if(ret!=0)
 	{
 		httpcCloseContext(&context);
@@ -362,7 +362,8 @@ Result install_themehax()
 	Result ret = 0;
 	u8 region=0;
 	u8 new3dsflag = 0;
-	u16 menuversion = 0;
+	u64 menu_programid = 0;
+	TitleList menu_title_entry;
 	u32 payloadinfo[4];
 	char body_filepath[256];
 	u32 archive_lowpath_data[0x10>>2];//+0 = programID-low, +4 = programID-high, +8 = u8 mediatype.
@@ -423,16 +424,25 @@ Result install_themehax()
 	APT_CheckNew3DS(NULL, &new3dsflag);
 
 	aptOpenSession();
-	ret = APT_GetAppletProgramInfo(NULL, APPID_HOMEMENU, 0x11, &menuversion);
+	ret = APT_GetAppletInfo(NULL, APPID_HOMEMENU, &menu_programid, NULL, NULL, NULL, NULL);
 	aptCloseSession();
 
 	if(ret!=0)
 	{
-		printf("Failed to get Home Menu title-version: 0x%08x.\n", (unsigned int)ret);
+		printf("Failed to get the Home Menu programID: 0x%08x.\n", (unsigned int)ret);
 		return ret;
 	}
 
-	snprintf(body_filepath, sizeof(body_filepath)-1, "themepayload/menuhax_%s%u_%s.lz", regionids_table[region], menuversion, new3dsflag?"new3ds":"old3ds");
+	printf("Using Home Menu programID: 0x%016llx.\n", menu_programid);
+
+	ret = AM_ListTitles(0, 1, &menu_programid, &menu_title_entry);
+	if(ret!=0)
+	{
+		printf("Failed to get the Home Menu title-version: 0x%08x.\n", (unsigned int)ret);
+		return ret;
+	}
+
+	snprintf(body_filepath, sizeof(body_filepath)-1, "themepayload/menuhax_%s%u_%s.lz", regionids_table[region], menu_title_entry.titleVersion, new3dsflag?"new3ds":"old3ds");
 
 	archive_lowpath_data[0] = NVer_tidlow_regionarray[region];
 	ret = read_versionbin(archive, fileLowPath, nver_versionbin);
@@ -530,12 +540,29 @@ int main(int argc, char **argv)
 
 	consoleInit(GFX_BOTTOM, NULL);
 
-	printf("themehax_installer\n");
+	printf("themehax_installer %s by yellows8.\n", VERSION);
 
 	ret = httpcInit();
 	if(ret!=0)
 	{
 		printf("Failed to initialize HTTPC: 0x%08x.\n", (unsigned int)ret);
+		if(ret==0xd8e06406)
+		{
+			printf("The HTTPC service is inaccessible. With the hblauncher-payload this may happen if the process this app is running under doesn't have access to that service. Please try rebooting the system, boot hblauncher-payload, then directly launch the app.\n");
+		}
+	}
+
+	if(ret==0)
+	{
+		ret = amInit();
+		if(ret!=0)
+		{
+			printf("Failed to initialize AM: 0x%08x.\n", (unsigned int)ret);
+			if(ret==0xd8e06406)
+			{
+				printf("The AM service is inaccessible. With the hblauncher-payload this should never happen.\n");
+			}
+		}
 	}
 
 	if(ret==0)
@@ -559,9 +586,7 @@ int main(int argc, char **argv)
 		ret = open_extdata();
 		if(ret==0)
 		{
-			printf("Finished opening extdata.\n");
-
-			consoleClear();
+			printf("Finished opening extdata.\n\n");
 
 			printf("This will install Home Menu themehax to the SD card, for booting hblauncher. Are you sure you want to continue? A = yes, B = no.\n");
 			while(1)
@@ -584,6 +609,7 @@ int main(int argc, char **argv)
 
 			if(ret==1)
 			{
+				consoleClear();
 				ret = install_themehax();
 				close_extdata();
 
@@ -602,6 +628,9 @@ int main(int argc, char **argv)
 	free(filebuffer);
 
 	httpcExit();
+	amExit();
+
+	if(ret!=0)printf("An error occured, please report this to here if it persists(or comment on an already existing issue if needed), with an image of your 3DS system with the bottom-screen: https://github.com/yellows8/3ds_homemenuhax/issues\n");
 
 	printf("Press the START button to exit.\n");
 	// Main loop

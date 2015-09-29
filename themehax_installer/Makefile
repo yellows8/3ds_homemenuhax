@@ -32,7 +32,9 @@ SOURCES		:=	source
 DATA		:=	data
 INCLUDES	:=	include
 
-APP_TITLE	:=	themehax_installer v1.2
+VERSION	:=	v1.3
+
+APP_TITLE	:=	themehax_installer $(VERSION)
 APP_DESCRIPTION	:=	Tool for installing Home Menu themehax, requires an Internet connection.
 APP_AUTHOR	:=	yellows8
 
@@ -45,7 +47,7 @@ CFLAGS	:=	-g -Wall -O2 -mword-relocations \
 			-fomit-frame-pointer -ffast-math \
 			$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
+CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS -DVERSION=\"$(VERSION)\"
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 
