@@ -74,7 +74,7 @@ Whenever the Home Menu version installed on your system changes where the instal
 
 To "remove" the exploit, you can just select any theme in the Home Menu theme settings(such as one of the built-in color themes). If you want the default theme, you can then select that option again. See the "Summary" section if you have issues with Home Menu failing to boot.
 
-If you *really* want to build a NCCH version of the installer, use the same permissions as 3ds_homemenu_extdatatool, with the same data on SD card as from the release archive.
+If you *really* want to build a NCCH version of the installer, use the same permissions as 3ds_homemenu_extdatatool, with the same data on SD card as from the release archive. Access to the HTTPC service, and access to an AM service for AM_ListTitles is required too.
 
 If you haven't already done so before, you may have to enter the Home Menu theme-settings so that Home Menu can create the theme extdata.
 

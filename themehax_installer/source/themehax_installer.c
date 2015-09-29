@@ -109,7 +109,6 @@ int sd2themecache(char *body_filepath)
 	Result ret=0;
 	u32 body_size=0, bgm_size=0;
 	u32 thememanage[0x20>>2];
-	char filepath[256];
 	char bgm_filepath[256];
 
 	memset(thememanage, 0, 0x20);
@@ -119,6 +118,7 @@ int sd2themecache(char *body_filepath)
 	{
 		printf("Failed to stat the body-filepath: %s\n", body_filepath);
 		printf("Note that only USA/EUR/JPN builds are included with the release archive. If that's not an issue for your system, verify that you have a themehax build for your system on SD card: make sure that the release archive you're using actually includes builds for your system-version.\n");
+		printf("Also verify that the following directory containing .lz files actually exists on your SD card: '/3ds/themehax_installer/themepayload/'.\n");
 		return ret;
 	}
 	else
@@ -126,21 +126,21 @@ int sd2themecache(char *body_filepath)
 		printf("Using body-filepath: %s\n", body_filepath);
 	}
 
-	memset(bgm_filepath, 0, 256);
-	strncpy(bgm_filepath, "BgmCache.bin", 255);
+	memset(bgm_filepath, 0, sizeof(bgm_filepath));
+	strncpy(bgm_filepath, "sdmc:/3ds/themehax_installer/BgmCache.bin", sizeof(bgm_filepath)-1);
 
 	ret = archive_getfilesize(SDArchive, bgm_filepath, &bgm_size);
 	if(ret!=0)
 	{
-		memset(bgm_filepath, 0, 256);
-		strncpy(bgm_filepath, "bgm.bcstm", 255);
+		memset(bgm_filepath, 0, sizeof(bgm_filepath));
+		strncpy(bgm_filepath, "sdmc:/3ds/themehax_installer/bgm.bcstm", sizeof(bgm_filepath)-1);
 
 		ret = archive_getfilesize(SDArchive, bgm_filepath, &bgm_size);
 		if(ret!=0)
 		{
 			printf("Failed to stat BgmCache.bin and bgm.bcstm on SD, copying for the bgm-data will be skipped.\n");
 
-			memset(bgm_filepath, 0, 256);
+			memset(bgm_filepath, 0, sizeof(bgm_filepath));
 		}
 		else
 		{
@@ -152,39 +152,25 @@ int sd2themecache(char *body_filepath)
 		printf("Using bgm-filepath BgmCache.bin.\n");
 	}
 
-	memset(filepath, 0, 256);
-	strncpy(filepath, "ThemeManage.bin", 255);
+	printf("Generating a ThemeManage.bin + writing it to extdata...\n");
 
-	ret = archive_copyfile(SDArchive, Theme_Extdata, filepath, "/ThemeManage.bin", filebuffer, 0x800, filebuffer_maxsize, "ThemeManage.bin");
+	memset(thememanage, 0, 0x20);
+	thememanage[0x0>>2] = 1;
+	thememanage[0x8>>2] = body_size;
+	thememanage[0xC>>2] = bgm_size;
+	thememanage[0x10>>2] = 0xff;
+	thememanage[0x14>>2] = 1;
+	thememanage[0x18>>2] = 0xff;
+	thememanage[0x1c>>2] = 0x200;
 
-	if(ret==0)
+	memset(filebuffer, 0, 0x800);
+	memcpy(filebuffer, thememanage, 0x20);
+	ret = archive_writefile(Theme_Extdata, "/ThemeManage.bin", filebuffer, 0x800);
+
+	if(ret!=0)
 	{
-		printf("Successfully finished copying ThemeManage.bin.\n");
-
-		memcpy(thememanage, filebuffer, 0x20);
-	}
-	else
-	{
-		printf("Failed to copy ThemeManage.bin, generating one then trying again...\n");
-
-		memset(thememanage, 0, 0x20);
-		thememanage[0x0>>2] = 1;
-		thememanage[0x8>>2] = body_size;
-		thememanage[0xC>>2] = bgm_size;
-		thememanage[0x10>>2] = 0xff;
-		thememanage[0x14>>2] = 1;
-		thememanage[0x18>>2] = 0xff;
-		thememanage[0x1c>>2] = 0x200;
-
-		memset(filebuffer, 0, 0x800);
-		memcpy(filebuffer, thememanage, 0x20);
-		ret = archive_writefile(Theme_Extdata, "/ThemeManage.bin", filebuffer, 0x800);
-
-		if(ret!=0)
-		{
-			printf("Failed to write ThemeManage.bin to extdata, aborting.\n");
-			return 0;
-		}
+		printf("Failed to write ThemeManage.bin to extdata, aborting.\n");
+		return 0;
 	}
 
 	if(body_filepath[0])
@@ -442,7 +428,7 @@ Result install_themehax()
 		return ret;
 	}
 
-	snprintf(body_filepath, sizeof(body_filepath)-1, "themepayload/menuhax_%s%u_%s.lz", regionids_table[region], menu_title_entry.titleVersion, new3dsflag?"new3ds":"old3ds");
+	snprintf(body_filepath, sizeof(body_filepath)-1, "sdmc:/3ds/themehax_installer/themepayload/menuhax_%s%u_%s.lz", regionids_table[region], menu_title_entry.titleVersion, new3dsflag?"new3ds":"old3ds");
 
 	archive_lowpath_data[0] = NVer_tidlow_regionarray[region];
 	ret = read_versionbin(archive, fileLowPath, nver_versionbin);
@@ -459,13 +445,6 @@ Result install_themehax()
 	if(ret!=0)
 	{
 		printf("Failed to read the CVer version.bin: 0x%08x.\n", (unsigned int)ret);
-		return ret;
-	}
-
-	ret = chdir("sdmc:/3ds/themehax_installer/");//Without this, the curdir would be left at "romfs:/"(this is also needed when the curdir wasn't the one needed here to begin with).
-	if(ret!=0)
-	{
-		printf("Failed to switch the current-working directory to 'sdmc:/3ds/themehax_installer/', that directory probably doesn't exist.\n");
 		return ret;
 	}
 
@@ -511,7 +490,7 @@ Result install_themehax()
 
 	printf("Writing the menuropbin to SD...\n");
 	unlink("sdmc:/menuhax_ropbinpayload.bin");
-	ret = archive_writefile(SDArchive, "/menuhax_ropbinpayload.bin", &filebuffer[0xa000], 0x10000);
+	ret = archive_writefile(SDArchive, "sdmc:/menuhax_ropbinpayload.bin", &filebuffer[0xa000], 0x10000);
 	if(ret!=0)
 	{
 		printf("Failed to write the menurop to the SD file: 0x%08x.\n", (unsigned int)ret);
