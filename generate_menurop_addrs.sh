@@ -6,9 +6,10 @@
 # {path} must contain JPN, USA, and EUR directories, which contain the following for each title-version: <v{titlever}>/*exefs/code.bin
 
 mkdir -p menurop
-mkdir -p menurop/USA
 mkdir -p menurop/JPN
+mkdir -p menurop/USA
 mkdir -p menurop/EUR
+mkdir -p menurop/KOR
 
 if [ ! -d "$1/JPN" ]; then
 	echo "The \"$1/JPN\" directory doesn't exist."
@@ -22,6 +23,11 @@ fi
 
 if [ ! -d "$1/EUR" ]; then
 	echo "The \"$1/EUR\" directory doesn't exist."
+	exit 1
+fi
+
+if [ ! -d "$1/KOR" ]; then
+	echo "The \"$1/KOR\" directory doesn't exist."
 	exit 1
 fi
 
@@ -64,6 +70,20 @@ do
 		echo "ropgadget_patternfinder returned an error, output from it(which will be deleted after this):"
 		cat "menurop/EUR/$version"
 		rm "menurop/EUR/$version"
+	fi
+done
+
+for dir in $1/KOR/*
+do
+	version=$(basename "$dir")
+	version=${version:1}
+	echo "KOR $version"
+	ropgadget_patternfinder $dir/*exefs/code.bin --script=homemenu_ropgadget_script --baseaddr=0x100000 --patterntype=sha256 > "menurop/KOR/$version"
+
+	if [[ $? -ne 0 ]]; then
+		echo "ropgadget_patternfinder returned an error, output from it(which will be deleted after this):"
+		cat "menurop/KOR/$version"
+		rm "menurop/KOR/$version"
 	fi
 done
 

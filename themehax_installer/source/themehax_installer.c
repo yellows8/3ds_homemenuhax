@@ -457,6 +457,7 @@ Result install_themehax()
 	if(ret!=0)
 	{
 		printf("Failed to request the actual payload URL: 0x%08x.\n", (unsigned int)ret);
+		printf("If the server isn't down, and the HTTP request was actually done, this may mean your system-version or region isn't supported by the hblauncher-payload currently.\n");
 		return ret;
 	}
 
@@ -466,6 +467,7 @@ Result install_themehax()
 	if(ret!=0)
 	{
 		printf("Failed to download the actual payload with HTTP: 0x%08x.\n", (unsigned int)ret);
+		printf("If the server isn't down, and the HTTP request was actually done, this may mean your system-version or region isn't supported by the hblauncher-payload currently.\n");
 		return ret;
 	}
 
