@@ -456,23 +456,43 @@ Result install_themehax()
 
 	printf("Detected system-version: %s %d.%d.%d-%d %s\n", new3dsflag?"New3DS":"Old3DS", cver_versionbin[2], cver_versionbin[1], cver_versionbin[0], nver_versionbin[2], regionids_table[region]);
 
-	printf("Requesting the actual payload URL with HTTP...\n");
-	ret = http_getactual_payloadurl(payloadurl, payloadurl, sizeof(payloadurl));
-	if(ret!=0)
-	{
-		printf("Failed to request the actual payload URL: 0x%08x.\n", (unsigned int)ret);
-		printf("If the server isn't down, and the HTTP request was actually done, this may mean your system-version or region isn't supported by the hblauncher-payload currently.\n");
-		return ret;
-	}
-
 	memset(filebuffer, 0, filebuffer_maxsize);
-	printf("Downloading the actual payload with HTTP...\n");
-	ret = http_download_payload(payloadurl, &payloadsize);
-	if(ret!=0)
+
+	printf("Checking for the otherapp payload on SD...\n");
+	ret = archive_getfilesize(SDArchive, "sdmc:/themehaxinstaller_otherapp_payload.bin", &payloadsize);
+	if(ret==0)
 	{
-		printf("Failed to download the actual payload with HTTP: 0x%08x.\n", (unsigned int)ret);
-		printf("If the server isn't down, and the HTTP request was actually done, this may mean your system-version or region isn't supported by the hblauncher-payload currently.\n");
-		return ret;
+		if(payloadsize==0 || payloadsize>filebuffer_maxsize-0x8000)
+		{
+			printf("Invalid SD payload size: 0x%08x.\n", (unsigned int)payloadsize);
+			ret = -3;
+		}
+	}
+	if(ret==0)ret = archive_readfile(SDArchive, "sdmc:/themehaxinstaller_otherapp_payload.bin", filebuffer, payloadsize);
+
+	if(ret==0)
+	{
+		printf("The otherapp payload for this installer already exists on SD, that will be used instead of downloading the payload via HTTP.\n");
+	}
+	else
+	{
+		printf("Requesting the actual payload URL with HTTP...\n");
+		ret = http_getactual_payloadurl(payloadurl, payloadurl, sizeof(payloadurl));
+		if(ret!=0)
+		{
+			printf("Failed to request the actual payload URL: 0x%08x.\n", (unsigned int)ret);
+			printf("If the server isn't down, and the HTTP request was actually done, this may mean your system-version or region isn't supported by the hblauncher-payload currently.\n");
+			return ret;
+		}
+
+		printf("Downloading the actual payload with HTTP...\n");
+		ret = http_download_payload(payloadurl, &payloadsize);
+		if(ret!=0)
+		{
+			printf("Failed to download the actual payload with HTTP: 0x%08x.\n", (unsigned int)ret);
+			printf("If the server isn't down, and the HTTP request was actually done, this may mean your system-version or region isn't supported by the hblauncher-payload currently.\n");
+			return ret;
+		}
 	}
 
 	payloadsize_aligned = (payloadsize + 0xfff) & ~0xfff;
