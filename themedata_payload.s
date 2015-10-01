@@ -347,7 +347,7 @@ ROP_SETLR ROP_POPPC
 #endif
 
 #ifdef ENABLE_HBLAUNCHER
-CALLFUNC_NOSP MEMSET32_OTHER, ROPBIN_BUFADR - (0x800*2), 0x800, 0, 0 @ paramblk
+CALLFUNC_NOSP MEMSET32_OTHER, ROPBIN_BUFADR - (0x800*4), 0x1800, 0, 0 @ paramblk, the additional 0x1000-bytes is for backwards-compatibility.
 
 CALLFUNC_NOSP GSPGPU_FlushDataCache, ROPBIN_BUFADR - (0x800*2), 0x11000, 0, 0
 #endif

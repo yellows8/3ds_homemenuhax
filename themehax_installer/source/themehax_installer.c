@@ -247,7 +247,7 @@ Result http_getactual_payloadurl(char *requrl, char *outurl, u32 outurl_maxsize)
 	return 0;
 }
 
-Result http_download_payload(char *url)
+Result http_download_payload(char *url, u32 *payloadsize)
 {
 	Result ret=0;
 	u32 statuscode=0;
@@ -292,7 +292,7 @@ Result http_download_payload(char *url)
 		return ret;
 	}
 
-	if(contentsize==0 || contentsize>0xa000)
+	if(contentsize==0 || contentsize>filebuffer_maxsize-0x8000)
 	{
 		printf("Invalid HTTP content-size: 0x%08x.\n", (unsigned int)contentsize);
 		ret = -3;
@@ -308,6 +308,8 @@ Result http_download_payload(char *url)
 	}
 
 	httpcCloseContext(&context);
+
+	*payloadsize = contentsize;
 
 	return 0;
 }
@@ -360,6 +362,8 @@ Result install_themehax()
 
 	u8 nver_versionbin[0x8];
 	u8 cver_versionbin[0x8];
+
+	u32 payloadsize = 0, payloadsize_aligned = 0;
 
 	char payloadurl[0x80];
 
@@ -461,9 +465,9 @@ Result install_themehax()
 		return ret;
 	}
 
-	memset(filebuffer, 0, 0x1a000);
+	memset(filebuffer, 0, filebuffer_maxsize);
 	printf("Downloading the actual payload with HTTP...\n");
-	ret = http_download_payload(payloadurl);
+	ret = http_download_payload(payloadurl, &payloadsize);
 	if(ret!=0)
 	{
 		printf("Failed to download the actual payload with HTTP: 0x%08x.\n", (unsigned int)ret);
@@ -471,19 +475,21 @@ Result install_themehax()
 		return ret;
 	}
 
+	payloadsize_aligned = (payloadsize + 0xfff) & ~0xfff;
+
 	printf("Loading info from the hblauncher otherapp payload...\n");
-	ret = locatepayload_data((u32*)filebuffer, 0xa000, payloadinfo);
+	ret = locatepayload_data((u32*)filebuffer, payloadsize, payloadinfo);
 	if(ret!=0)
 	{
 		printf("Failed to parse the payload: 0x%08x.\n", (unsigned int)ret);
 		return ret;
 	}
 
-	memcpy(&filebuffer[0xa000], &filebuffer[payloadinfo[0]], payloadinfo[1]);
-	memcpy(&filebuffer[0xa000+0x8000], &filebuffer[0xa000], payloadinfo[1]);
+	memcpy(&filebuffer[payloadsize_aligned], &filebuffer[payloadinfo[0]], payloadinfo[1]);
+	memcpy(&filebuffer[payloadsize_aligned+0x8000], &filebuffer[payloadsize_aligned], payloadinfo[1]);
 
 	printf("Patching the menuropbin...\n");
-	ret = patchPayload((u32*)&filebuffer[0xa000], 0x1, (u32)new3dsflag);
+	ret = patchPayload((u32*)&filebuffer[payloadsize_aligned], 0x1, (u32)new3dsflag);
 	if(ret!=0)
 	{
 		printf("Patching failed: 0x%08x.\n", (unsigned int)ret);
@@ -492,14 +498,14 @@ Result install_themehax()
 
 	printf("Writing the menuropbin to SD...\n");
 	unlink("sdmc:/menuhax_ropbinpayload.bin");
-	ret = archive_writefile(SDArchive, "sdmc:/menuhax_ropbinpayload.bin", &filebuffer[0xa000], 0x10000);
+	ret = archive_writefile(SDArchive, "sdmc:/menuhax_ropbinpayload.bin", &filebuffer[payloadsize_aligned], 0x10000);
 	if(ret!=0)
 	{
 		printf("Failed to write the menurop to the SD file: 0x%08x.\n", (unsigned int)ret);
 		return ret;
 	}
 
-	memset(filebuffer, 0, 0x1a000);
+	memset(filebuffer, 0, filebuffer_maxsize);
 
 	printf("Enabling persistent themecache...\n");
 	ret = menu_enablethemecache_persistent();
