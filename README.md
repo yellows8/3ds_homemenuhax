@@ -72,6 +72,8 @@ To install the exploit for booting hblauncher, you *must* use the themehax_insta
 The app requires an Internet connection for setting up the hblauncher payload. Once the app is booted, all you have to do is confirm that you want to install, the app will then auto detect + install everything.  
 Latest-git-only currently: before using HTTP, the installer will first try to load the otherapp payload(https://smealum.github.io/3ds/) from SD "/themehaxinstaller_otherapp_payload.bin", then continue to use HTTP if loading from SD isn't successful. Actually using this SD payload is *not* recommended for end-users when HTTP download works fine.  
 
+The latest-git uses a seperate menuropbin path for each themehax build. <=v1.2 used the same filepath for all builds, rendering themehax unusable for multiple system-versions/etc with the same SD card without changing that file(like with booting into SD-nandimages, for example).
+
 This app uses code based on code from the following repos: https://github.com/yellows8/3ds_homemenu_extdatatool https://github.com/yellows8/3ds_browserhax_common  
 This app includes the theme BGM copying code from 3ds_homemenu_extdatatool, but that BGM won't actually get used by Home Menu unless you build the exploit with the param related to that yourself.
 Whenever the Home Menu version installed on your system changes where the installed exploit is for a different version, or when you want to update the hblauncher payload, you must run the installer again. For this you can do the following: you can remove the SD card before booting the system, then once booted insert the SD card then boot into the hblauncher payload via a different method(http://3dbrew.org/wiki/Homebrew_Exploits).

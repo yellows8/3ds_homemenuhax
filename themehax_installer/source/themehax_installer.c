@@ -345,7 +345,7 @@ Result read_versionbin(FS_archive archive, FS_path fileLowPath, u8 *versionbin)
 	return 0;
 }
 
-Result install_themehax()
+Result install_themehax(char *ropbin_filepath)
 {
 	Result ret = 0;
 	u8 region=0;
@@ -353,6 +353,7 @@ Result install_themehax()
 	u64 menu_programid = 0;
 	TitleList menu_title_entry;
 	u32 payloadinfo[4];
+	char menuhax_basefn[256];
 	char body_filepath[256];
 	u32 archive_lowpath_data[0x10>>2];//+0 = programID-low, +4 = programID-high, +8 = u8 mediatype.
 	u32 file_lowpath_data[0x14>>2];
@@ -367,7 +368,9 @@ Result install_themehax()
 
 	char payloadurl[0x80];
 
+	memset(menuhax_basefn, 0, sizeof(menuhax_basefn));
 	memset(body_filepath, 0, sizeof(body_filepath));
+
 	memset(payloadinfo, 0, sizeof(payloadinfo));
 
 	memset(archive_lowpath_data, 0, sizeof(file_lowpath_data));
@@ -432,7 +435,9 @@ Result install_themehax()
 		return ret;
 	}
 
-	snprintf(body_filepath, sizeof(body_filepath)-1, "sdmc:/3ds/themehax_installer/themepayload/menuhax_%s%u_%s.lz", regionids_table[region], menu_title_entry.titleVersion, new3dsflag?"new3ds":"old3ds");
+	snprintf(menuhax_basefn, sizeof(menuhax_basefn)-1, "menuhax_%s%u_%s", regionids_table[region], menu_title_entry.titleVersion, new3dsflag?"new3ds":"old3ds");
+	snprintf(body_filepath, sizeof(body_filepath)-1, "sdmc:/3ds/themehax_installer/themepayload/%s.lz", menuhax_basefn);
+	snprintf(ropbin_filepath, 255, "sdmc:/ropbinpayload_%s.bin", menuhax_basefn);
 
 	archive_lowpath_data[0] = NVer_tidlow_regionarray[region];
 	ret = read_versionbin(archive, fileLowPath, nver_versionbin);
@@ -516,9 +521,10 @@ Result install_themehax()
 		return ret;
 	}
 
-	printf("Writing the menuropbin to SD...\n");
-	unlink("sdmc:/menuhax_ropbinpayload.bin");
-	ret = archive_writefile(SDArchive, "sdmc:/menuhax_ropbinpayload.bin", &filebuffer[payloadsize_aligned], 0x10000);
+	printf("Writing the menuropbin to SD, to the following path: %s.\n", ropbin_filepath);
+	unlink("sdmc:/menuhax_ropbinpayload.bin");//Delete the ropbin with the filepath used by the <=v1.2 themehax.
+	unlink(ropbin_filepath);
+	ret = archive_writefile(SDArchive, ropbin_filepath, &filebuffer[payloadsize_aligned], 0x10000);
 	if(ret!=0)
 	{
 		printf("Failed to write the menurop to the SD file: 0x%08x.\n", (unsigned int)ret);
@@ -542,12 +548,16 @@ int main(int argc, char **argv)
 {
 	Result ret = 0;
 
+	char ropbin_filepath[256];
+
 	// Initialize services
 	gfxInitDefault();
 
 	consoleInit(GFX_BOTTOM, NULL);
 
 	printf("themehax_installer %s by yellows8.\n", VERSION);
+
+	memset(ropbin_filepath, 0, sizeof(ropbin_filepath));
 
 	ret = httpcInit();
 	if(ret!=0)
@@ -617,12 +627,12 @@ int main(int argc, char **argv)
 			if(ret==1)
 			{
 				consoleClear();
-				ret = install_themehax();
+				ret = install_themehax(ropbin_filepath);
 				close_extdata();
 
 				if(ret==0)
 				{
-					printf("Install finished successfully.\n");
+					printf("Install finished successfully. If you just now updated your themehax install(where the previous install was with >=v1.3) due to your system-version being changed/updated, you might want to manually delete the now unused 'ropbinpayload_menuhax_*' SD file, which was previously used. The following is the filepath which was just now written, you can delete any SD 'ropbinpayload_menuhax_*' file(s) which don't match the following exact filepath: '%s'. Doing so is completely optional.\n", ropbin_filepath);
 				}
 				else
 				{

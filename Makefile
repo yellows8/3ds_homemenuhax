@@ -100,6 +100,9 @@ ifneq ($(strip $(THEMEDATA_PATH)),)
 	DEFINES	:=	$(DEFINES) -DTHEMEDATA_PATH=\"$(THEMEDATA_PATH)\"
 endif
 
+DEFINES	:=	$(DEFINES) -DROPBINPAYLOAD_PATH=\"sd:/ropbinpayload_$(BUILDPREFIX).bin\"
+
+
 all:	
 	@mkdir -p themepayload
 	@mkdir -p binpayload

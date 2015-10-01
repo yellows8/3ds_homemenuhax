@@ -261,7 +261,7 @@ sdfile_path:
 .align 2
 #else
 sdfile_ropbin_path:
-.string16 "sd:/menuhax_ropbinpayload.bin"
+.string16 ROPBINPAYLOAD_PATH
 .align 2
 #endif
 #endif
