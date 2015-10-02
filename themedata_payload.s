@@ -168,6 +168,54 @@ ROPMACRO_STACKPIVOT TARGETOVERWRITE_STACKADR, POP_R4R5R6PC @ Begin the stack-piv
 .word 0 @ r5
 .endm
 
+.macro ROPMACRO_CMPDATA cmpaddr, cmpword, stackaddr_cmpmismatch, stackaddr_cmpmatch
+.word POP_R0PC
+.word HEAPBUF + ((. + 0x14) - _start) @ r0
+
+.word POP_R1PC
+.word \cmpaddr @ r1
+
+.word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from *cmpaddr to ROPMACRO_CMPDATA_cmpword.
+
+.word POP_R0PC
+//ROPMACRO_CMPDATA_cmpword:
+.word 0 @ r0
+
+.word POP_R1PC
+.word \cmpword @ r1
+
+.word ROP_CMPR0R1 @ Compare current PAD state with USE_PADCHECK value.
+
+.word HEAPBUF + ((object+0x20) - _start) @ r4
+
+.word POP_R0PC
+.word HEAPBUF + (stackpivot_sploadword - _start) @ r0
+
+.word POP_R1PC
+.word \stackaddr_cmpmismatch @ r1
+
+.word ROP_STR_R1TOR0 @ Write to the word which will be popped into sp.
+
+.word POP_R0PC
+.word HEAPBUF + (stackpivot_pcloadword - _start) @ r0
+
+.word POP_R1PC
+.word ROP_POPPC @ r1
+
+.word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
+
+.word POP_R0PC @ Begin the actual stack-pivot ROP.
+.word HEAPBUF + (object - _start) @ r0
+
+.word ROP_LOADR4_FROMOBJR0+8 @ When the value at cmpaddr matches cmpword, continue the ROP, otherwise do the above stack-pivot.
+
+.word 0, 0, 0 @ r4..r6
+
+.if \stackaddr_cmpmatch
+ROPMACRO_STACKPIVOT \stackaddr_cmpmatch, ROP_POPPC
+.endif
+.endm
+
 _start:
 
 themeheader:
@@ -266,6 +314,17 @@ sdfile_ropbin_path:
 #endif
 #endif
 
+#ifdef LOADSDCFG_PADCHECK
+sdfile_padcfg_path:
+.string16 "sd:/menuhax_padcfg.bin"
+.align 2
+#endif
+
+#ifdef LOADSDCFG_PADCHECK
+sdcfg_pad:
+.space 0x10
+#endif
+
 tmp_scratchdata:
 .space 0x400
 
@@ -276,6 +335,85 @@ CALLFUNC_NOSP FS_MountSdmc, (HEAPBUF + (sd_archivename - _start)), 0, 0, 0
 
 #ifdef USE_PADCHECK
 PREPARE_RET2MENUCODE
+
+#ifdef LOADSDCFG_PADCHECK
+@ Load the cfg file. Errors are ignored with file-reading.
+CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
+
+CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_padcfg_path - _start)), 1, 0
+
+CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (sdcfg_pad - _start)), 0x10
+
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word (HEAPBUF + (IFile_ctx - _start))
+
+.word ROP_LDR_R0FROMR0
+
+.word IFile_Close
+
+rop_padcfg_cmpbegin1: @ Compare u32 filebuf+0 with 0x1, on match continue to the ROP following this, otherwise jump to rop_padcfg_cmpbegin2.
+ROP_SETLR ROP_POPPC
+
+ROPMACRO_CMPDATA (HEAPBUF + (sdcfg_pad - _start)), 0x1, (HEAPBUF + (rop_padcfg_cmpbegin2 - _start)), 0x0
+
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word (HEAPBUF + (rop_r1data_cmphid - _start)) @ r1
+
+.word POP_R1PC
+.word (HEAPBUF + ((sdcfg_pad+0x4) - _start)) @ r0
+
+.word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from filebuf+0x4 to rop_r1data_cmphid, for overwriting the USE_PADCHECK value.
+
+@ This ROP chunk has finished, jump to rop_padcfg_end.
+ROPMACRO_STACKPIVOT (HEAPBUF + (rop_padcfg_end - _start)), ROP_POPPC
+
+rop_padcfg_cmpbegin2: @ Compare u32 filebuf+0 with 0x2, on match continue to the ROP following this, otherwise jump to rop_padcfg_end.
+ROP_SETLR ROP_POPPC
+
+ROPMACRO_CMPDATA (HEAPBUF + (sdcfg_pad - _start)), 0x2, (HEAPBUF + (rop_padcfg_end - _start)), 0x0
+
+@ This type is the same as type1(minus the offset the PAD value is loaded from), except that it basically inverts the padcheck: on PAD match ret2menu, on mismatch continue ROP.
+
+.word POP_R0PC
+.word (HEAPBUF + (rop_r1data_cmphid - _start)) @ r1
+
+.word POP_R1PC
+.word (HEAPBUF + ((sdcfg_pad+0x8) - _start)) @ r0
+
+.word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from filebuf+0x8 to rop_r1data_cmphid, for overwriting the USE_PADCHECK value.
+
+.word POP_R0PC
+.word (HEAPBUF + ((padcheck_end_stackpivotskip) - _start)) @ r0
+
+.word POP_R1PC
+.word ROP_POPPC @ r1
+
+.word ROP_STR_R1TOR0 @ Write ROP_POPPC to padcheck_end_stackpivotskip, so that the stack-pivot following that actually gets executed.
+
+.word POP_R0PC
+.word (HEAPBUF + ((padcheck_pc_value) - _start)) @ r0
+
+.word POP_R1PC
+.word ROP_POPPC @ r1
+
+.word ROP_STR_R1TOR0 @ Write ROP_POPPC to padcheck_pc_value.
+
+.word POP_R0PC
+.word (HEAPBUF + ((padcheck_sp_value) - _start)) @ r0
+
+.word POP_R1PC
+.word (HEAPBUF + ((padcheck_finish) - _start)) @ r1
+
+.word ROP_STR_R1TOR0 @ Write the address of padcheck_finish to padcheck_sp_value.
+
+rop_padcfg_end:
+#endif
+
+ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
 .word HEAPBUF + (rop_r0data_cmphid - _start) @ r0
@@ -290,12 +428,39 @@ rop_r0data_cmphid:
 .word 0 @ r0
 
 .word POP_R1PC
+rop_r1data_cmphid:
 .word USE_PADCHECK @ r1
 
 .word ROP_CMPR0R1 @ Compare current PAD state with USE_PADCHECK value.
 
 .word HEAPBUF + ((object+0x20) - _start) @ r4
 
+.word POP_R0PC
+.word HEAPBUF + (stackpivot_sploadword - _start) @ r0
+
+.word POP_R1PC
+padcheck_sp_value:
+.word TARGETOVERWRITE_STACKADR @ r1
+
+.word ROP_STR_R1TOR0 @ Write to the word which will be popped into sp.
+
+.word POP_R0PC
+.word HEAPBUF + (stackpivot_pcloadword - _start) @ r0
+
+.word POP_R1PC
+padcheck_pc_value:
+.word POP_R4R5R6PC @ r1
+
+.word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
+
+.word POP_R0PC @ Begin the actual stack-pivot ROP.
+.word HEAPBUF + (object - _start) @ r0
+
+.word ROP_LOADR4_FROMOBJR0+8 @ When the current PAD state matches the USE_PADCHECK value, continue the ROP, otherwise do the above stack-pivot to return to the home-menu code.
+
+.word 0, 0, 0 @ r4..r6
+
+@ Re-init the stack-pivot data since this is needed for the sdcfg stuff.
 .word POP_R0PC
 .word HEAPBUF + (stackpivot_sploadword - _start) @ r0
 
@@ -312,12 +477,16 @@ rop_r0data_cmphid:
 
 .word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
 
-.word POP_R0PC @ Begin the actual stack-pivot ROP.
+padcheck_end_stackpivotskip:
+.word POP_R4R5R6PC @ Jump down to the padcheck_finish ROP by default. The LOADSDCFG_PADCHECK ROP can patch this word to ROP_POPPC, so that the below stack-pivot actually gets executed.
+
+@ When actually executed, stack-pivot so that ret2menu is done.
+.word POP_R0PC
 .word HEAPBUF + (object - _start) @ r0
 
-.word ROP_LOADR4_FROMOBJR0+8 @ When the current PAD state matches the USE_PADCHECK value, continue the ROP, otherwise do the above stack-pivot to return to the home-menu code.
+.word ROP_LOADR4_FROMOBJR0
 
-.word 0, 0, 0 @ r4..r6
+padcheck_finish:
 #endif
 
 //Overwrite the top-screen framebuffers. This doesn't affect the framebuffers when returning from an appet to Home Menu.
