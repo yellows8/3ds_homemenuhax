@@ -67,6 +67,12 @@ When built with ENABLE_LOADROPBIN=1, this can boot into the homebrew-launcher if
 
 With the release archive, you have to hold down the L button while Home Menu is booting(at the time the ROP checks for it), in order to boot into the hblauncher payload. Otherwise, Home Menu will boot like normal.
 
+The latest-git ROP does the following:
+* 1) Mount SD archive.
+* 2) Check PAD, if it's enabled with USE_PADCHECK(which it is with the release archive).
+* 3) Overwrite framebuffer data.
+* 4) Run the actual main ROP.
+
 # Installation
 To install the exploit for booting hblauncher, you *must* use the themehax_installer app. You must already have a way to boot into the hblauncher payload for running this app(which can include themehax if it's already setup): http://3dbrew.org/wiki/Homebrew_Exploits  
 The app requires an Internet connection for setting up the hblauncher payload. Once the app is booted, all you have to do is confirm that you want to install, the app will then auto detect + install everything.  

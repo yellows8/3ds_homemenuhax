@@ -270,6 +270,10 @@ tmp_scratchdata:
 .space 0x400
 
 ropstackstart:
+#ifdef LOADSDPAYLOAD
+CALLFUNC_NOSP FS_MountSdmc, (HEAPBUF + (sd_archivename - _start)), 0, 0, 0
+#endif
+
 #ifdef USE_PADCHECK
 PREPARE_RET2MENUCODE
 
@@ -327,8 +331,7 @@ RET2MENUCODE
 #ifndef LOADSDPAYLOAD
 CALLFUNC_NOSP MEMCPY, ROPBIN_BUFADR, (HEAPBUF + ((codebinpayload_start) - _start)), (codedataend-codebinpayload_start), 0
 #else
-CALLFUNC_NOSP FS_MountSdmc, (HEAPBUF + (sd_archivename - _start)), 0, 0, 0
-COND_THROWFATALERR
+CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
 
 CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_ropbin_path - _start)), 1, 0
 COND_THROWFATALERR
@@ -421,8 +424,7 @@ CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata - _start)), 0x0f000000, 0
 
 #ifndef ENABLE_LOADROPBIN
 #ifdef LOADSDPAYLOAD//When enabled, load the file from SD to codebinpayload_start.
-CALLFUNC_NOSP FS_MountSdmc, (HEAPBUF + (sd_archivename - _start)), 0, 0, 0
-COND_THROWFATALERR
+CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
 
 CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_path - _start)), 1, 0
 COND_THROWFATALERR
