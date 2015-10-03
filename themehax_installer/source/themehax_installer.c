@@ -544,9 +544,202 @@ Result install_themehax(char *ropbin_filepath)
 	return 0;
 }
 
+void print_padbuttons(u32 val)
+{
+	u32 i;
+
+	if(val==0)
+	{
+		printf("<no-buttons>");
+		return;
+	}
+
+	for(i=0; i<12; i++)
+	{
+		if((val & (1<<i))==0)continue;
+
+		switch(1<<i)
+		{
+			case KEY_A:
+				printf("A ");
+			break;
+
+			case KEY_B:
+				printf("B ");
+			break;
+
+			case KEY_SELECT:
+				printf("SELECT ");
+			break;
+
+			case KEY_START:
+				printf("START ");
+			break;
+
+			case KEY_DRIGHT:
+				printf("D-PAD RIGHT ");
+			break;
+
+			case KEY_DLEFT:
+				printf("D-PAD LEFT ");
+			break;
+
+			case KEY_DUP:
+				printf("D-PAD UP ");
+			break;
+
+			case KEY_DDOWN:
+				printf("D-PAD DOWN ");
+			break;
+
+			case KEY_R:
+				printf("R ");
+			break;
+
+			case KEY_L:
+				printf("L ");
+			break;
+
+			case KEY_X:
+				printf("X ");
+			break;
+
+			case KEY_Y:
+				printf("Y ");
+			break;
+		}
+	}
+}
+
+Result setup_sdcfg()
+{
+	Result ret=0;
+	u32 kDown;
+
+	u32 sdcfg[0x10>>2];//Last u32 is reserved atm.
+
+	printf("Configuring the padcfg file on SD...\n");
+
+	memset(sdcfg, 0, sizeof(sdcfg));
+
+	ret = archive_readfile(SDArchive, "sdmc:/menuhax_padcfg.bin", (u8*)sdcfg, sizeof(sdcfg));
+	if(ret==0)
+	{
+		printf("The cfg file already exists on SD.\n");
+		printf("Current cfg:\n");
+		printf("Type 0x%x: ", (unsigned int)sdcfg[0]);
+
+		if(sdcfg[0]==0x1)
+		{
+			printf("Only trigger the haxx when the PAD state matches the specified value(specified button(s) must be pressed).\n");
+			printf("Currently selected PAD value: 0x%x ", (unsigned int)sdcfg[1]);
+			print_padbuttons(sdcfg[1]);
+			printf("\n");
+		}
+		else if(sdcfg[0]==0x2)
+		{
+			printf("Only trigger the haxx when the PAD state doesn't match the specified value.\n");
+			printf("Currently selected PAD value: 0x%x ", (unsigned int)sdcfg[2]);
+			print_padbuttons(sdcfg[2]);
+			printf("\n");
+		}
+		else
+		{
+			printf("None, the default PAD trigger is used.\n");
+		}
+	}
+	else
+	{
+		printf("The cfg file currently doesn't exist on SD.\n");
+	}
+
+	printf("Select a type by pressing a button: A = type1, B = type2, Y = type0. Or, press START to abort configuration(no file data will be written). You can also press X to delete the config file(same end result on the themehax as type0 basically).\n");
+	printf("Type1: Only trigger the haxx when the PAD state matches the specified value(specified button(s) must be pressed).\n");
+	printf("Type2: Only trigger the haxx when the PAD state doesn't match the specified value.\n");
+	printf("Type0: Default PAD config is used.\n");
+
+	memset(sdcfg, 0, sizeof(sdcfg));
+
+	while(1)
+	{
+		gspWaitForVBlank();
+		hidScanInput();
+		kDown = hidKeysDown();
+
+		if(kDown & KEY_A)
+		{
+			sdcfg[0] = 0x1;
+			break;
+		}
+
+		if(kDown & KEY_B)
+		{
+			sdcfg[0] = 0x2;
+			break;
+		}
+
+		if(kDown & KEY_Y)
+		{
+			sdcfg[0] = 0x0;
+			break;
+		}
+
+		if(kDown & KEY_START)
+		{
+			return 0;
+		}
+
+		if(kDown & KEY_X)
+		{
+			unlink("sdmc:/menuhax_padcfg.bin");
+			return 0;
+		}
+	}
+
+	if(sdcfg[0])
+	{
+		printf("Press the button(s) you want to select for the PAD state value as described above(no New3DS-only buttons). If you want to select <no-buttons>, don't press any buttons. Then, while the buttons are being pressed, if any, touch the bottom-screen.\n");
+
+		while(1)
+		{
+			gspWaitForVBlank();
+			hidScanInput();
+			kDown = hidKeysHeld();
+
+			if(kDown & KEY_TOUCH)
+			{
+				sdcfg[sdcfg[0]] = kDown & 0xfff;
+				break;
+			}
+		}
+
+		printf("Selected PAD value: 0x%x ", (unsigned int)sdcfg[sdcfg[0]]);
+		print_padbuttons(sdcfg[sdcfg[0]]);
+		printf("\n");
+	}
+
+	ret = archive_writefile(SDArchive, "sdmc:/menuhax_padcfg.bin", (u8*)sdcfg, sizeof(sdcfg));
+	if(ret!=0)printf("Failed to write the cfg file: 0x%x.\n", (unsigned int)ret);
+	if(ret==0)printf("Config file successfully written.\n");
+
+	return ret;
+}
+
+void displaymessage_waitbutton()
+{
+	printf("\nPress the A button to continue.\n");
+	while(1)
+	{
+		gspWaitForVBlank();
+		hidScanInput();
+		if(hidKeysDown() & KEY_A)break;
+	}
+}
+
 int main(int argc, char **argv)
 {
 	Result ret = 0;
+	int redraw = 0;
 
 	char ropbin_filepath[256];
 
@@ -605,38 +798,68 @@ int main(int argc, char **argv)
 		{
 			printf("Finished opening extdata.\n\n");
 
-			printf("This will install Home Menu themehax to the SD card, for booting hblauncher. Are you sure you want to continue? A = yes, B = no.\n");
+			redraw = 1;
+
 			while(1)
 			{
+				if(redraw)
+				{
+					redraw = 0;
+
+					consoleClear();
+					printf("This can install Home Menu themehax to the SD card, for booting hblauncher. Select an option by pressing a button:\nA = install, Y = configure/check haxx trigger button(s), B = exit.\n");
+				}
+
 				gspWaitForVBlank();
 				hidScanInput();
 
 				u32 kDown = hidKeysDown();
+
 				if(kDown & KEY_A)
 				{
-					ret = 1;
-					break;
+					consoleClear();
+					ret = install_themehax(ropbin_filepath);
+
+					if(ret==0)
+					{
+						printf("Install finished successfully. If you just now updated your themehax install(where the previous install was with >=v1.3) due to your system-version being changed/updated, you might want to manually delete the now unused 'ropbinpayload_menuhax_*' SD file, which was previously used. The following is the filepath which was just now written, you can delete any SD 'ropbinpayload_menuhax_*' file(s) which don't match the following exact filepath: '%s'. Doing so is completely optional.\n", ropbin_filepath);
+						printf("Once you return to the main-menu of this app, you can then configure what button(s) you want to trigger the haxx with(instead of the default), if you want.\n");
+
+						displaymessage_waitbutton();
+
+						redraw = 1;
+					}
+					else
+					{
+						printf("Install failed: 0x%08x.\n", (unsigned int)ret);
+
+						break;
+					}
 				}
+
+				if(kDown & KEY_Y)
+				{
+					consoleClear();
+					ret = setup_sdcfg();
+
+					if(ret==0)
+					{
+						printf("Configuration finished successfully.\n");
+						displaymessage_waitbutton();
+
+						redraw = 1;
+					}
+					else
+					{
+						printf("Configuration failed: 0x%08x.\n", (unsigned int)ret);
+
+						break;
+					}
+				}
+
 				if(kDown & KEY_B)
 				{
-					ret = 2;
 					break;
-				}
-			}
-
-			if(ret==1)
-			{
-				consoleClear();
-				ret = install_themehax(ropbin_filepath);
-				close_extdata();
-
-				if(ret==0)
-				{
-					printf("Install finished successfully. If you just now updated your themehax install(where the previous install was with >=v1.3) due to your system-version being changed/updated, you might want to manually delete the now unused 'ropbinpayload_menuhax_*' SD file, which was previously used. The following is the filepath which was just now written, you can delete any SD 'ropbinpayload_menuhax_*' file(s) which don't match the following exact filepath: '%s'. Doing so is completely optional.\n", ropbin_filepath);
-				}
-				else
-				{
-					printf("Install failed: 0x%08x.\n", (unsigned int)ret);
 				}
 			}
 		}
@@ -646,6 +869,8 @@ int main(int argc, char **argv)
 
 	httpcExit();
 	amExit();
+
+	close_extdata();
 
 	if(ret!=0)printf("An error occured, please report this to here if it persists(or comment on an already existing issue if needed), with an image of your 3DS system with the bottom-screen: https://github.com/yellows8/3ds_homemenuhax/issues\n");
 

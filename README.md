@@ -66,7 +66,9 @@ When the ROP returns from the haxx to running the actual Home Menu code, such as
 
 When built with ENABLE_LOADROPBIN=1, this can boot into the homebrew-launcher if the ropbin listed above is one for the homebrew-launcher and was pre-patched.
 
-With the release archive, you have to hold down the L button while Home Menu is booting(at the time the ROP checks for it), in order to boot into the hblauncher payload. Otherwise, Home Menu will boot like normal.
+With the release archive, you have to hold down the L button while Home Menu is booting(at the time the ROP checks for it), in order to boot into the hblauncher payload. Otherwise, Home Menu will boot like normal. This is the default PAD-trigger configuration.
+
+With the latest-git, the user can override the default PAD-trigger with multiple configuration options in the installer. The data for this is stored in SD file "/menuhax_padcfg.bin".
 
 The latest-git ROP does the following:
 * 1) Mount SD archive.
