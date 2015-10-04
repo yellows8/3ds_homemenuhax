@@ -14,7 +14,7 @@ The decompression code only has an input-size parameter, no output size paramete
 
 # Supported System Versions
 * v9.0
-* v9.1j (not tested)
+* v9.1j
 * v9.2
 * v9.3 (not tested)
 * v9.4
