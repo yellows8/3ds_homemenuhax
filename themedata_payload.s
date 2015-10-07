@@ -336,6 +336,44 @@ CALLFUNC_NOSP FS_MountSdmc, (HEAPBUF + (sd_archivename - _start)), 0, 0, 0
 #ifdef USE_PADCHECK
 PREPARE_RET2MENUCODE
 
+@ The below adds the saved LR value on stack used during RET2MENU, with a certain value. This basically subtracts the saved LR so that a function which was previously only executed with the themehax state, gets executed again with the real state this time. Without this, this particular function never gets executed with normal state, which broke various things.
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word (HEAPBUF + (rop_ret2menu_stack_lrval - _start)) @ r0
+
+.word POP_R1PC
+.word TARGETOVERWRITE_STACKADR+0xc @ r1
+
+.word ROP_LDRR1R1_STRR1R0 @ Copy the saved LR value on the stack which gets used during RET2MENU, to rop_ret2menu_stack_lrval.
+
+.word POP_R0PC
+rop_ret2menu_stack_lrval:
+.word 0
+
+.word POP_R1PC
+#if (REGIONVAL==0 && MENUVERSION>15360) || (REGIONVAL!=0 && REGIONVAL!=4 && MENUVERSION>12288) || (REGIONVAL==4)//Check for system-version >v9.2.
+.word 0xfffffff4
+#else
+.word 0xfffffff8
+#endif
+
+.word ROP_ADDR0_TO_R1 @ r0 = rop_ret2menu_stack_lrval + <above r1 value>
+
+.word POP_R1PC
+.word (HEAPBUF + (rop_ret2menu_stack_newlrval - _start))
+
+.word ROP_STR_R0TOR1 @ Write the above r0 value to rop_ret2menu_stack_newlrval.
+
+.word POP_R0PC
+.word TARGETOVERWRITE_STACKADR+0xc @ r0
+
+.word POP_R1PC
+rop_ret2menu_stack_newlrval:
+.word 0 @ r1
+
+.word ROP_STR_R1TOR0 @ Write the new LR value to the stack.
+
 #ifdef LOADSDCFG_PADCHECK
 @ Load the cfg file. Errors are ignored with file-reading.
 CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0

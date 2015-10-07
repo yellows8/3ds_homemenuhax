@@ -10,6 +10,7 @@
 --patterndata=06875506f101dd62c4b8877e77b51fd2d0e58c09c6f1b165865949fe4ac6128d --patternsha256size=0x4 "--plainout=#define POP_R4R5R6PC "
 
 --patterndata=d6fdb6fb53b97ea0ffdf9e38f755ba28aa6bc13990292a8f10d4d3904cb10c33 --patternsha256size=0x8 "--plainout=#define ROP_STR_R1TOR0 "
+--patterndata=17f19cd8b8896468edbad52b1a47862f432c6f7b119e7f5b2f4458d3a9009795 --patternsha256size=0x8 "--plainout=#define ROP_STR_R0TOR1 "
 --patterndata=b77067177e2cd4f7aab57202cca9d6a8fff0ef2551d1d0367b58c2cafdf2d8d0 --patternsha256size=0x8 "--plainout=#define ROP_LDR_R0FROMR0 "
 --patterndata=aa6a623d7c3291340160fd74738249e68b3b4ac2b59cd2c9b5846adcfefb702f --patternsha256size=0xc "--plainout=#define ROP_LDRR1R1_STRR1R0 "
 --patterndata=783e1007d4808f89c1b1fde53a71dd6fff0d9cd7eb59cee7fb0993e1bb1aae38 --patternsha256size=0x8 "--plainout=#define ROP_MOVR1R3_BXIP "

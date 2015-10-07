@@ -1,9 +1,9 @@
 # Summary
 When the Home Menu is starting up, it can load theme-data from the home-menu theme SD extdata. The flaw can be triggered from here. The ROP starts running at roughly the same time the LCD backlight gets turned on.
 
-Although this triggers during Home Menu boot, this can't cause any true bricks: just remove the *SD card if any booting issues ever occur(or delete/rename the theme-cache extdata directory). Note that this also applies when the ROP causes a crash, like when the ROP is for a different version of Home Menu(this can also happen if you boot into a nandimage which has a different Home Menu version, but still uses the exact same SD data). However, it seems that normally(?) Home Menu crashes with this just result in Home Menu displaying the usual error dialog for system-applet crashes.
+Although this triggers during Home Menu boot, this can't cause any true bricks: just remove the *SD card if any booting issues ever occur(or delete/rename the theme-cache extdata directory). Note that this also applies when the ROP causes a crash, like when the ROP is for a different version of Home Menu(this can also happen if you boot into a nandimage which has a different Home Menu version, but still uses the exact same SD data). In some(?) cases Home Menu crashes with this just result in Home Menu displaying the usual error dialog for system-applet crashes.
 
-Since this is a theme exploit, a normal theme can't be used unless you build with the THEMEDATA_PATH option below(the ROP runs a good while after the theme is loaded). Due to how this hax works, the theme is really only usable for BGM(as described below).
+Since this is a theme exploit, a normal theme can't be used unless you build with the THEMEDATA_PATH option below(the ROP runs a while after the theme is loaded).
 
 # Vuln
 This was discovered on December 22, 2014.
@@ -37,7 +37,7 @@ The initial release archive only supported USA, EUR, and JPN. The latest git als
 # Building
 Just run "make", or even "make clean && make". For building ROP binaries which can be used for general homemenu ROP, this can be used: "{make clean &&} make ropbins". "make bins" is the same as "make", except building the .lz is skipped.
 
-Before building, the menurop directories+files must be generated. "./generate_menurop_addrs.sh {path}". See the source of that script for details(this requires the Home Menu code-binaries). Note that the USA/EUR/JPN homemenu exefs:/.code binaries starting with system-version v9.2 are all identical(prior to v9.9), while USA/EUR binaries for v9.0 differs from the JPN versions. If you don't have the required Home Menu code-binaries, you can use the MENUROP_PATH option listed below.
+Before building, the menurop directories+files must be generated. "./generate_menurop_addrs.sh {path}". See the source of that script for details(this requires the Home Menu code-binaries). Note that the USA/EUR/JPN homemenu exefs:/.code binaries starting with system-version v9.2 are all identical(prior to v9.9), while USA/EUR binaries for v9.0 differs from the JPN versions. If you don't have the required Home Menu code-binaries, you can use the MENUROP_PATH option listed below(this is the recommended way to build this).
 
 The built files for BodyCache.bin/Body_LZ.bin are located under "themepayload/".
 
@@ -55,14 +55,14 @@ Build options:
 * "ENABLE_LOADROPBIN=1" Load a homemenu ropbin then stack-pivot to it, see the Makefile HEAPBUF_ROPBIN_* values for the load-address. When LOADSDPAYLOAD isn't used, the binary is the one specified by CODEBINPAYLOAD, otherwise it's loaded from "sd:/menuhax_ropbinpayload.bin". The binary size should be <=0x10000-bytes.
 * "ENABLE_HBLAUNCHER=1" When used with ENABLE_LOADROPBIN, setup the additional data needed by the hblauncher payload.
 * "MENUROP_PATH={path}" Use the specified path for the "menurop" directory, instead of the default one which requires running generate_menurop_addrs.sh. To use the prebuilt menurop headers included with this repo, the following can be used: "MENUROP_PATH=menurop_prebuilt".
-* "THEMEDATA_PATH={*decompressed* regular theme body_LZ filepath}" Build hax with the specified theme, instead of using the "default theme" one. When Home Menu starts the actual rendering however, the gfx for the theme doesn't display properly due to the hax. BGM works fine, therefore this should only used for BGM-only themes(where the themedata header is all-zero except for the version and BGM fields). Also note that compression during building takes a *lot* longer with this.
+* "THEMEDATA_PATH={*decompressed* regular theme body_LZ filepath}" Build hax with the specified theme, instead of using the "default theme" one. Also note that compression during building takes a *lot* longer with this.
 
 The build command used for the release archive is the following: make clean && time make LOADSDPAYLOAD=1 USE_PADCHECK=0x200 ENABLE_LOADROPBIN=1 ENABLE_HBLAUNCHER=1 LOADSDCFG_PADCHECK=1 MENUROP_PATH=menurop_prebuilt
 
 # Usage
 Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. The ROP right after the ROP for USE_PADCHECK, if that's even enabled, will overwrite the main-screen framebuffers with data from elsewhere, resulting in junk being displayed.
 
-When the ROP returns from the haxx to running the actual Home Menu code, such as when USE_PADCHECK is used where the current PAD state doesn't match the specified state, Home Menu will use the "theme" data from this hax: the end result is that it appears to use the same theme as the default one.
+When the ROP returns from the haxx to running the actual Home Menu code, such as when USE_PADCHECK is used where the current PAD state doesn't match the specified state, Home Menu will use the "theme" data from this hax: the end result is that it appears to use the same theme as the default one(when the THEMEDATA_PATH build option wasn't used).
 
 When built with ENABLE_LOADROPBIN=1, this can boot into the homebrew-launcher if the ropbin listed above is one for the homebrew-launcher and was pre-patched.
 
