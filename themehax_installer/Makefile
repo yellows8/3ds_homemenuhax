@@ -32,10 +32,10 @@ SOURCES		:=	source
 DATA		:=	data
 INCLUDES	:=	include
 
-VERSION	:=	v1.3
+VERSION	:=	v2.0
 
 APP_TITLE	:=	themehax_installer $(VERSION)
-APP_DESCRIPTION	:=	Tool for installing Home Menu themehax, requires an Internet connection.
+APP_DESCRIPTION	:=	Tool for managing Home Menu themehax.
 APP_AUTHOR	:=	yellows8
 
 #---------------------------------------------------------------------------------

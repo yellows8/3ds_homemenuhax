@@ -8,6 +8,7 @@
 --patterndata=6b4e30c65b5271f4959778a934e03fc418fce70a5f37a581f8df668a96d6b5fc --patternsha256size=0x8 "--plainout=#define POP_R4LR_BXR1 "
 --patterndata=ddd6949c0d8b19de876bc7b68eec5e39c22044433b29049a011a4e3b49633689 --patternsha256size=0x8 "--plainout=#define POP_R4R8LR_BXR2 "
 --patterndata=06875506f101dd62c4b8877e77b51fd2d0e58c09c6f1b165865949fe4ac6128d --patternsha256size=0x4 "--plainout=#define POP_R4R5R6PC "
+--patterndata=facba515962332efee595cd996a040215c5cf047a05c1a8bd91939d2d5e22c94 --patternsha256size=0x4 "--plainout=#define POP_R4FPPC "
 
 --patterndata=d6fdb6fb53b97ea0ffdf9e38f755ba28aa6bc13990292a8f10d4d3904cb10c33 --patternsha256size=0x8 "--plainout=#define ROP_STR_R1TOR0 "
 --patterndata=17f19cd8b8896468edbad52b1a47862f432c6f7b119e7f5b2f4458d3a9009795 --patternsha256size=0x8 "--plainout=#define ROP_STR_R0TOR1 "

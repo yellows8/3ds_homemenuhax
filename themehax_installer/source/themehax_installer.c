@@ -104,21 +104,23 @@ Result menu_enablethemecache_persistent()
 	return enablethemecache(3);
 }
 
-int sd2themecache(char *body_filepath)
+int sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 {
 	Result ret=0;
 	u32 body_size=0, bgm_size=0;
 	u32 thememanage[0x20>>2];
-	char bgm_filepath[256];
 
-	memset(thememanage, 0, 0x20);
+	memset(thememanage, 0, sizeof(thememanage));
 
 	ret = archive_getfilesize(SDArchive, body_filepath, &body_size);
 	if(ret!=0)
 	{
 		printf("Failed to stat the body-filepath: %s\n", body_filepath);
-		printf("Note that only USA/EUR/JPN builds are included with the release archive. If that's not an issue for your system, verify that you have a themehax build for your system on SD card: make sure that the release archive you're using actually includes builds for your system-version.\n");
-		printf("Also verify that the following directory containing .lz files actually exists on your SD card: '/3ds/themehax_installer/themepayload/'.\n");
+		if(install_type==0)
+		{
+			printf("Note that only USA/EUR/JPN builds are included with the release archive. If that's not an issue for your system, verify that you have a themehax build for your system on SD card: make sure that the release archive you're using actually includes builds for your system-version.\n");
+			printf("Also verify that the following directory containing .lz files actually exists on your SD card: '/3ds/themehax_installer/themepayload/'.\n");
+		}
 		return ret;
 	}
 	else
@@ -126,30 +128,17 @@ int sd2themecache(char *body_filepath)
 		printf("Using body-filepath: %s\n", body_filepath);
 	}
 
-	memset(bgm_filepath, 0, sizeof(bgm_filepath));
-	strncpy(bgm_filepath, "sdmc:/3ds/themehax_installer/BgmCache.bin", sizeof(bgm_filepath)-1);
-
 	ret = archive_getfilesize(SDArchive, bgm_filepath, &bgm_size);
 	if(ret!=0)
 	{
-		memset(bgm_filepath, 0, sizeof(bgm_filepath));
-		strncpy(bgm_filepath, "sdmc:/3ds/themehax_installer/bgm.bcstm", sizeof(bgm_filepath)-1);
-
 		ret = archive_getfilesize(SDArchive, bgm_filepath, &bgm_size);
-		if(ret!=0)
-		{
-			printf("Failed to stat BgmCache.bin and bgm.bcstm on SD, copying for the bgm-data will be skipped.\n");
+		printf("Skipping BGM copying since stat() failed for it.\n");
 
-			memset(bgm_filepath, 0, sizeof(bgm_filepath));
-		}
-		else
-		{
-			printf("Using bgm-filepath bgm.bcstm.\n");
-		}
+		bgm_size = 0;
 	}
 	else
 	{
-		printf("Using bgm-filepath BgmCache.bin.\n");
+		printf("Using bgm-filepath: %s\n", bgm_filepath);
 	}
 
 	printf("Generating a ThemeManage.bin + writing it to extdata...\n");
@@ -165,53 +154,47 @@ int sd2themecache(char *body_filepath)
 
 	memset(filebuffer, 0, 0x800);
 	memcpy(filebuffer, thememanage, 0x20);
-	ret = archive_writefile(Theme_Extdata, "/ThemeManage.bin", filebuffer, 0x800);
+	ret = archive_writefile(Theme_Extdata, install_type==0 ? "/ThemeManage.bin" : "/yhemeManage.bin", filebuffer, 0x800);
 
 	if(ret!=0)
 	{
 		printf("Failed to write ThemeManage.bin to extdata, aborting.\n");
-		return 0;
+		return ret;
 	}
 
-	if(body_filepath[0])
+	if(body_size==0)
 	{
-		if(thememanage[0x8>>2] == 0)
+		printf("Skipping copying of body-data since the size field is zero.\n");
+	}
+	else
+	{
+		ret = archive_copyfile(SDArchive, Theme_Extdata, body_filepath, install_type==0 ? "/BodyCache.bin" : "/yodyCache.bin", filebuffer, thememanage[0x8>>2], 0x150000, "body-data");
+
+		if(ret==0)
 		{
-			printf("Skipping copying of body-data since the size field is zero.\n");
+			printf("Successfully finished copying body-data.\n");
 		}
 		else
 		{
-			ret = archive_copyfile(SDArchive, Theme_Extdata, body_filepath, "/BodyCache.bin", filebuffer, thememanage[0x8>>2], 0x150000, "body-data");
-
-			if(ret==0)
-			{
-				printf("Successfully finished copying body-data.\n");
-			}
-			else
-			{
-				return ret;
-			}
+			return ret;
 		}
 	}
 
-	if(bgm_filepath[0])
+	if(bgm_size==0)
 	{
-		if(thememanage[0xC>>2] == 0)
+		printf("Skipping copying of bgm-data since the size field is zero.\n");
+	}
+	else
+	{
+		ret = archive_copyfile(SDArchive, Theme_Extdata, bgm_filepath, "/BgmCache.bin", filebuffer, thememanage[0xC>>2], 0x337000, "bgm-data");
+
+		if(ret==0)
 		{
-			printf("Skipping copying of bgm-data since the size field is zero.\n");
+			printf("Successfully finished copying bgm-data.\n");
 		}
 		else
 		{
-			ret = archive_copyfile(SDArchive, Theme_Extdata, bgm_filepath, "/BgmCache.bin", filebuffer, thememanage[0xC>>2], 0x337000, "bgm-data");
-
-			if(ret==0)
-			{
-				printf("Successfully finished copying bgm-data.\n");
-			}
-			else
-			{
-				return ret;
-			}
+			return ret;
 		}
 	}
 
@@ -481,17 +464,31 @@ Result install_themehax(char *ropbin_filepath)
 	}
 	else
 	{
+		ret = httpcInit();
+		if(ret!=0)
+		{
+			printf("Failed to initialize HTTPC: 0x%08x.\n", (unsigned int)ret);
+			if(ret==0xd8e06406)
+			{
+				printf("The HTTPC service is inaccessible. With the hblauncher-payload this may happen if the process this app is running under doesn't have access to that service. Please try rebooting the system, boot hblauncher-payload, then directly launch the app.\n");
+			}
+
+			return ret;
+		}
+
 		printf("Requesting the actual payload URL with HTTP...\n");
 		ret = http_getactual_payloadurl(payloadurl, payloadurl, sizeof(payloadurl));
 		if(ret!=0)
 		{
 			printf("Failed to request the actual payload URL: 0x%08x.\n", (unsigned int)ret);
 			printf("If the server isn't down, and the HTTP request was actually done, this may mean your system-version or region isn't supported by the hblauncher-payload currently.\n");
+			httpcExit();
 			return ret;
 		}
 
 		printf("Downloading the actual payload with HTTP...\n");
 		ret = http_download_payload(payloadurl, &payloadsize);
+		httpcExit();
 		if(ret!=0)
 		{
 			printf("Failed to download the actual payload with HTTP: 0x%08x.\n", (unsigned int)ret);
@@ -538,7 +535,7 @@ Result install_themehax(char *ropbin_filepath)
 	if(ret!=0)return ret;
 
 	printf("Installing to the SD theme-cache...\n");
-	ret = sd2themecache(body_filepath);
+	ret = sd2themecache(body_filepath, "sdmc:/3ds/themehax_installer/bgm_bundledmenuhax.bcstm", 0);
 	if(ret!=0)return ret;
 
 	return 0;
@@ -752,26 +749,13 @@ int main(int argc, char **argv)
 
 	memset(ropbin_filepath, 0, sizeof(ropbin_filepath));
 
-	ret = httpcInit();
+	ret = amInit();
 	if(ret!=0)
 	{
-		printf("Failed to initialize HTTPC: 0x%08x.\n", (unsigned int)ret);
+		printf("Failed to initialize AM: 0x%08x.\n", (unsigned int)ret);
 		if(ret==0xd8e06406)
 		{
-			printf("The HTTPC service is inaccessible. With the hblauncher-payload this may happen if the process this app is running under doesn't have access to that service. Please try rebooting the system, boot hblauncher-payload, then directly launch the app.\n");
-		}
-	}
-
-	if(ret==0)
-	{
-		ret = amInit();
-		if(ret!=0)
-		{
-			printf("Failed to initialize AM: 0x%08x.\n", (unsigned int)ret);
-			if(ret==0xd8e06406)
-			{
-				printf("The AM service is inaccessible. With the hblauncher-payload this should never happen.\n");
-			}
+			printf("The AM service is inaccessible. With the hblauncher-payload this should never happen.\n");
 		}
 	}
 
@@ -807,7 +791,7 @@ int main(int argc, char **argv)
 					redraw = 0;
 
 					consoleClear();
-					printf("This can install Home Menu themehax to the SD card, for booting hblauncher. Select an option by pressing a button:\nA = install, Y = configure/check haxx trigger button(s), B = exit.\n");
+					printf("This can install Home Menu themehax to the SD card, for booting hblauncher. Select an option by pressing a button:\nA = install\nY = configure/check haxx trigger button(s), which can override the default setting.\nX = install custom theme for when Home Menu is using the seperate extdata files for this hax.\nB = exit\n");
 				}
 
 				gspWaitForVBlank();
@@ -822,8 +806,7 @@ int main(int argc, char **argv)
 
 					if(ret==0)
 					{
-						printf("Install finished successfully. If you just now updated your themehax install(where the previous install was with >=v1.3) due to your system-version being changed/updated, you might want to manually delete the now unused 'ropbinpayload_menuhax_*' SD file, which was previously used. The following is the filepath which was just now written, you can delete any SD 'ropbinpayload_menuhax_*' file(s) which don't match the following exact filepath: '%s'. Doing so is completely optional.\n", ropbin_filepath);
-						printf("Once you return to the main-menu of this app, you can then configure what button(s) you want to trigger the haxx with(instead of the default), if you want.\n");
+						printf("Install finished successfully. The following is the filepath which was just now written, you can delete any SD 'ropbinpayload_menuhax_*' file(s) which don't match the following exact filepath: '%s'. Doing so is completely optional. This only applies when themehax >v1.2 was already installed where it was switched to a different system-version.\n", ropbin_filepath);
 
 						displaymessage_waitbutton();
 
@@ -857,6 +840,26 @@ int main(int argc, char **argv)
 					}
 				}
 
+				if(kDown & KEY_X)
+				{
+					consoleClear();
+					ret = sd2themecache("sdmc:/3ds/themehax_installer/body_LZ.bin", "sdmc:/3ds/themehax_installer/bgm.bcstm", 1);
+
+					if(ret==0)
+					{
+						printf("Custom theme installation finished successfully.\n");
+						displaymessage_waitbutton();
+
+						redraw = 1;
+					}
+					else
+					{
+						printf("Custom theme installation failed: 0x%08x. If you haven't already done so, you might need to enter the theme-settings menu under Home Menu, while themehax is installed.\n", (unsigned int)ret);
+
+						break;
+					}
+				}
+
 				if(kDown & KEY_B)
 				{
 					break;
@@ -867,7 +870,6 @@ int main(int argc, char **argv)
 
 	free(filebuffer);
 
-	httpcExit();
 	amExit();
 
 	close_extdata();
