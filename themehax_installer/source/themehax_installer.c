@@ -843,7 +843,13 @@ int main(int argc, char **argv)
 				if(kDown & KEY_X)
 				{
 					consoleClear();
-					ret = sd2themecache("sdmc:/3ds/themehax_installer/body_LZ.bin", "sdmc:/3ds/themehax_installer/bgm.bcstm", 1);
+					printf("Enabling persistent themecache...\n");
+					ret = menu_enablethemecache_persistent();
+					if(ret==0)
+					{
+						printf("Installing custom-theme...\n");
+						ret = sd2themecache("sdmc:/3ds/themehax_installer/body_LZ.bin", "sdmc:/3ds/themehax_installer/bgm.bcstm", 1);
+					}
 
 					if(ret==0)
 					{
