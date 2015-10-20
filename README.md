@@ -12,6 +12,11 @@ Home Menu allocates a 0x2a0000-byte heap buffer using the ctrsdk heap code: offs
 
 The decompression code only has an input-size parameter, no output size parameter. Hence, the output size is not restricted/checked at all. Since the decompressed data is located before the compressed data, the buf overflow results in the input compressed data being overwritten first. Eventually this overflow will result in the input data actually being used by the decompression function being overwritten, which can later result in an error before the function ever writes to the CTRSDK memchunk-hdr(if the input compressed data doesn't workaround that).
 
+## 10.2.0-X sysupdate
+This update fixed the vuln with theme decompression.
+
+The Home Menu code changes *just* added a "if(decompressed_size_from_lzheader > 0x150000){exit};" check after loading a theme, prior to decompression.
+
 # Supported System Versions
 * v9.0
 * v9.1j
@@ -28,9 +33,9 @@ Due to an issue with APT, the <=v1.2 installer will fail to find the .lz for the
 * v9.6
 * v9.7
 
-This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X on Old3DS, v8.1 on New3DS. Old3DS JPN theme support was "added" 9.1.0-XJ. The lowest system-version supported by this is v9.0.
+This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X on Old3DS, v8.1 on New3DS. Old3DS JPN theme support was "added" 9.1.0-XJ. The lowest system-version supported by exploit is v9.0.
 
-This flaw still exists with system-version 10.1.0-X, the newest version this flaw was checked for at the time of writing. Last system-version this haxx was successfully tested with: 10.1.0-X.
+Every version starting with v9.0 is supported unless mentioned otherwise, system-versions starting with 10.2.0-X are not supported(see above).
 
 The initial release archive only supported USA, EUR, and JPN. The latest git also supports KOR, which should be included in the next release. TWN can't be supported currently. CHN isn't supported since the last Home Menu update(v7.0) was before themes even existed in Home Menu.
 
