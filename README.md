@@ -1,9 +1,7 @@
 # Summary
 When the Home Menu is starting up, it can load theme-data from the home-menu theme SD extdata. The flaw can be triggered from here. The ROP starts running at roughly the same time the LCD backlight gets turned on.
 
-Although this triggers during Home Menu boot, this can't cause any true bricks: just remove the *SD card if any booting issues ever occur(or delete/rename the theme-cache extdata directory). Note that this also applies when the ROP causes a crash, like when the ROP is for a different version of Home Menu(this can also happen if you boot into a nandimage which has a different Home Menu version, but still uses the exact same SD data). In some(?) cases Home Menu crashes with this just result in Home Menu displaying the usual error dialog for system-applet crashes.
-
-Since this is a theme exploit, a normal theme can't be used unless you build with the THEMEDATA_PATH option below(the ROP runs a while after the theme is loaded).
+Although this triggers during Home Menu boot, this can't cause any true bricks: just remove the *SD card if any booting issues ever occur(or delete/rename the theme-cache extdata directory: http://3dbrew.org/wiki/Extdata). Note that this also applies when the ROP causes a crash, like when the ROP is for a different version of Home Menu(this can also happen if you boot into a nandimage which has a different Home Menu version, but still uses the exact same SD data). In some(?) cases Home Menu crashes with this just result in Home Menu displaying the usual error dialog for system-applet crashes.
 
 # Vuln
 This was discovered on December 22, 2014.
@@ -60,9 +58,10 @@ Build options:
 * "ENABLE_LOADROPBIN=1" Load a homemenu ropbin then stack-pivot to it, see the Makefile HEAPBUF_ROPBIN_* values for the load-address. When LOADSDPAYLOAD isn't used, the binary is the one specified by CODEBINPAYLOAD, otherwise it's loaded from "sd:/menuhax_ropbinpayload.bin". The binary size should be <=0x10000-bytes.
 * "ENABLE_HBLAUNCHER=1" When used with ENABLE_LOADROPBIN, setup the additional data needed by the hblauncher payload.
 * "MENUROP_PATH={path}" Use the specified path for the "menurop" directory, instead of the default one which requires running generate_menurop_addrs.sh. To use the prebuilt menurop headers included with this repo, the following can be used: "MENUROP_PATH=menurop_prebuilt".
-* "THEMEDATA_PATH={*decompressed* regular theme body_LZ filepath}" Build hax with the specified theme, instead of using the "default theme" one. Also note that compression during building takes a *lot* longer with this.
+* "THEMEDATA_PATH={*decompressed* regular theme body_LZ filepath}" Build hax with the specified theme, instead of using the "default theme" one. Also note that compression during building takes a *lot* longer with this. This option is *not* recommended, use the LOADOTHER_THEMEDATA option instead.
+* "LOADOTHER_THEMEDATA=1" When doing RET2MENU, re-run the theme-loading Home Menu code with different extdata file-paths(BGM file-paths are not changed). This allows loading actual themes while menuhax is installed.
 
-The build command used for the release archive is the following: make clean && time make LOADSDPAYLOAD=1 USE_PADCHECK=0x200 ENABLE_LOADROPBIN=1 ENABLE_HBLAUNCHER=1 LOADSDCFG_PADCHECK=1 MENUROP_PATH=menurop_prebuilt
+The build command used for the release archive is the following: make clean && time make LOADSDPAYLOAD=1 USE_PADCHECK=0x200 ENABLE_LOADROPBIN=1 ENABLE_HBLAUNCHER=1 LOADSDCFG_PADCHECK=1 LOADOTHER_THEMEDATA=1 MENUROP_PATH=menurop_prebuilt
 
 # Usage
 Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. The ROP right after the ROP for USE_PADCHECK, if that's even enabled, will overwrite the main-screen framebuffers with data from elsewhere, resulting in junk being displayed.
@@ -82,11 +81,11 @@ The latest-git ROP does the following:
 * 4) Run the actual main ROP.
 
 # Installation
-To install the exploit for booting hblauncher, you *must* use the themehax_installer app. You must already have a way to boot into the hblauncher payload for running this app(which can include themehax if it's already setup): http://3dbrew.org/wiki/Homebrew_Exploits  
+To install the exploit for booting hblauncher, you *must* use the menuhax_installer app. You must already have a way to boot into the hblauncher payload for running this app(which can include menuhax if it's already setup): http://3dbrew.org/wiki/Homebrew_Exploits  
 The app requires an Internet connection for setting up the hblauncher payload. Once the app is booted, all you have to do is confirm that you want to install, the app will then auto detect + install everything.  
-Latest-git-only currently: before using HTTP, the installer will first try to load the otherapp payload(https://smealum.github.io/3ds/) from SD "/themehaxinstaller_otherapp_payload.bin", then continue to use HTTP if loading from SD isn't successful. Actually using this SD payload is *not* recommended for end-users when HTTP download works fine.  
+Latest-git-only currently: before using HTTP, the installer will first try to load the otherapp payload(https://smealum.github.io/3ds/) from SD "/menuhaxinstaller_otherapp_payload.bin", then continue to use HTTP if loading from SD isn't successful. Actually using this SD payload is *not* recommended for end-users when HTTP download works fine.  
 
-The latest-git uses a seperate menuropbin path for each themehax build. <=v1.2 used the same filepath for all builds, rendering themehax unusable for multiple system-versions/etc with the same SD card without changing that file(like with booting into SD-nandimages, for example).
+The latest-git uses a seperate menuropbin path for each menuhax build. <=v1.2 used the same filepath for all builds, rendering menuhax unusable for multiple system-versions/etc with the same SD card without changing that file(like with booting into SD-nandimages, for example).
 
 This app uses code based on code from the following repos: https://github.com/yellows8/3ds_homemenu_extdatatool https://github.com/yellows8/3ds_browserhax_common  
 This app includes the theme BGM copying code from 3ds_homemenu_extdatatool, but that BGM won't actually get used by Home Menu unless you build the exploit with the param related to that yourself.
@@ -94,7 +93,7 @@ Whenever the Home Menu version installed on your system changes where the instal
 
 To "remove" the exploit, you can just select any theme in the Home Menu theme settings(such as one of the built-in color themes). If you want the default theme, you can then select that option again. See the "Summary" section if you have issues with Home Menu failing to boot.
 
-If you *really* want to build a NCCH version of the installer, use the same permissions as 3ds_homemenu_extdatatool, with the same data on SD card as from the release archive. Access to the HTTPC service, and access to an AM service for AM_ListTitles is required too.
+If you *really* want to build a NCCH version of the installer, use the same permissions as 3ds_homemenu_extdatatool, with the same data on SD card as from the release archive. Access to the HTTPC service, and access to an AM service for AM_ListTitles, is required. Due to AM access being required with >v1.2, this app is not usable with ninjhax v1.x.
 
 If you haven't already done so before, you may have to enter the Home Menu theme-settings so that Home Menu can create the theme extdata.
 
