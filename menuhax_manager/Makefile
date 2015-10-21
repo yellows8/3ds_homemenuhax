@@ -34,8 +34,8 @@ INCLUDES	:=	include
 
 VERSION	:=	v2.0
 
-APP_TITLE	:=	themehax_installer $(VERSION)
-APP_DESCRIPTION	:=	Tool for managing Home Menu themehax.
+APP_TITLE	:=	menuhax_manager $(VERSION)
+APP_DESCRIPTION	:=	Tool for managing Home Menu haxx.
 APP_AUTHOR	:=	yellows8
 
 #---------------------------------------------------------------------------------
