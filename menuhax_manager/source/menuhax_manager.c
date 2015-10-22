@@ -40,9 +40,6 @@ u32 CVer_tidlow_regionarray[7] = {
 0x00017602 //TWN
 };
 
-s32 locatepayload_data(u32 *payloadbuf, u32 payloadbufsize, u32 *out);
-s32 patchPayload(u32 *menuropbin, u32 targetProcessIndex, u32 new3ds_flag);
-
 Result enablethemecache(u32 type)
 {	
 	Result ret=0;
@@ -275,7 +272,7 @@ Result http_download_payload(char *url, u32 *payloadsize)
 		return ret;
 	}
 
-	if(contentsize==0 || contentsize>filebuffer_maxsize-0x8000)
+	if(contentsize==0 || contentsize>filebuffer_maxsize)
 	{
 		printf("Invalid HTTP content-size: 0x%08x.\n", (unsigned int)contentsize);
 		ret = -3;
@@ -347,7 +344,7 @@ Result install_themehax(char *ropbin_filepath)
 	u8 nver_versionbin[0x8];
 	u8 cver_versionbin[0x8];
 
-	u32 payloadsize = 0, payloadsize_aligned = 0;
+	u32 payloadsize = 0;
 
 	char payloadurl[0x80];
 
@@ -440,27 +437,27 @@ Result install_themehax(char *ropbin_filepath)
 		return ret;
 	}
 
-	snprintf(payloadurl, sizeof(payloadurl)-1, "http://smea.mtheall.com/get_payload.php?version=%s-%d-%d-%d-%d-%s", new3dsflag?"NEW":"OLD", cver_versionbin[2], cver_versionbin[1], cver_versionbin[0], nver_versionbin[2], regionids_table[region]);
+	snprintf(payloadurl, sizeof(payloadurl)-1, "http://smea.mtheall.com/get_ropbin_payload.php?version=%s-%d-%d-%d-%d-%s", new3dsflag?"NEW":"OLD", cver_versionbin[2], cver_versionbin[1], cver_versionbin[0], nver_versionbin[2], regionids_table[region]);
 
 	printf("Detected system-version: %s %d.%d.%d-%d %s\n", new3dsflag?"New3DS":"Old3DS", cver_versionbin[2], cver_versionbin[1], cver_versionbin[0], nver_versionbin[2], regionids_table[region]);
 
 	memset(filebuffer, 0, filebuffer_maxsize);
 
-	printf("Checking for the otherapp payload on SD...\n");
-	ret = archive_getfilesize(SDArchive, "sdmc:/menuhaxmanager_otherapp_payload.bin", &payloadsize);
+	printf("Checking for the input payload on SD...\n");
+	ret = archive_getfilesize(SDArchive, "sdmc:/menuhaxmanager_input_payload.bin", &payloadsize);
 	if(ret==0)
 	{
-		if(payloadsize==0 || payloadsize>filebuffer_maxsize-0x8000)
+		if(payloadsize==0 || payloadsize>filebuffer_maxsize)
 		{
 			printf("Invalid SD payload size: 0x%08x.\n", (unsigned int)payloadsize);
 			ret = -3;
 		}
 	}
-	if(ret==0)ret = archive_readfile(SDArchive, "sdmc:/menuhaxmanager_otherapp_payload.bin", filebuffer, payloadsize);
+	if(ret==0)ret = archive_readfile(SDArchive, "sdmc:/menuhaxmanager_input_payload.bin", filebuffer, payloadsize);
 
 	if(ret==0)
 	{
-		printf("The otherapp payload for this installer already exists on SD, that will be used instead of downloading the payload via HTTP.\n");
+		printf("The input payload for this installer already exists on SD, that will be used instead of downloading the payload via HTTP.\n");
 	}
 	else
 	{
@@ -497,31 +494,10 @@ Result install_themehax(char *ropbin_filepath)
 		}
 	}
 
-	payloadsize_aligned = (payloadsize + 0xfff) & ~0xfff;
-
-	printf("Loading info from the hblauncher otherapp payload...\n");
-	ret = locatepayload_data((u32*)filebuffer, payloadsize, payloadinfo);
-	if(ret!=0)
-	{
-		printf("Failed to parse the payload: 0x%08x.\n", (unsigned int)ret);
-		return ret;
-	}
-
-	memcpy(&filebuffer[payloadsize_aligned], &filebuffer[payloadinfo[0]], payloadinfo[1]);
-	memcpy(&filebuffer[payloadsize_aligned+0x8000], &filebuffer[payloadsize_aligned], payloadinfo[1]);
-
-	printf("Patching the menuropbin...\n");
-	ret = patchPayload((u32*)&filebuffer[payloadsize_aligned], 0x1, (u32)new3dsflag);
-	if(ret!=0)
-	{
-		printf("Patching failed: 0x%08x.\n", (unsigned int)ret);
-		return ret;
-	}
-
 	printf("Writing the menuropbin to SD, to the following path: %s.\n", ropbin_filepath);
 	unlink("sdmc:/menuhax_ropbinpayload.bin");//Delete the ropbin with the filepath used by the <=v1.2 menuhax.
 	unlink(ropbin_filepath);
-	ret = archive_writefile(SDArchive, ropbin_filepath, &filebuffer[payloadsize_aligned], 0x10000);
+	ret = archive_writefile(SDArchive, ropbin_filepath, filebuffer, 0x10000);
 	if(ret!=0)
 	{
 		printf("Failed to write the menurop to the SD file: 0x%08x.\n", (unsigned int)ret);

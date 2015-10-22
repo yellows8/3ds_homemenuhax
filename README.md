@@ -83,7 +83,7 @@ The latest-git ROP does the following:
 # Installation
 To install the exploit for booting hblauncher, you *must* use the menuhax_installer app. You must already have a way to boot into the hblauncher payload for running this app(which can include menuhax if it's already setup): http://3dbrew.org/wiki/Homebrew_Exploits  
 The app requires an Internet connection for setting up the hblauncher payload. Once the app is booted, all you have to do is confirm that you want to install, the app will then auto detect + install everything.  
-Latest-git-only currently: before using HTTP, the installer will first try to load the otherapp payload(https://smealum.github.io/3ds/) from SD "/menuhaxinstaller_otherapp_payload.bin", then continue to use HTTP if loading from SD isn't successful. Actually using this SD payload is *not* recommended for end-users when HTTP download works fine.  
+Latest-git-only currently: before using HTTP, the installer will first try to load the payload(https://smealum.github.io/3ds/) from SD "/menuhaxinstaller_input_payload.bin", then continue to use HTTP if loading from SD isn't successful. Actually using this SD payload is *not* recommended for end-users when HTTP download works fine.  
 
 The latest-git uses a seperate menuropbin path for each menuhax build. <=v1.2 used the same filepath for all builds, rendering menuhax unusable for multiple system-versions/etc with the same SD card without changing that file(like with booting into SD-nandimages, for example).
 
