@@ -124,12 +124,12 @@ all:
 	@if [ ! -d "$(MENUROP_PATH)/KOR" ]; then $$(error "The $(MENUROP_PATH)/KOR directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
 	#@if [ ! -d "$(MENUROP_PATH)/TWN" ]; then $$(error "The $(MENUROP_PATH)/TWN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
 
-	@for path in $(MENUROP_PATH)/JPN/*; do make -f Makefile buildtheme --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
-	@for path in $(MENUROP_PATH)/USA/*; do make -f Makefile buildtheme --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
-	@for path in $(MENUROP_PATH)/EUR/*; do make -f Makefile buildtheme --no-print-directory REGION=EUR REGIONVAL=2 MENUVERSION=$$(basename "$$path"); done
-	#@for path in $(MENUROP_PATH)/CHN/*; do make -f Makefile buildtheme --no-print-directory REGION=CHN REGIONVAL=3 MENUVERSION=$$(basename "$$path"); done
-	@for path in $(MENUROP_PATH)/KOR/*; do make -f Makefile buildtheme --no-print-directory REGION=KOR REGIONVAL=4 MENUVERSION=$$(basename "$$path"); done
-	#@for path in $(MENUROP_PATH)/TWN/*; do make -f Makefile buildtheme --no-print-directory REGION=TWN REGIONVAL=5 MENUVERSION=$$(basename "$$path"); done
+	@for path in themehax_menuversions/JPN/*; do make -f Makefile buildtheme --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
+	@for path in themehax_menuversions/USA/*; do make -f Makefile buildtheme --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
+	@for path in themehax_menuversions/EUR/*; do make -f Makefile buildtheme --no-print-directory REGION=EUR REGIONVAL=2 MENUVERSION=$$(basename "$$path"); done
+	#@for path in themehax_menuversions/CHN/*; do make -f Makefile buildtheme --no-print-directory REGION=CHN REGIONVAL=3 MENUVERSION=$$(basename "$$path"); done
+	@for path in themehax_menuversions/KOR/*; do make -f Makefile buildtheme --no-print-directory REGION=KOR REGIONVAL=4 MENUVERSION=$$(basename "$$path"); done
+	#@for path in themehax_menuversions/TWN/*; do make -f Makefile buildtheme --no-print-directory REGION=TWN REGIONVAL=5 MENUVERSION=$$(basename "$$path"); done
 
 ropbins:	
 	@mkdir -p binpayload
