@@ -19,7 +19,7 @@ The Home Menu code changes *just* added a "if(decompressed_size_from_lzheader > 
 * v9.0
 * v9.1j
 * v9.2
-* v9.3 (not tested)
+* v9.3
 * v9.4
 * v9.5
 * v9.6
