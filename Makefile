@@ -188,6 +188,6 @@ themepayload/$(BUILDPREFIX).lz:	binpayload/$(BUILDPREFIX).bin
 binpayload/$(BUILDPREFIX).bin:	build/$(BUILDPREFIX).elf
 	$(OBJCOPY) -O binary $< $@
 
-build/$(BUILDPREFIX).elf:	themedata_payload.s
+build/$(BUILDPREFIX).elf:	menuhax_payload.s
 	$(CC) -x assembler-with-cpp -nostartfiles -nostdlib -DREGION=$(REGION) -DREGIONVAL=$(REGIONVAL) -DMENUVERSION=$(MENUVERSION) -DHEAPBUF=$(HEAPBUF) -DROPBIN_BUFADR=$(ROPBIN_BUFADR) -DTARGETOVERWRITE_MEMCHUNKADR=$(TARGETOVERWRITE_MEMCHUNKADR) -DNEW3DS=$(NEW3DS) $(DEFINES) -include $(MENUROP_PATH)/$(REGION)/$(MENUVERSION) $< -o $@
 
