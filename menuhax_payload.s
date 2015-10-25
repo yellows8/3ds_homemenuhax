@@ -516,10 +516,10 @@ ROPMACRO_CMPDATA (HEAPBUF + (sdcfg_pad - _start)), 0x1, (HEAPBUF + (rop_padcfg_c
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
-.word (HEAPBUF + (rop_r1data_cmphid - _start)) @ r1
+.word (HEAPBUF + (rop_r1data_cmphid - _start)) @ r0
 
 .word POP_R1PC
-.word (HEAPBUF + ((sdcfg_pad+0x4) - _start)) @ r0
+.word (HEAPBUF + ((sdcfg_pad+0x4) - _start)) @ r1
 
 .word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from filebuf+0x4 to rop_r1data_cmphid, for overwriting the USE_PADCHECK value.
 
@@ -534,10 +534,10 @@ ROPMACRO_CMPDATA (HEAPBUF + (sdcfg_pad - _start)), 0x2, (HEAPBUF + (rop_padcfg_e
 @ This type is the same as type1(minus the offset the PAD value is loaded from), except that it basically inverts the padcheck: on PAD match ret2menu, on mismatch continue ROP.
 
 .word POP_R0PC
-.word (HEAPBUF + (rop_r1data_cmphid - _start)) @ r1
+.word (HEAPBUF + (rop_r1data_cmphid - _start)) @ r0
 
 .word POP_R1PC
-.word (HEAPBUF + ((sdcfg_pad+0x8) - _start)) @ r0
+.word (HEAPBUF + ((sdcfg_pad+0x8) - _start)) @ r1
 
 .word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from filebuf+0x8 to rop_r1data_cmphid, for overwriting the USE_PADCHECK value.
 
