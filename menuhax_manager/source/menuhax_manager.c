@@ -125,6 +125,12 @@ int sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 		printf("Using body-filepath: %s\n", body_filepath);
 	}
 
+	if(body_size==0)
+	{
+		printf("Error: the theme body-data file is empty(filesize is 0-bytes).\n");
+		return -1;
+	}
+
 	ret = archive_getfilesize(SDArchive, bgm_filepath, &bgm_size);
 	if(ret!=0)
 	{
@@ -159,29 +165,18 @@ int sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 		return ret;
 	}
 
-	if(body_size==0)
+	ret = archive_copyfile(SDArchive, Theme_Extdata, body_filepath, install_type==0 ? "/BodyCache.bin" : "/yodyCache.bin", filebuffer, thememanage[0x8>>2], 0x150000, "body-data");
+
+	if(ret==0)
 	{
-		printf("Skipping copying of body-data since the size field is zero.\n");
+		printf("Successfully finished copying body-data.\n");
 	}
 	else
 	{
-		ret = archive_copyfile(SDArchive, Theme_Extdata, body_filepath, install_type==0 ? "/BodyCache.bin" : "/yodyCache.bin", filebuffer, thememanage[0x8>>2], 0x150000, "body-data");
-
-		if(ret==0)
-		{
-			printf("Successfully finished copying body-data.\n");
-		}
-		else
-		{
-			return ret;
-		}
+		return ret;
 	}
 
-	if(bgm_size==0)
-	{
-		printf("Skipping copying of bgm-data since the size field is zero.\n");
-	}
-	else
+	if(bgm_size)
 	{
 		ret = archive_copyfile(SDArchive, Theme_Extdata, bgm_filepath, "/BgmCache.bin", filebuffer, thememanage[0xC>>2], 0x337000, "bgm-data");
 
@@ -440,6 +435,12 @@ Result install_themehax(char *ropbin_filepath)
 	snprintf(payloadurl, sizeof(payloadurl)-1, "http://smea.mtheall.com/get_ropbin_payload.php?version=%s-%d-%d-%d-%d-%s", new3dsflag?"NEW":"OLD", cver_versionbin[2], cver_versionbin[1], cver_versionbin[0], nver_versionbin[2], regionids_table[region]);
 
 	printf("Detected system-version: %s %d.%d.%d-%d %s\n", new3dsflag?"New3DS":"Old3DS", cver_versionbin[2], cver_versionbin[1], cver_versionbin[0], nver_versionbin[2], regionids_table[region]);
+
+	if(((cver_versionbin[2]<<8) | cver_versionbin[1]) >= 0x0a02)
+	{
+		printf("You are attempting to install Home Menu haxx on system-version >=v10.2. This build does not currently include any menuhax which supports this system-version, since v10.2 fixed themehax.\n");
+		return -7;
+	}
 
 	memset(filebuffer, 0, filebuffer_maxsize);
 
@@ -713,6 +714,8 @@ int main(int argc, char **argv)
 {
 	Result ret = 0;
 	int redraw = 0;
+	int menuindex = 0;
+	int i;
 
 	char ropbin_filepath[256];
 
@@ -762,89 +765,135 @@ int main(int argc, char **argv)
 
 			while(1)
 			{
-				if(redraw)
-				{
-					redraw = 0;
-
-					consoleClear();
-					printf("This can install Home Menu haxx to the SD card, for booting hblauncher. Select an option by pressing a button:\nA = install\nY = configure/check haxx trigger button(s), which can override the default setting.\nX = install custom theme for when Home Menu is using the seperate extdata files for this hax.\nB = exit\n");
-				}
-
 				gspWaitForVBlank();
 				hidScanInput();
 
 				u32 kDown = hidKeysDown();
 
-				if(kDown & KEY_A)
+				if(redraw)
 				{
+					redraw = 0;
+
 					consoleClear();
-					ret = install_themehax(ropbin_filepath);
+					printf("This can install Home Menu haxx to the SD card, for booting hblauncher. Select an option with the below menu. You can press the B button to exit.\n\n");
 
-					if(ret==0)
+					for(i=0; i<3; i++)
 					{
-						printf("Install finished successfully. The following is the filepath which was just now written, you can delete any SD 'ropbinpayload_menuhax_*' file(s) which don't match the following exact filepath: '%s'. Doing so is completely optional. This only applies when menuhax >v1.2 was already installed where it was switched to a different system-version.\n", ropbin_filepath);
+						if(menuindex==i)
+						{
+							printf("-> ");
+						}
+						else
+						{
+							printf("   ");
+						}
 
-						displaymessage_waitbutton();
+						switch(i)
+						{
+							case 0:
+								printf("Install");
+							break;
 
-						redraw = 1;
-					}
-					else
-					{
-						printf("Install failed: 0x%08x.\n", (unsigned int)ret);
+							case 1:
+								printf("Configure/check haxx trigger button(s), which can override the default setting.");
+							break;
 
-						break;
-					}
-				}
+							case 2:
+								printf("Install custom theme for when menuhax is already installed.");
+							break;
+						}
 
-				if(kDown & KEY_Y)
-				{
-					consoleClear();
-					ret = setup_sdcfg();
-
-					if(ret==0)
-					{
-						printf("Configuration finished successfully.\n");
-						displaymessage_waitbutton();
-
-						redraw = 1;
-					}
-					else
-					{
-						printf("Configuration failed: 0x%08x.\n", (unsigned int)ret);
-
-						break;
-					}
-				}
-
-				if(kDown & KEY_X)
-				{
-					consoleClear();
-					printf("Enabling persistent themecache...\n");
-					ret = menu_enablethemecache_persistent();
-					if(ret==0)
-					{
-						printf("Installing custom-theme...\n");
-						ret = sd2themecache("sdmc:/3ds/menuhax_manager/body_LZ.bin", "sdmc:/3ds/menuhax_manager/bgm.bcstm", 1);
-					}
-
-					if(ret==0)
-					{
-						printf("Custom theme installation finished successfully.\n");
-						displaymessage_waitbutton();
-
-						redraw = 1;
-					}
-					else
-					{
-						printf("Custom theme installation failed: 0x%08x. If you haven't already done so, you might need to enter the theme-settings menu under Home Menu, while menuhax is installed.\n", (unsigned int)ret);
-
-						break;
+						printf("\n");
 					}
 				}
 
 				if(kDown & KEY_B)
 				{
 					break;
+				}
+
+				if(kDown & KEY_DDOWN)
+				{
+					menuindex++;
+					if(menuindex>2)menuindex = 0;
+					redraw = 1;
+
+					continue;
+				}
+				else if(kDown & KEY_DUP)
+				{
+					menuindex--;
+					if(menuindex<0)menuindex = 2;
+					redraw = 1;
+
+					continue;
+				}
+
+				if(kDown & KEY_A)
+				{
+					consoleClear();
+
+					if(menuindex==0)
+					{
+						ret = install_themehax(ropbin_filepath);
+
+						if(ret==0)
+						{
+							printf("Install finished successfully. The following is the filepath which was just now written, you can delete any SD 'ropbinpayload_menuhax_*' file(s) which don't match the following exact filepath: '%s'. Doing so is completely optional. This only applies when menuhax >v1.2 was already installed where it was switched to a different system-version.\n", ropbin_filepath);
+
+							displaymessage_waitbutton();
+
+							redraw = 1;
+						}
+						else
+						{
+							printf("Install failed: 0x%08x.\n", (unsigned int)ret);
+
+							break;
+						}
+					}
+					else if(menuindex==1)
+					{
+						ret = setup_sdcfg();
+
+						if(ret==0)
+						{
+							printf("Configuration finished successfully.\n");
+							displaymessage_waitbutton();
+
+							redraw = 1;
+						}
+						else
+						{
+							printf("Configuration failed: 0x%08x.\n", (unsigned int)ret);
+
+							break;
+						}
+					}
+					else if(menuindex==2)
+					{
+						printf("Enabling persistent themecache...\n");
+						ret = menu_enablethemecache_persistent();
+						if(ret==0)
+						{
+							printf("Installing custom-theme...\n");
+							ret = sd2themecache("sdmc:/3ds/menuhax_manager/body_LZ.bin", "sdmc:/3ds/menuhax_manager/bgm.bcstm", 1);
+						}
+
+						if(ret==0)
+						{
+							printf("Custom theme installation finished successfully.\n");
+							displaymessage_waitbutton();
+
+							redraw = 1;
+						}
+						else
+						{
+							printf("Custom theme installation failed: 0x%08x. If you haven't already done so, you might need to enter the theme-settings menu under Home Menu, while menuhax is installed.\n", (unsigned int)ret);
+
+							break;
+						}
+					}
 				}
 			}
 		}
