@@ -61,10 +61,12 @@ Build options:
 * "THEMEDATA_PATH={*decompressed* regular theme body_LZ filepath}" Build hax with the specified theme, instead of using the "default theme" one. Also note that compression during building takes a *lot* longer with this. This option is *not* recommended, use the LOADOTHER_THEMEDATA option instead.
 * "LOADOTHER_THEMEDATA=1" When doing RET2MENU, re-run the theme-loading Home Menu code with different extdata file-paths(BGM file-paths are not changed). This allows loading actual themes while menuhax is installed.
 * "ENABLE_IMAGEDISPLAY=1" Instead of doing a DMA-copy to the top-screen framebuffers from other data in VRAM resulting in junk being displayed, DMA from data in this payload. Framebuffer format is the same as usual: 240x400 byte-swapped RGB8(http://3dbrew.org/wiki/GPU/External_Registers#Framebuffer_color_formats). If 3D stereoscopy isn't used by the image, the 3D-right image should be the same as the 3D-left. The original "data in this payload" is just the end of the payload, with the data copied from VRAM+0(which is where the framebuf data comes from when ENABLE_IMAGEDISPLAY isn't used).
-* "ENABLE_IMAGEDISPLAY_SD=1" Only used if ENABLE_IMAGEDISPLAY was specified. Overwrite the raw image-display data in the payload, with the data from SD "/menuhax_imagedisplay.bin", if the data from SD is loaded successfully. The format is the same described above. The first 0x46500-bytes are for the 3D-left, the 0x46500-bytes after that are for the 3D-right. The size of this file on SD should be 0x8ca00-bytes(0x46500*2), but if it's smaller only part of the image-data in this payload will be overwritten.
+* "ENABLE_IMAGEDISPLAY_SD=1" Only used if ENABLE_IMAGEDISPLAY was specified. Overwrite the raw image-display data in the payload, with the data from SD "/menuhax_imagedisplay.bin", if the data from SD is loaded successfully. The format is the same described above. The first 0x46500-bytes are for the 3D-left, the 0x46500-bytes after that are for the 3D-right. The size of this file on SD should be 0x8ca00-bytes(0x46500*2), but if it's smaller only part of the image-data in this payload will be overwritten. Note that the manager app includes functionality for handling this file.
+
+Building the menuhax_manager app requires zlib, handled the same way as hbmenu. Lodepng(https://github.com/lvandeve/lodepng) is also required: you must manually create a "menuhax_manager/lodepng/" directory, which contains the following(these can be symlinks for example): "lodepng.c" and "lodepng.h".
 
 # Usage
-Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. The ROP right after the ROP for USE_PADCHECK, if that's even enabled, will overwrite the main-screen framebuffers with data from elsewhere, resulting in junk being displayed.
+Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. The ROP right after the ROP for USE_PADCHECK, if that's even enabled, will overwrite the main-screen framebuffers with data from elsewhere.
 
 When the ROP returns from the haxx to running the actual Home Menu code, such as when USE_PADCHECK is used where the current PAD state doesn't match the specified state, Home Menu will use the "theme" data from this hax: the end result is that it appears to use the same theme as the default one(when the THEMEDATA_PATH build option wasn't used).
 
@@ -81,15 +83,16 @@ The latest-git ROP does the following:
 * 4) Run the actual main ROP.
 
 # Installation
-To install the exploit for booting hblauncher, you *must* use the menuhax_installer app. You must already have a way to boot into the hblauncher payload for running this app(which can include menuhax if it's already setup): http://3dbrew.org/wiki/Homebrew_Exploits  
-The app requires an Internet connection for setting up the hblauncher payload. Once the app is booted, all you have to do is confirm that you want to install, the app will then auto detect + install everything.  
-Latest-git-only currently: before using HTTP, the installer will first try to load the payload(https://smealum.github.io/3ds/) from SD "/menuhaxinstaller_input_payload.bin", then continue to use HTTP if loading from SD isn't successful. Actually using this SD payload is *not* recommended for end-users when HTTP download works fine.  
+To install the exploit for booting hblauncher, you *must* use the menuhax_manager app. You must already have a way to boot into the hblauncher payload for running this app(which can include menuhax if it's already setup): http://3dbrew.org/wiki/Homebrew_Exploits    
+Before using HTTP, the app will first try to load the payload(https://smealum.github.io/3ds/) from SD "/menuhaxmanager_input_payload.bin", then continue to use HTTP if loading from SD isn't successful. Actually using this SD payload is *not* recommended for end-users when HTTP download works fine.  
 
 The latest-git uses a seperate menuropbin path for each menuhax build. <=v1.2 used the same filepath for all builds, rendering menuhax unusable for multiple system-versions/etc with the same SD card without changing that file(like with booting into SD-nandimages, for example).
 
 This app uses code based on code from the following repos: https://github.com/yellows8/3ds_homemenu_extdatatool https://github.com/yellows8/3ds_browserhax_common  
 This app includes the theme BGM copying code from 3ds_homemenu_extdatatool, but that BGM won't actually get used by Home Menu unless you build the exploit with the param related to that yourself.
 Whenever the Home Menu version installed on your system changes where the installed exploit is for a different version, or when you want to update the hblauncher payload, you must run the installer again. For this you can do the following: you can remove the SD card before booting the system, then once booted insert the SD card then boot into the hblauncher payload via a different method(http://3dbrew.org/wiki/Homebrew_Exploits).
+
+Besides the defaults, this app can setup a custom image for displaying on the main-screen when the menuhax triggers, if you use the app option for that. The input PNG for this is located at SD "/3ds/menuhax_manager/imagedisplay.png". The PNG dimensions must be either 800x240 or 240x800. The first half of the image(in terms of pixels) is for 3D-left, the rest is for the 3D-right. The 3D-right should be same as 3D-left if no stereoscopy is used by the image.
 
 To "remove" the exploit, you can just select any theme in the Home Menu theme settings(such as one of the built-in color themes). If you want the default theme, you can then select that option again. See the "Summary" section if you have issues with Home Menu failing to boot.
 

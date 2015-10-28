@@ -5,7 +5,13 @@
 #include <unistd.h>
 #include <3ds.h>
 
+#include <lodepng.h>
+
 #include "archive.h"
+
+#ifdef ENABLE_DEFAULTDISPLAYIMAGE
+#include "default_imagedisplay_png.h"
+#endif
 
 u8 *filebuffer;
 u32 filebuffer_maxsize = 0x400000;
@@ -699,6 +705,159 @@ Result setup_sdcfg()
 	return ret;
 }
 
+Result setup_imagedisplay()
+{
+	Result ret=0;
+	unsigned w = 0, h = 0, x, y, pos0, pos1;
+	size_t pngsize = 0;
+	u32 imgdisp_exists = 0, imgtype;
+	u8 *outbuf = NULL;
+	u8 *pngbuf = NULL;
+	u8 *finalimage = NULL;
+
+	struct stat filestats;
+
+	imgdisp_exists = 1;
+	ret = stat("sdmc:/menuhax_imagedisplay.bin", &filestats);
+	if(ret==-1)imgdisp_exists = 0;
+
+	printf("This will configure the image displayed on the main-screen when menuhax triggers. When the image-display file isn't loaded successfully by menuhax, it will display junk.\n");
+	if(imgdisp_exists)
+	{
+		printf("The image-display file already exists on SD.\n");
+	}
+	else
+	{
+		printf("The image-display file doesn't exist on SD.\n");
+	}
+	printf("Select an option by pressing a button:\n");
+	#ifdef ENABLE_DEFAULTDISPLAYIMAGE
+	printf("A = default image.\n");
+	#endif
+	printf("B = custom image loaded from a PNG on SD.\n");
+	if(imgdisp_exists)printf("X = delete the image-display file.\n");
+	printf("START = exit without changing anything.\n");
+
+	while(1)
+	{
+		gspWaitForVBlank();
+		hidScanInput();
+		u32 kDown = hidKeysDown();
+
+		#ifdef ENABLE_DEFAULTDISPLAYIMAGE
+		if(kDown & KEY_A)
+		{
+			pngbuf = (u8*)default_imagedisplay_png;
+			pngsize = default_imagedisplay_png_size;
+			imgtype = 0;
+			break;
+		}
+		#endif
+
+		if(kDown & KEY_B)
+		{
+			printf("Loading PNG from SD...\n");
+
+			ret = archive_getfilesize(SDArchive, "sdmc:/3ds/menuhax_manager/imagedisplay.png", (u32*)&pngsize);
+			if(ret!=0)
+			{
+				printf("Failed to stat() the SD PNG: 0x%08x.\n", (unsigned int)ret);
+				return ret;
+			}
+
+			pngbuf = malloc(pngsize);
+			if(pngbuf==NULL)
+			{
+				printf("Failed to alloc the PNG buffer with size 0x%08x.\n", (unsigned int)pngsize);
+				return 1;
+			}
+
+			ret = archive_readfile(SDArchive, "sdmc:/3ds/menuhax_manager/imagedisplay.png", pngbuf, pngsize);
+			if(ret!=0)
+			{
+				printf("Failed to read the SD PNG: 0x%08x.\n", (unsigned int)ret);
+				return ret;
+			}
+
+			imgtype = 1;
+
+			printf("SD loading finished.\n");
+
+			break;
+		}
+
+		if(kDown & KEY_START)
+		{
+			return 0;
+		}
+
+		if(imgdisp_exists && (kDown & KEY_X))
+		{
+			unlink("sdmc:/menuhax_imagedisplay.bin");
+			return 0;
+		}
+	}
+
+	printf("Decoding PNG...\n");
+
+	ret = lodepng_decode24(&outbuf, &w, &h, pngbuf, pngsize);
+	if(imgtype==1)free(pngbuf);
+	if(ret!=0)
+	{
+		printf("lodepng returned an error: %s\n", lodepng_error_text(ret));
+		return ret;
+	}
+
+	printf("Decoding finished.\n");
+
+	if(!(w==800 && h==240) && !(w==240 && h==800))
+	{
+		printf("PNG width and/or height is invalid. 800x240 or 240x800 is required but the PNG is %ux%u.\n", (unsigned int)w, (unsigned int)h);
+		return 2;
+	}
+
+	finalimage = malloc(0x8ca00);
+	if(finalimage==NULL)
+	{
+		printf("Failed to alloc the finalimage buffer.\n");
+		return 1;
+	}
+
+	printf("Converting the image to the required format...\n");
+
+	for(x=0; x<w; x++)
+	{
+		for(y=0; y<h; y++)
+		{
+			//Convert the image to 240x800 if it's not already those dimensions.
+			pos0 = (x*h + (h-1-y)) * 3;
+			pos1 = (y*w + x) * 3;
+			if(w==240)pos0 = pos1;
+
+			//Copy the pixel data + swap the color components.
+			finalimage[pos0 + 2] = outbuf[pos1 + 0];
+			finalimage[pos0 + 1] = outbuf[pos1 + 1];
+			finalimage[pos0 + 0] = outbuf[pos1 + 2];
+		}
+	}
+
+	free(outbuf);
+
+	printf("Writing the final image to SD...\n");
+
+	ret = archive_writefile(SDArchive, "sdmc:/menuhax_imagedisplay.bin", finalimage, 0x8ca00);
+	if(ret!=0)
+	{
+		printf("Failed to write the image-display file to SD: 0x%08x.\n", (unsigned int)ret);
+	}
+	else
+	{
+		printf("Successfully wrote the file to SD.\n");
+	}
+
+	return ret;
+}
+
 void displaymessage_waitbutton()
 {
 	printf("\nPress the A button to continue.\n");
@@ -777,7 +936,7 @@ int main(int argc, char **argv)
 					consoleClear();
 					printf("This can install Home Menu haxx to the SD card, for booting hblauncher. Select an option with the below menu. You can press the B button to exit.\n\n");
 
-					for(i=0; i<3; i++)
+					for(i=0; i<4; i++)
 					{
 						if(menuindex==i)
 						{
@@ -799,6 +958,10 @@ int main(int argc, char **argv)
 							break;
 
 							case 2:
+								printf("Configure menuhax main-screen image display.");
+							break;
+
+							case 3:
 								printf("Install custom theme for when menuhax is already installed.");
 							break;
 						}
@@ -815,7 +978,7 @@ int main(int argc, char **argv)
 				if(kDown & KEY_DDOWN)
 				{
 					menuindex++;
-					if(menuindex>2)menuindex = 0;
+					if(menuindex>3)menuindex = 0;
 					redraw = 1;
 
 					continue;
@@ -823,7 +986,7 @@ int main(int argc, char **argv)
 				else if(kDown & KEY_DUP)
 				{
 					menuindex--;
-					if(menuindex<0)menuindex = 2;
+					if(menuindex<0)menuindex = 3;
 					redraw = 1;
 
 					continue;
@@ -871,6 +1034,24 @@ int main(int argc, char **argv)
 						}
 					}
 					else if(menuindex==2)
+					{
+						ret = setup_imagedisplay();
+
+						if(ret==0)
+						{
+							printf("Configuration finished successfully.\n");
+							displaymessage_waitbutton();
+
+							redraw = 1;
+						}
+						else
+						{
+							printf("Configuration failed: 0x%08x.\n", (unsigned int)ret);
+
+							break;
+						}
+					}
+					else if(menuindex==3)
 					{
 						printf("Enabling persistent themecache...\n");
 						ret = menu_enablethemecache_persistent();
