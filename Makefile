@@ -9,7 +9,7 @@ endif
 TOPDIR ?= $(CURDIR)
 include $(DEVKITARM)/base_rules
 
-.PHONY: clean all ropbins bins buildtheme buildropbin buildbin
+.PHONY: clean all defaultbuild ropbins bins buildtheme buildropbin buildbin
 
 BUILDPREFIX	:=	menuhax_
 
@@ -110,8 +110,20 @@ ifneq ($(strip $(LOADOTHER_THEMEDATA)),)
 	DEFINES	:=	$(DEFINES) -DLOADOTHER_THEMEDATA
 endif
 
+ifneq ($(strip $(ENABLE_IMAGEDISPLAY)),)
+	PARAMS	:=	$(PARAMS) ENABLE_IMAGEDISPLAY=1
+	DEFINES	:=	$(DEFINES) -DENABLE_IMAGEDISPLAY
+endif
+
+ifneq ($(strip $(ENABLE_IMAGEDISPLAY_SD)),)
+	PARAMS	:=	$(PARAMS) ENABLE_IMAGEDISPLAY_SD=1
+	DEFINES	:=	$(DEFINES) -DENABLE_IMAGEDISPLAY_SD
+endif
+
 DEFINES	:=	$(DEFINES) -DROPBINPAYLOAD_PATH=\"sd:/ropbinpayload_$(BUILDPREFIX).bin\"
 
+defaultbuild:
+	make -f Makefile all --no-print-directory LOADSDPAYLOAD=1 USE_PADCHECK=0x200 ENABLE_LOADROPBIN=1 ENABLE_HBLAUNCHER=1 LOADSDCFG_PADCHECK=1 LOADOTHER_THEMEDATA=1 ENABLE_IMAGEDISPLAY=1 ENABLE_IMAGEDISPLAY_SD=1 MENUROP_PATH=menurop_prebuilt
 
 all:	
 	@mkdir -p themepayload

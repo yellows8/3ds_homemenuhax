@@ -332,6 +332,14 @@ sdfile_padcfg_path:
 .align 2
 #endif
 
+#ifdef ENABLE_IMAGEDISPLAY
+#ifdef ENABLE_IMAGEDISPLAY_SD
+sdfile_imagedisplay_path:
+.string16 "sd:/menuhax_imagedisplay.bin"
+.align 2
+#endif
+#endif
+
 #ifdef LOADSDCFG_PADCHECK
 sdcfg_pad:
 .space 0x10
@@ -644,8 +652,34 @@ padcheck_end_stackpivotskip:
 padcheck_finish:
 #endif
 
-//Overwrite the top-screen framebuffers. This doesn't affect the framebuffers when returning from an appet to Home Menu.
+//Overwrite the top-screen framebuffers. This doesn't affect the framebuffers when returning from an appet to Home Menu. First chunk is 3D-left framebuffer, second one is 3D-right(when that's enabled). These are the primary framebuffers. Color format is byte-swapped RGB8.
+#ifndef ENABLE_IMAGEDISPLAY
 CALL_GXCMD4 0x1f000000, 0x1f1e6000, 0x46800*2
+#else
+CALLFUNC_NOSP MEMCPY, (HEAPBUF + (_end - _start)), 0x1f000000, (0x46800*2), 0
+
+#ifdef ENABLE_IMAGEDISPLAY_SD
+CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
+
+CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_imagedisplay_path - _start)), 1, 0
+
+CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (_end - _start)), (0x46500)
+
+CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (_end - _start + 0x46800)), (0x46500)
+
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word (HEAPBUF + (IFile_ctx - _start))
+
+.word ROP_LDR_R0FROMR0
+
+.word IFile_Close
+#endif
+
+CALLFUNC_NOSP GSPGPU_FlushDataCache, (HEAPBUF + (_end - _start)), (0x46800*2), 0, 0
+CALL_GXCMD4 (HEAPBUF + (_end - _start)), 0x1f1e6000, 0x46800*2
+#endif
 
 #ifdef ENABLE_RET2MENU
 RET2MENUCODE
@@ -981,4 +1015,7 @@ codebinpayload_start:
 .align 4
 codedataend:
 .word 0
+
+.align 4
+_end:
 

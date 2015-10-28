@@ -38,9 +38,9 @@ Every version starting with v9.0 is supported unless mentioned otherwise, system
 The initial release archive only supported USA, EUR, and JPN. The latest git also supports KOR, which should be included in the next release. TWN can't be supported currently. CHN isn't supported since the last Home Menu update(v7.0) was before themes even existed in Home Menu.
 
 # Building
-Just run "make", or even "make clean && make". For building ROP binaries which can be used for general homemenu ROP, this can be used: "{make clean &&} make ropbins". "make bins" is the same as "make", except building the .lz is skipped.
+Just run "make defaultbuild", or even "make clean && make defaultbuild". For building ROP binaries  which can be used for general homemenu ROP, this can be used: "{make clean &&} make ropbins {options}". "make bins {options}" is the same as "make", except building the .lz is skipped. "defaultbuild" Builds with the default options, see the Makefile for the default options. "{...} make {options}" Can be used to build with your own options if you prefer.
 
-Before building, the menurop directories+files must be generated. "./generate_menurop_addrs.sh {path}". See the source of that script for details(this requires the Home Menu code-binaries). Note that the USA/EUR/JPN homemenu exefs:/.code binaries starting with system-version v9.2 are all identical(prior to v9.9), while USA/EUR binaries for v9.0 differs from the JPN versions. If you don't have the required Home Menu code-binaries, you can use the MENUROP_PATH option listed below(this is the recommended way to build this).
+If you don't want to use the prebuilt menurop(using the menurop_prebuilt is recommended), the menurop directories+files must be generated. "./generate_menurop_addrs.sh {path}". See the source of that script for details(this requires the Home Menu code-binaries).
 
 The built files for BodyCache.bin/Body_LZ.bin are located under "themepayload/".
 
@@ -60,8 +60,8 @@ Build options:
 * "MENUROP_PATH={path}" Use the specified path for the "menurop" directory, instead of the default one which requires running generate_menurop_addrs.sh. To use the prebuilt menurop headers included with this repo, the following can be used: "MENUROP_PATH=menurop_prebuilt".
 * "THEMEDATA_PATH={*decompressed* regular theme body_LZ filepath}" Build hax with the specified theme, instead of using the "default theme" one. Also note that compression during building takes a *lot* longer with this. This option is *not* recommended, use the LOADOTHER_THEMEDATA option instead.
 * "LOADOTHER_THEMEDATA=1" When doing RET2MENU, re-run the theme-loading Home Menu code with different extdata file-paths(BGM file-paths are not changed). This allows loading actual themes while menuhax is installed.
-
-The build command used for the release archive is the following: make clean && time make LOADSDPAYLOAD=1 USE_PADCHECK=0x200 ENABLE_LOADROPBIN=1 ENABLE_HBLAUNCHER=1 LOADSDCFG_PADCHECK=1 LOADOTHER_THEMEDATA=1 MENUROP_PATH=menurop_prebuilt
+* "ENABLE_IMAGEDISPLAY=1" Instead of doing a DMA-copy to the top-screen framebuffers from other data in VRAM resulting in junk being displayed, DMA from data in this payload. Framebuffer format is the same as usual: 240x400 byte-swapped RGB8(http://3dbrew.org/wiki/GPU/External_Registers#Framebuffer_color_formats). If 3D stereoscopy isn't used by the image, the 3D-right image should be the same as the 3D-left. The original "data in this payload" is just the end of the payload, with the data copied from VRAM+0(which is where the framebuf data comes from when ENABLE_IMAGEDISPLAY isn't used).
+* "ENABLE_IMAGEDISPLAY_SD=1" Only used if ENABLE_IMAGEDISPLAY was specified. Overwrite the raw image-display data in the payload, with the data from SD "/menuhax_imagedisplay.bin", if the data from SD is loaded successfully. The format is the same described above. The first 0x46500-bytes are for the 3D-left, the 0x46500-bytes after that are for the 3D-right. The size of this file on SD should be 0x8ca00-bytes(0x46500*2), but if it's smaller only part of the image-data in this payload will be overwritten.
 
 # Usage
 Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. The ROP right after the ROP for USE_PADCHECK, if that's even enabled, will overwrite the main-screen framebuffers with data from elsewhere, resulting in junk being displayed.
