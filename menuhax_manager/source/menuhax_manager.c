@@ -349,7 +349,7 @@ Result http_getactual_payloadurl(char *requrl, char *outurl, u32 outurl_maxsize)
 	Result ret=0;
 	httpcContext context;
 
-	ret = httpcOpenContext(&context, requrl, 0);
+	ret = httpcOpenContext(&context, requrl, 1);
 	if(ret!=0)return ret;
 
 	ret = httpcAddRequestHeaderField(&context, "User-Agent", "menuhax_manager/"VERSION);
@@ -380,7 +380,7 @@ Result http_download_payload(char *url, u32 *payloadsize)
 	u32 contentsize=0;
 	httpcContext context;
 
-	ret = httpcOpenContext(&context, url, 0);
+	ret = httpcOpenContext(&context, url, 1);
 	if(ret!=0)return ret;
 
 	ret = httpcAddRequestHeaderField(&context, "User-Agent", "menuhax_manager/"VERSION);
@@ -595,68 +595,79 @@ Result install_menuhax(char *ropbin_filepath)
 
 	memset(filebuffer, 0, filebuffer_maxsize);
 
-	printf("Checking for the input payload on SD...\n");
-	ret = archive_getfilesize(SDArchive, "sdmc:/menuhaxmanager_input_payload.bin", &payloadsize);
-	if(ret==0)
+	gspWaitForVBlank();
+	hidScanInput();
+	if(hidKeysHeld() & KEY_X)
 	{
-		if(payloadsize==0 || payloadsize>filebuffer_maxsize)
-		{
-			printf("Invalid SD payload size: 0x%08x.\n", (unsigned int)payloadsize);
-			ret = -3;
-		}
-	}
-	if(ret==0)ret = archive_readfile(SDArchive, "sdmc:/menuhaxmanager_input_payload.bin", filebuffer, payloadsize);
-
-	if(ret==0)
-	{
-		printf("The input payload for this installer already exists on SD, that will be used instead of downloading the payload via HTTP.\n");
+		printf("The X button is being pressed, skipping ropbin payload setup. If this was not intended, re-run the install again after this.\n");
 	}
 	else
 	{
-		ret = httpcInit();
-		if(ret!=0)
+		printf("The X button isn't being pressed, setting up ropbin payload...\n");
+
+		printf("Checking for the input payload on SD...\n");
+		ret = archive_getfilesize(SDArchive, "sdmc:/menuhaxmanager_input_payload.bin", &payloadsize);
+		if(ret==0)
 		{
-			printf("Failed to initialize HTTPC: 0x%08x.\n", (unsigned int)ret);
-			if(ret==0xd8e06406)
+			if(payloadsize==0 || payloadsize>filebuffer_maxsize)
 			{
-				printf("The HTTPC service is inaccessible. With the hblauncher-payload this may happen if the process this app is running under doesn't have access to that service. Please try rebooting the system, boot hblauncher-payload, then directly launch the app.\n");
+				printf("Invalid SD payload size: 0x%08x.\n", (unsigned int)payloadsize);
+				ret = -3;
+			}
+		}
+		if(ret==0)ret = archive_readfile(SDArchive, "sdmc:/menuhaxmanager_input_payload.bin", filebuffer, payloadsize);
+
+		if(ret==0)
+		{
+			printf("The input payload for this installer already exists on SD, that will be used instead of downloading the payload via HTTP.\n");
+		}
+		else
+		{
+			ret = httpcInit();
+			if(ret!=0)
+			{
+				printf("Failed to initialize HTTPC: 0x%08x.\n", (unsigned int)ret);
+				if(ret==0xd8e06406)
+				{
+					printf("The HTTPC service is inaccessible. With the hblauncher-payload this may happen if the process this app is running under doesn't have access to that service. Please try rebooting the system, boot hblauncher-payload, then directly launch the app.\n");
+				}
+
+				return ret;
 			}
 
-			return ret;
-		}
+			printf("Requesting the actual payload URL with HTTP...\n");
+			ret = http_getactual_payloadurl(payloadurl, payloadurl, sizeof(payloadurl));
+			if(ret!=0)
+			{
+				printf("Failed to request the actual payload URL: 0x%08x.\n", (unsigned int)ret);
+				printf("If the server isn't down, and the HTTP request was actually done, this may mean your system-version or region isn't supported by the hblauncher-payload currently.\n");
+				httpcExit();
+				return ret;
+			}
 
-		printf("Requesting the actual payload URL with HTTP...\n");
-		ret = http_getactual_payloadurl(payloadurl, payloadurl, sizeof(payloadurl));
-		if(ret!=0)
-		{
-			printf("Failed to request the actual payload URL: 0x%08x.\n", (unsigned int)ret);
-			printf("If the server isn't down, and the HTTP request was actually done, this may mean your system-version or region isn't supported by the hblauncher-payload currently.\n");
+			printf("Downloading the actual payload with HTTP...\n");
+			ret = http_download_payload(payloadurl, &payloadsize);
 			httpcExit();
-			return ret;
+			if(ret!=0)
+			{
+				printf("Failed to download the actual payload with HTTP: 0x%08x.\n", (unsigned int)ret);
+				printf("If the server isn't down, and the HTTP request was actually done, this may mean your system-version or region isn't supported by the hblauncher-payload currently.\n");
+				return ret;
+			}
 		}
 
-		printf("Downloading the actual payload with HTTP...\n");
-		ret = http_download_payload(payloadurl, &payloadsize);
-		httpcExit();
+		printf("Writing the menuropbin to SD, to the following path: %s.\n", ropbin_filepath);
+		unlink("sdmc:/menuhax_ropbinpayload.bin");//Delete the ropbin with the filepath used by the <=v1.2 menuhax.
+		unlink(ropbin_filepath);
+		ret = archive_writefile(SDArchive, ropbin_filepath, filebuffer, 0x10000);
 		if(ret!=0)
 		{
-			printf("Failed to download the actual payload with HTTP: 0x%08x.\n", (unsigned int)ret);
-			printf("If the server isn't down, and the HTTP request was actually done, this may mean your system-version or region isn't supported by the hblauncher-payload currently.\n");
+			printf("Failed to write the menurop to the SD file: 0x%08x.\n", (unsigned int)ret);
 			return ret;
 		}
-	}
 
-	printf("Writing the menuropbin to SD, to the following path: %s.\n", ropbin_filepath);
-	unlink("sdmc:/menuhax_ropbinpayload.bin");//Delete the ropbin with the filepath used by the <=v1.2 menuhax.
-	unlink(ropbin_filepath);
-	ret = archive_writefile(SDArchive, ropbin_filepath, filebuffer, 0x10000);
-	if(ret!=0)
-	{
-		printf("Failed to write the menurop to the SD file: 0x%08x.\n", (unsigned int)ret);
-		return ret;
+		memset(filebuffer, 0, filebuffer_maxsize);
 	}
-
-	memset(filebuffer, 0, filebuffer_maxsize);
 
 	printf("Enabling persistent themecache...\n");
 	ret = menu_enablethemecache_persistent();
