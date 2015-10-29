@@ -7,6 +7,7 @@ typedef enum {
 
 Result open_extdata();
 void close_extdata();
+Result archive_deletefile(Archive archive, char *path);
 Result archive_getfilesize(Archive archive, char *path, u32 *outsize);
 Result archive_readfile(Archive archive, char *path, u8 *buffer, u32 size);
 Result archive_writefile(Archive archive, char *path, u8 *buffer, u32 size);

@@ -107,6 +107,50 @@ Result menu_enablethemecache_persistent()
 	return enablethemecache(3);
 }
 
+Result disablethemecache()
+{
+	Result ret=0;
+	u32 filesize = 0;
+
+	printf("Reading SaveData.dat...\n");
+
+	ret = archive_getfilesize(HomeMenu_Extdata, "/SaveData.dat", &filesize);
+	if(ret!=0)
+	{
+		printf("Failed to get filesize for extdata SaveData.dat: 0x%08x\n", (unsigned int)ret);
+		return ret;
+	}
+
+	if(filesize > filebuffer_maxsize)
+	{
+		printf("Extdata SaveData.dat filesize is too large: 0x%08x\n", (unsigned int)filesize);
+		return ret;
+	}
+
+	ret = archive_readfile(HomeMenu_Extdata, "/SaveData.dat", filebuffer, filesize);
+	if(ret!=0)
+	{
+		printf("Failed to read file: 0x%08x\n", (unsigned int)ret);
+		return ret;
+	}
+
+	if(ret==0)
+	{
+		filebuffer[0x141b]=0;//Disable theme shuffle.
+		memset(&filebuffer[0x13b8], 0, 8);//Clear the regular-theme structure.
+
+		printf("Writing updated SaveData.dat...\n");
+
+		ret = archive_writefile(HomeMenu_Extdata, "/SaveData.dat", filebuffer, filesize);
+		if(ret!=0)
+		{
+			printf("Failed to write file: 0x%08x\n", (unsigned int)ret);
+		}
+	}
+
+	return ret;
+}
+
 int sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 {
 	Result ret=0;
@@ -193,6 +237,107 @@ int sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 		else
 		{
 			return ret;
+		}
+	}
+
+	return 0;
+}
+
+Result delete_menuhax()
+{
+	Result ret=0;
+	u32 i;
+	char str[256];
+
+	printf("Disabling theme-usage via SaveData.dat...\n");
+	ret = disablethemecache();
+	if(ret!=0)return ret;
+
+	memset(filebuffer, 0, filebuffer_maxsize);
+
+	printf("Clearing the theme-cache extdata now...\n");
+
+	printf("Clearing the regular ThemeManage...\n");
+	ret = archive_writefile(Theme_Extdata, "/ThemeManage.bin", filebuffer, 0x800);
+	if(ret!=0)
+	{
+		printf("Failed to clear the regular ThemeManage: 0x%08x.\n", (unsigned int)ret);
+		return ret;
+	}
+
+	printf("Clearing the regular BodyCache...\n");
+	ret = archive_writefile(Theme_Extdata, "/BodyCache.bin", filebuffer, 0x150000);
+	if(ret!=0)
+	{
+		printf("Failed to clear the regular BodyCache: 0x%08x.\n", (unsigned int)ret);
+		return ret;
+	}
+
+	printf("Clearing the regular BgmCache...\n");
+	ret = archive_writefile(Theme_Extdata, "/BgmCache.bin", filebuffer, 0x337000);
+	if(ret!=0)
+	{
+		printf("Failed to clear the regular BgmCache: 0x%08x.\n", (unsigned int)ret);
+		return ret;
+	}
+
+	printf("The menuhax itself has been deleted successfully.\n");
+	printf("Deleting the additional menuhax files under theme-cache extdata now. This can only work if Home Menu theme-settings menu was entered at least once with menuhax >=v2.0 installed. Note that failing to delete theme-shuffle data is normal.\n");
+
+	printf("Deleting the menuhax regular ThemeManage...\n");
+	ret = archive_deletefile(Theme_Extdata, "/yhemeManage.bin");
+	if(ret!=0)
+	{
+		printf("Failed to delete the menuhax regular ThemeManage: 0x%08x.\n", (unsigned int)ret);
+		return ret;
+	}
+
+	printf("Deleting the menuhax regular BodyCache...\n");
+	ret = archive_deletefile(Theme_Extdata, "/yodyCache.bin");
+	if(ret!=0)
+	{
+		printf("Failed to delete the menuhax regular BodyCache: 0x%08x.\n", (unsigned int)ret);
+		return ret;
+	}
+
+	printf("Deleting menuhax shuffle BodyCache...\n");
+	ret = archive_deletefile(Theme_Extdata, "/yodyCache_rd.bin");
+	if(ret!=0)
+	{
+		printf("Failed to delete the menuhax shuffle BodyCache: 0x%08x.\n", (unsigned int)ret);
+	}
+
+	if(ret==0)
+	{
+		for(i=0; i<10; i++)
+		{
+			memset(str, 0, sizeof(str));
+			snprintf(str, sizeof(str)-1, "/yhemeManage_%02d.bin", (unsigned int)i);
+
+			printf("Deleting menuhax shuffle ThemeManage_%02d...\n", (unsigned int)i);
+			ret = archive_deletefile(Theme_Extdata, str);
+			if(ret!=0)
+			{
+				printf("Failed to delete menuhax shuffle ThemeManage_%02d: 0x%08x.\n", (unsigned int)i, (unsigned int)ret);
+				break;
+			}
+		}
+	}
+
+	if(ret==0)
+	{
+		for(i=0; i<10; i++)
+		{
+			memset(str, 0, sizeof(str));
+			snprintf(str, sizeof(str)-1, "/yodyCache_%02d.bin", (unsigned int)i);
+
+			printf("Deleting menuhax shuffle BodyCache_%02d...\n", (unsigned int)i);
+			ret = archive_deletefile(Theme_Extdata, str);
+			if(ret!=0)
+			{
+				printf("Failed to delete menuhax shuffle BodyCache_%02d: 0x%08x.\n", (unsigned int)i, (unsigned int)ret);
+				break;
+			}
 		}
 	}
 
@@ -326,7 +471,7 @@ Result read_versionbin(FS_archive archive, FS_path fileLowPath, u8 *versionbin)
 	return 0;
 }
 
-Result install_themehax(char *ropbin_filepath)
+Result install_menuhax(char *ropbin_filepath)
 {
 	Result ret = 0;
 	u8 region=0;
@@ -936,7 +1081,7 @@ int main(int argc, char **argv)
 					consoleClear();
 					printf("This can install Home Menu haxx to the SD card, for booting hblauncher. Select an option with the below menu. You can press the B button to exit.\n\n");
 
-					for(i=0; i<4; i++)
+					for(i=0; i<5; i++)
 					{
 						if(menuindex==i)
 						{
@@ -954,15 +1099,19 @@ int main(int argc, char **argv)
 							break;
 
 							case 1:
-								printf("Configure/check haxx trigger button(s), which can override the default setting.");
+								printf("Delete menuhax, clear the normal theme-cache files, and delete all menuhax-only extdata files. This will not delete any menuhax cfg files at SD root, use the belows menus for that.");
 							break;
 
 							case 2:
-								printf("Configure menuhax main-screen image display.");
+								printf("Configure/check haxx trigger button(s), which can override the default setting.");
 							break;
 
 							case 3:
-								printf("Install custom theme for when menuhax is already installed.");
+								printf("Configure menuhax main-screen image display.");
+							break;
+
+							case 4:
+								printf("Install custom theme for when the Home Menu theme-settings menu was entered at least once with menuhax >=v2.0 installed.");
 							break;
 						}
 
@@ -978,7 +1127,7 @@ int main(int argc, char **argv)
 				if(kDown & KEY_DDOWN)
 				{
 					menuindex++;
-					if(menuindex>3)menuindex = 0;
+					if(menuindex>4)menuindex = 0;
 					redraw = 1;
 
 					continue;
@@ -986,7 +1135,7 @@ int main(int argc, char **argv)
 				else if(kDown & KEY_DUP)
 				{
 					menuindex--;
-					if(menuindex<0)menuindex = 3;
+					if(menuindex<0)menuindex = 4;
 					redraw = 1;
 
 					continue;
@@ -998,7 +1147,7 @@ int main(int argc, char **argv)
 
 					if(menuindex==0)
 					{
-						ret = install_themehax(ropbin_filepath);
+						ret = install_menuhax(ropbin_filepath);
 
 						if(ret==0)
 						{
@@ -1017,6 +1166,24 @@ int main(int argc, char **argv)
 					}
 					else if(menuindex==1)
 					{
+						ret = delete_menuhax();
+						if(ret==0)
+						{
+							printf("Deletion finished successfully.\n");
+
+							displaymessage_waitbutton();
+
+							redraw = 1;
+						}
+						else
+						{
+							printf("Deletion failed: 0x%08x.\n", (unsigned int)ret);
+
+							break;
+						}
+					}
+					else if(menuindex==2)
+					{
 						ret = setup_sdcfg();
 
 						if(ret==0)
@@ -1033,7 +1200,7 @@ int main(int argc, char **argv)
 							break;
 						}
 					}
-					else if(menuindex==2)
+					else if(menuindex==3)
 					{
 						ret = setup_imagedisplay();
 
@@ -1051,7 +1218,7 @@ int main(int argc, char **argv)
 							break;
 						}
 					}
-					else if(menuindex==3)
+					else if(menuindex==4)
 					{
 						printf("Enabling persistent themecache...\n");
 						ret = menu_enablethemecache_persistent();

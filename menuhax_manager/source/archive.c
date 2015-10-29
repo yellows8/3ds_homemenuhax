@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <errno.h>
 #include <3ds.h>
 
@@ -91,6 +92,18 @@ void close_extdata()
 	{
 		if(extdata_initialized & (1<<pos))FSUSER_CloseArchive(NULL, &extdata_archives[pos]);
 	}
+}
+
+Result archive_deletefile(Archive archive, char *path)
+{
+	if(archive==SDArchive)
+	{
+		if(unlink(path)==-1)return errno;
+
+		return 0;
+	}
+
+	return FSUSER_DeleteFile(NULL, extdata_archives[archive], FS_makePath(PATH_CHAR, path));
 }
 
 Result archive_getfilesize(Archive archive, char *path, u32 *outsize)
