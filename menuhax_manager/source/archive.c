@@ -112,15 +112,23 @@ Result archive_getfilesize(Archive archive, char *path, u32 *outsize)
 	struct stat filestats;
 	u64 tmp64=0;
 	Handle filehandle=0;
-
-	char filepath[256];
+	FILE *f = NULL;
+	int fd=0;
 
 	if(archive==SDArchive)
 	{
-		memset(filepath, 0, 256);
-		strncpy(filepath, path, 255);
+		f = fopen(path, "r");
+		if(f==NULL)return errno;
 
-		if(stat(filepath, &filestats)==-1)return errno;
+		fd = fileno(f);
+		if(fd==-1)
+		{
+			fclose(f);
+			return errno;
+		}
+
+		if(fstat(fd, &filestats)==-1)return errno;
+		fclose(f);
 
 		*outsize = filestats.st_size;
 

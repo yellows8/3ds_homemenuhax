@@ -162,7 +162,7 @@ int sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 	ret = archive_getfilesize(SDArchive, body_filepath, &body_size);
 	if(ret!=0)
 	{
-		printf("Failed to stat the body-filepath: %s\n", body_filepath);
+		printf("Failed to get the filesize of the body-filepath: %s\n", body_filepath);
 		if(install_type==0)
 		{
 			printf("Verify that you have a menuhax build for your system on SD card: make sure that the release archive you're using actually includes builds for your system-version.\n");
@@ -181,17 +181,20 @@ int sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 		return -1;
 	}
 
-	ret = archive_getfilesize(SDArchive, bgm_filepath, &bgm_size);
-	if(ret!=0)
+	if(bgm_filepath)
 	{
 		ret = archive_getfilesize(SDArchive, bgm_filepath, &bgm_size);
-		printf("Skipping BGM copying since stat() failed for it.\n");
+		if(ret!=0)
+		{
+			ret = archive_getfilesize(SDArchive, bgm_filepath, &bgm_size);
+			printf("Skipping BGM copying since  failed for it.\n");
 
-		bgm_size = 0;
-	}
-	else
-	{
-		printf("Using bgm-filepath: %s\n", bgm_filepath);
+			bgm_size = 0;
+		}
+		else
+		{
+			printf("Using bgm-filepath: %s\n", bgm_filepath);
+		}
 	}
 
 	printf("Generating a ThemeManage.bin + writing it to extdata...\n");
@@ -226,7 +229,7 @@ int sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 		return ret;
 	}
 
-	if(bgm_size)
+	if(bgm_filepath && bgm_size)
 	{
 		ret = archive_copyfile(SDArchive, Theme_Extdata, bgm_filepath, "/BgmCache.bin", filebuffer, thememanage[0xC>>2], 0x337000, "bgm-data");
 
@@ -342,6 +345,153 @@ Result delete_menuhax()
 	}
 
 	return 0;
+}
+
+Result setup_builtin_theme()
+{
+	Result ret=0;
+	int menuindex = 0, i;
+	u32 redraw = 1;
+	u32 filesize=0;
+
+	Handle filehandle = 0;
+
+	u32 file_lowpath_data[0xc>>2];
+
+	FS_archive archive = { ARCH_ROMFS, { PATH_EMPTY, 1, (u8*)"" }, 0, 0 };
+	FS_path fileLowPath;
+
+	char *menu_entries[] = {
+	"Red",
+	"Blue",
+	"Yellow",
+	"Pink",
+	"Black"};
+
+	char str[64];
+	char str2[64];
+
+	memset(file_lowpath_data, 0, sizeof(file_lowpath_data));
+
+	fileLowPath.type = PATH_BINARY;
+	fileLowPath.size = 0xc;
+	fileLowPath.data = (u8*)file_lowpath_data;
+
+	while(1)
+	{
+		gspWaitForVBlank();
+		hidScanInput();
+
+		u32 kDown = hidKeysDown();
+
+		if(redraw)
+		{
+			redraw = 0;
+
+			consoleClear();
+			printf("Select a built-in Home Menu theme for installation with the below menu. You can press the B button to exit. Note that this implementation can only work when this app is running from *hax payloads >=v2.0(https://smealum.github.io/3ds/). If you hold down the X button while selecting a theme via the A button, the theme-data will also be written to 'sdmc:/3ds/menuhax_manager/'.\n\n");
+
+			for(i=0; i<5; i++)
+			{
+				if(menuindex==i)
+				{
+					printf("-> ");
+				}
+				else
+				{
+					printf("   ");
+				}
+
+				printf("%s\n", menu_entries[i]);
+			}
+		}
+
+		if(kDown & KEY_B)
+		{
+			return 0;
+		}
+
+		if(kDown & KEY_DDOWN)
+		{
+			menuindex++;
+			if(menuindex>4)menuindex = 0;
+			redraw = 1;
+
+			continue;
+		}
+		else if(kDown & KEY_DUP)
+		{
+			menuindex--;
+			if(menuindex<0)menuindex = 4;
+			redraw = 1;
+
+			continue;
+		}
+
+		if(kDown & KEY_A)
+		{
+			break;
+		}
+	}
+
+	ret = FSUSER_OpenFileDirectly(NULL, &filehandle, archive, fileLowPath, FS_OPEN_READ, 0x0);
+	if(ret!=0)
+	{
+		printf("Failed to open the RomFS image for the current process: 0x%08x.\n", (unsigned int)ret);
+		return ret;
+	}
+
+	ret = romfsInitFromFile(filehandle, 0x0);
+	if(ret!=0)
+	{
+		printf("Failed to mount the RomFS image for the current process: 0x%08x.\n", (unsigned int)ret);
+		return ret;
+	}
+
+	printf("Enabling persistent themecache...\n");
+	ret = menu_enablethemecache_persistent();
+	if(ret==0)
+	{
+		memset(str, 0, sizeof(str));
+		snprintf(str, sizeof(str)-1, "romfs:/theme/%s_LZ.bin", menu_entries[menuindex]);
+
+		printf("Using the following theme: %s\n", str);
+
+		gspWaitForVBlank();
+		hidScanInput();
+
+		if(hidKeysHeld() & KEY_X)
+		{
+			memset(str2, 0, sizeof(str2));
+			snprintf(str2, sizeof(str2)-1, "sdmc:/3ds/menuhax_manager/%s_LZ.bin", menu_entries[menuindex]);
+
+			printf("Since the X button is being pressed, copying the built-in theme to '%s'...\n", str2);
+
+			ret = archive_getfilesize(SDArchive, str, &filesize);
+			if(ret!=0)
+			{
+				printf("Failed to get the filesize for the theme-data: 0x%08x.\n", (unsigned int)ret);
+			}
+			else
+			{
+				ret = archive_copyfile(SDArchive, SDArchive, str, str2, filebuffer, filesize, 0x150000, "body-data");
+				if(ret!=0)
+				{
+					printf("Copy failed: 0x%08x.\n", (unsigned int)ret);
+				}
+			}
+		}
+		else
+		{
+			printf("Skipping theme-dumping since the X button isn't pressed.\n");
+		}
+
+		ret = sd2themecache(str, NULL, 1);
+	}
+
+	romfsExit();
+
+	return ret;
 }
 
 Result http_getactual_payloadurl(char *requrl, char *outurl, u32 outurl_maxsize)
@@ -917,7 +1067,7 @@ Result setup_imagedisplay()
 			ret = archive_getfilesize(SDArchive, "sdmc:/3ds/menuhax_manager/imagedisplay.png", (u32*)&pngsize);
 			if(ret!=0)
 			{
-				printf("Failed to stat() the SD PNG: 0x%08x.\n", (unsigned int)ret);
+				printf("Failed to get the filesize of the SD PNG: 0x%08x.\n", (unsigned int)ret);
 				return ret;
 			}
 
@@ -1092,7 +1242,7 @@ int main(int argc, char **argv)
 					consoleClear();
 					printf("This can install Home Menu haxx to the SD card, for booting hblauncher. Select an option with the below menu. You can press the B button to exit.\n\n");
 
-					for(i=0; i<5; i++)
+					for(i=0; i<6; i++)
 					{
 						if(menuindex==i)
 						{
@@ -1124,6 +1274,10 @@ int main(int argc, char **argv)
 							case 4:
 								printf("Install custom theme for when the Home Menu theme-settings menu was entered at least once with menuhax >=v2.0 installed.");
 							break;
+
+							case 5:
+								printf("Setup a built-in Home Menu 'Basic' color theme, for when the Home Menu theme-settings menu was entered at least once with menuhax >=v2.0 installed.");
+							break;
 						}
 
 						printf("\n");
@@ -1138,7 +1292,7 @@ int main(int argc, char **argv)
 				if(kDown & KEY_DDOWN)
 				{
 					menuindex++;
-					if(menuindex>4)menuindex = 0;
+					if(menuindex>5)menuindex = 0;
 					redraw = 1;
 
 					continue;
@@ -1146,7 +1300,7 @@ int main(int argc, char **argv)
 				else if(kDown & KEY_DUP)
 				{
 					menuindex--;
-					if(menuindex<0)menuindex = 4;
+					if(menuindex<0)menuindex = 5;
 					redraw = 1;
 
 					continue;
@@ -1249,6 +1403,24 @@ int main(int argc, char **argv)
 						else
 						{
 							printf("Custom theme installation failed: 0x%08x. If you haven't already done so, you might need to enter the theme-settings menu under Home Menu, while menuhax is installed.\n", (unsigned int)ret);
+
+							break;
+						}
+					}
+					else if(menuindex==5)
+					{
+						ret = setup_builtin_theme();
+
+						if(ret==0)
+						{
+							printf("Theme setup finished successfully.\n");
+							displaymessage_waitbutton();
+
+							redraw = 1;
+						}
+						else
+						{
+							printf("Theme setup failed: 0x%08x.\n", (unsigned int)ret);
 
 							break;
 						}
