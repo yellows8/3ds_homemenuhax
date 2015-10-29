@@ -893,7 +893,7 @@ int main(int argc, char **argv)
 		printf("Failed to initialize AM: 0x%08x.\n", (unsigned int)ret);
 		if(ret==0xd8e06406)
 		{
-			printf("The AM service is inaccessible. With the hblauncher-payload this should never happen.\n");
+			printf("The AM service is inaccessible. With the hblauncher-payload this should never happen. This is normal with plain ninjhax v1.x: this app isn't usable from ninjhax v1.x without any further hax.\n");
 		}
 	}
 

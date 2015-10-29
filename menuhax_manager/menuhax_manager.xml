@@ -1,4 +1,4 @@
 <services autodetect="false">
-	<request priority="1">http:C</title>
+	<request priority="1">http:C</request>
 </services>
 
