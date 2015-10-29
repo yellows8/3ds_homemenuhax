@@ -252,39 +252,52 @@ Result delete_menuhax()
 	u32 i;
 	char str[256];
 
-	printf("Disabling theme-usage via SaveData.dat...\n");
-	ret = disablethemecache();
-	if(ret!=0)return ret;
+	gspWaitForVBlank();
+	hidScanInput();
 
-	memset(filebuffer, 0, filebuffer_maxsize);
-
-	printf("Clearing the theme-cache extdata now...\n");
-
-	printf("Clearing the regular ThemeManage...\n");
-	ret = archive_writefile(Theme_Extdata, "/ThemeManage.bin", filebuffer, 0x800);
-	if(ret!=0)
+	if(hidKeysHeld() & KEY_X)
 	{
-		printf("Failed to clear the regular ThemeManage: 0x%08x.\n", (unsigned int)ret);
-		return ret;
+		printf("Skipping menuhax deletion since the X button is pressed.\n");
+	}
+	else
+	{
+		printf("Deleting menuhax since the X button isn't pressed.\n");
+
+		printf("Disabling theme-usage via SaveData.dat...\n");
+		ret = disablethemecache();
+		if(ret!=0)return ret;
+
+		memset(filebuffer, 0, filebuffer_maxsize);
+
+		printf("Clearing the theme-cache extdata now...\n");
+
+		printf("Clearing the regular ThemeManage...\n");
+		ret = archive_writefile(Theme_Extdata, "/ThemeManage.bin", filebuffer, 0x800);
+		if(ret!=0)
+		{
+			printf("Failed to clear the regular ThemeManage: 0x%08x.\n", (unsigned int)ret);
+			return ret;
+		}
+
+		printf("Clearing the regular BodyCache...\n");
+		ret = archive_writefile(Theme_Extdata, "/BodyCache.bin", filebuffer, 0x150000);
+		if(ret!=0)
+		{
+			printf("Failed to clear the regular BodyCache: 0x%08x.\n", (unsigned int)ret);
+			return ret;
+		}
+
+		printf("Clearing the regular BgmCache...\n");
+		ret = archive_writefile(Theme_Extdata, "/BgmCache.bin", filebuffer, 0x337000);
+		if(ret!=0)
+		{
+			printf("Failed to clear the regular BgmCache: 0x%08x.\n", (unsigned int)ret);
+			return ret;
+		}
+
+		printf("The menuhax itself has been deleted successfully.\n");
 	}
 
-	printf("Clearing the regular BodyCache...\n");
-	ret = archive_writefile(Theme_Extdata, "/BodyCache.bin", filebuffer, 0x150000);
-	if(ret!=0)
-	{
-		printf("Failed to clear the regular BodyCache: 0x%08x.\n", (unsigned int)ret);
-		return ret;
-	}
-
-	printf("Clearing the regular BgmCache...\n");
-	ret = archive_writefile(Theme_Extdata, "/BgmCache.bin", filebuffer, 0x337000);
-	if(ret!=0)
-	{
-		printf("Failed to clear the regular BgmCache: 0x%08x.\n", (unsigned int)ret);
-		return ret;
-	}
-
-	printf("The menuhax itself has been deleted successfully.\n");
 	printf("Deleting the additional menuhax files under theme-cache extdata now. This can only work if Home Menu theme-settings menu was entered at least once with menuhax >=v2.0 installed. Note that failing to delete theme-shuffle data is normal.\n");
 
 	printf("Deleting the menuhax regular ThemeManage...\n");
@@ -1260,7 +1273,7 @@ int main(int argc, char **argv)
 							break;
 
 							case 1:
-								printf("Delete menuhax, clear the normal theme-cache files, and delete all menuhax-only extdata files. This will not delete any menuhax cfg files at SD root, use the belows menus for that.");
+								printf("Delete menuhax, clear the normal theme-cache files, and delete all additional menuhax-only extdata files. This will not delete any menuhax cfg files at SD root, use the belows menus for that. If the X button is held while selecting this, just the additional menuhax-only extdata files will be deleted(this can be used to set the theme to 'none' for example).");
 							break;
 
 							case 2:
