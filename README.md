@@ -98,6 +98,8 @@ If you want to revert the theme to "no-theme" with menuhax still installed, you 
 
 With menuhax setup, Home Menu uses seperate theme-cache extdata filenames for everything except for BGM. These seperate filenames are the same as the original except that the first character is replaced with 'y'(see also source code). As a result, other custom-theme installation tools will not be compatible with installing to these seperate files, without an update for them to support this. Using those tools without being updated for this, will result in menuhax being overwritten with the custom-theme.
 
+For custom-theme installation, the theme-data must be located at SD "/3ds/menuhax_manager/body_LZ.bin". If used, the BGM must be located at SD "/3ds/menuhax_manager/bgm.bcstm".
+
 # Credits
 * This vuln was, as said on this page(https://smealum.github.io/3ds/), "exploited jointly by yellows8 and smea". The payload.py script was written by smea, this is where the actual generation for the compressed data which triggers the buf-overflow is done.
 * menuhax_manager uses lodepng: https://github.com/lvandeve/lodepng
