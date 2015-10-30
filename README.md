@@ -16,26 +16,11 @@ This update fixed the vuln with theme decompression.
 The Home Menu code changes *just* added a "if(decompressed_size_from_lzheader > 0x150000){exit};" check after loading a theme, prior to decompression.
 
 # Supported System Versions
-* v9.0
-* v9.1j
-* v9.2
-* v9.3
-* v9.4
-* v9.5
-* v9.6
-* v9.7
-* All homemenu versions with this vuln where the ropgadget-finder successfully finds the required addresses, unless structs involved with the initial ROP-chain change etc.
-
-Due to an issue with APT, the <=v1.2 installer will fail to find the .lz for the following system-versions, due to using the wrong Home Menu title-version. This is fixed in latest git, there should be an updated release-archive for this later.
-* v9.3
-* v9.6
-* v9.7
-
-This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X on Old3DS, v8.1 on New3DS. Old3DS JPN theme support was "added" 9.1.0-XJ. The lowest system-version supported by exploit is v9.0.
+This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X on Old3DS, v8.1 on JPN-New3DS. Old3DS JPN theme support was "added" 9.1.0-XJ.
 
 Every version starting with v9.0 is supported unless mentioned otherwise, system-versions starting with 10.2.0-X are not supported(see above).
 
-The initial release archive only supported USA, EUR, and JPN. The latest git also supports KOR, which should be included in the next release. TWN can't be supported currently. CHN isn't supported since the last Home Menu update(v7.0) was before themes even existed in Home Menu.
+The initial release archive only supported USA, EUR, and JPN. KOR builds are included in the release-archive starting with v2.0. TWN can't be supported currently. CHN isn't supported since the last Home Menu update(v7.0) was before themes even existed in Home Menu.
 
 # Building
 Just run "make defaultbuild", or even "make clean && make defaultbuild". For building ROP binaries  which can be used for general homemenu ROP, this can be used: "{make clean &&} make ropbins {options}". "make bins {options}" is the same as "make", except building the .lz is skipped. "defaultbuild" Builds with the default options, see the Makefile for the default options. "{...} make {options}" Can be used to build with your own options if you prefer.
@@ -55,7 +40,7 @@ Build options:
 * "LOADSDCFG_PADCHECK=1" When USE_PADCHECK was used, load a config file which overrides the value used for USE_PADCHECK, and can invert PADCHECK too if specified(see source code for details).
 * "GAMECARD_PADCHECK=val" Similar to USE_PADCHECK except for BOOTGAMECARD: the BOOTGAMECARD ROP only gets executed when the specified HID PAD state matches the current one. After writing to framebufs the ROP will delay 3 seconds, then run this PADCHECK ROP.
 * "EXITMENU=1" Terminate homemenu X seconds(see source) after getting code exec under the launched process.
-* "ENABLE_LOADROPBIN=1" Load a homemenu ropbin then stack-pivot to it, see the Makefile HEAPBUF_ROPBIN_* values for the load-address. When LOADSDPAYLOAD isn't used, the binary is the one specified by CODEBINPAYLOAD, otherwise it's loaded from "sd:/menuhax_ropbinpayload.bin". The binary size should be <=0x10000-bytes.
+* "ENABLE_LOADROPBIN=1" Load a homemenu ropbin then stack-pivot to it, see the Makefile HEAPBUF_ROPBIN_* values for the load-address. When LOADSDPAYLOAD isn't used, the binary is the one specified by CODEBINPAYLOAD, otherwise it's loaded from a filepath which is different for each build, see the Makefile for that. The binary size should be <=0x10000-bytes.
 * "ENABLE_HBLAUNCHER=1" When used with ENABLE_LOADROPBIN, setup the additional data needed by the hblauncher payload.
 * "MENUROP_PATH={path}" Use the specified path for the "menurop" directory, instead of the default one which requires running generate_menurop_addrs.sh. To use the prebuilt menurop headers included with this repo, the following can be used: "MENUROP_PATH=menurop_prebuilt".
 * "THEMEDATA_PATH={*decompressed* regular theme body_LZ filepath}" Build hax with the specified theme, instead of using the "default theme" one. Also note that compression during building takes a *lot* longer with this. This option is *not* recommended, use the LOADOTHER_THEMEDATA option instead.
@@ -66,40 +51,52 @@ Build options:
 Building the menuhax_manager app requires zlib, handled the same way as hbmenu. Lodepng(https://github.com/lvandeve/lodepng) is also required: you must manually create a "menuhax_manager/lodepng/" directory, which contains the following(these can be symlinks for example): "lodepng.c" and "lodepng.h".
 
 # Usage
-Just boot the system, the haxx will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. The ROP right after the ROP for USE_PADCHECK, if that's even enabled, will overwrite the main-screen framebuffers with data from elsewhere.
+Just boot the system, the haxx/initial-ROP will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata.
 
-When the ROP returns from the haxx to running the actual Home Menu code, such as when USE_PADCHECK is used where the current PAD state doesn't match the specified state, Home Menu will use the "theme" data from this hax: the end result is that it appears to use the same theme as the default one(when the THEMEDATA_PATH build option wasn't used).
+When the ROP returns from the haxx to running the actual Home Menu code, such as when USE_PADCHECK is used where the current PAD state doesn't match the specified state, with the default build options Home Menu will attempt to load the theme from the seperate theme-cache files. If there's no theme available, the "default-theme" one will be used.
 
-When built with ENABLE_LOADROPBIN=1, this can boot into the homebrew-launcher if the ropbin listed above is one for the homebrew-launcher and was pre-patched.
+With the release archive, you have to hold down the L button while Home Menu is booting(at the time the ROP checks for it), in order to boot into the *hax payload. Otherwise, Home Menu will boot like normal. This is the default PAD-trigger configuration.
 
-With the release archive, you have to hold down the L button while Home Menu is booting(at the time the ROP checks for it), in order to boot into the hblauncher payload. Otherwise, Home Menu will boot like normal. This is the default PAD-trigger configuration.
+The user can override the default PAD-trigger with multiple configuration options in the menuhax_manager app. The data for this is stored in SD file "/menuhax_padcfg.bin".
 
-With the latest-git, the user can override the default PAD-trigger with multiple configuration options in the installer. The data for this is stored in SD file "/menuhax_padcfg.bin".
-
-The latest-git ROP does the following:
+The ROP does the following:
 * 1) Mount SD archive.
-* 2) Check PAD, if it's enabled with USE_PADCHECK(which it is with the release archive).
-* 3) Overwrite framebuffer data.
-* 4) Run the actual main ROP.
+* 2) Restore Home Menu state to what it was pre-hax, and setup stack/etc for returning to the actual Home Menu code if needed later.
+* 3) Setup the memory + string ptrs for the filepaths used with LOADOTHER_THEMEDATA, when that option is enabled(which it is by default).
+* 4) Load the PAD sdcfg when LOADSDCFG_PADCHECK is enabled(which is the default).
+* 5) Check PAD, if it's enabled with USE_PADCHECK(which it is with the release archive). On mismatch it will return to executing the actual Home Menu code.
+* 6) Overwrite framebuffer data.
+* 7) Run the actual main ROP.
 
 # Installation
-To install the exploit for booting hblauncher, you *must* use the menuhax_manager app. You must already have a way to boot into the hblauncher payload for running this app(which can include menuhax if it's already setup): http://3dbrew.org/wiki/Homebrew_Exploits    
-Before using HTTP, the app will first try to load the payload(https://smealum.github.io/3ds/) from SD "/menuhaxmanager_input_payload.bin", then continue to use HTTP if loading from SD isn't successful. Actually using this SD payload is *not* recommended for end-users when HTTP download works fine.  
+To install the exploit for booting the *hax payload, you *must* use the menuhax_manager app. You must already have a way to boot into the payload for running this app(which can include menuhax if it's already setup): http://3dbrew.org/wiki/Homebrew_Exploits    
+Before using HTTP, the app will first try to load the payload(https://smealum.github.io/3ds/) from SD "/menuhaxmanager_input_payload.bin", then continue to use HTTP if loading from SD isn't successful. Actually using this SD payload is *not* recommended for end-users when HTTP download works fine. The input payload from SD is basically just copied to the ropbin file used by menuhax, where only the first 0x10000-bytes are written(only the first 0x10000-bytes get loaded by menuhax, anything after that doesn't matter). Hence, the input payload *must* be a ropbin file, not otherapp(https://smealum.github.io/3ds/). Hence, you can't use *hax payload pre-v2.5 starting with menuhax_manager v2.0 unless you already have the ropbin file for it(which would have to be located at the SD input-payload filepath).  
 
-The latest-git uses a seperate menuropbin path for each menuhax build. <=v1.2 used the same filepath for all builds, rendering menuhax unusable for multiple system-versions/etc with the same SD card without changing that file(like with booting into SD-nandimages, for example).
+If you haven't already done so before, you may have to enter the Home Menu theme-settings so that Home Menu can create the theme extdata, prior to installing menuhax.
+
+Versions >v1.2 uses a seperate menuropbin path for each menuhax build. <=v1.2 used the same filepath for all builds, rendering menuhax unusable for multiple system-versions/etc with the same SD card without changing that file(like with booting into SD-nandimages, for example). The app versions >v1.2 delete the old menuropbin file used by <=v1.2.
+
+If you have the X button pressed while selecting the "Install" app option, *hax payload setup will be skipped. Normally this isn't needed. Doing this would result in *only* the extdata being setup/updated for menuhax.
 
 This app uses code based on code from the following repos: https://github.com/yellows8/3ds_homemenu_extdatatool https://github.com/yellows8/3ds_browserhax_common  
-This app includes the theme BGM copying code from 3ds_homemenu_extdatatool, but that BGM won't actually get used by Home Menu unless you build the exploit with the param related to that yourself.
-Whenever the Home Menu version installed on your system changes where the installed exploit is for a different version, or when you want to update the hblauncher payload, you must run the installer again. For this you can do the following: you can remove the SD card before booting the system, then once booted insert the SD card then boot into the hblauncher payload via a different method(http://3dbrew.org/wiki/Homebrew_Exploits).
+Whenever the Home Menu version installed on your system changes where the installed exploit is for a different version, or when you want to update the *hax payload, you must run the installer again. For this you can do the following: you can remove the SD card before booting the system, then once booted insert the SD card then boot into the *hax payload via a different method(http://3dbrew.org/wiki/Homebrew_Exploits).
 
-Besides the defaults, this app can setup a custom image for displaying on the main-screen when the menuhax triggers, if you use the app option for that. The input PNG for this is located at SD "/3ds/menuhax_manager/imagedisplay.png". The PNG dimensions must be either 800x240 or 240x800. The first half of the image(in terms of pixels) is for 3D-left, the rest is for the 3D-right. The 3D-right should be same as 3D-left if no stereoscopy is used by the image.
+This app can setup an image for displaying on the main-screen when the menuhax triggers, if you use the app option for that. When the file for this isn't setup, junk will be displayed on the top-screen(from elsewhere in VRAM). The image can be either be the default one, or from SD. The input PNG for this is located at SD "/3ds/menuhax_manager/imagedisplay.png". The PNG dimensions must be either 800x240 or 240x800. The first half of the image(in terms of pixels) is for 3D-left, the rest is for the 3D-right. The 3D-right should be same as 3D-left if no stereoscopy is used by the image. See also #26. See the build-options section above regarding ENABLE_IMAGEDISPLAY_SD for the filepath where the actual raw image used by menuhax is stored on SD, if you need that.
 
-To "remove" the exploit, you can just select any theme in the Home Menu theme settings(such as one of the built-in color themes). If you want the default theme, you can then select that option again. See the "Summary" section if you have issues with Home Menu failing to boot.
+The hax can be deleted by menuhax_manager with the app option for that. Another way to *only* "remove" the menuhax(this shouldn't be used unless you can't boot the menuhax_manager), is to just select the "no-theme" option in the Home Menu theme settings. Then restart Home Menu / reboot your system. Then, you can select any theme you want under Home Menu theme-settings if want to do so. See the "Summary" section if you have issues with Home Menu failing to boot.
 
-If you *really* want to build a NCCH version of the installer, use the same permissions as 3ds_homemenu_extdatatool, with the same data on SD card as from the release archive. Access to the HTTPC service, and access to an AM service for AM_ListTitles, is required. Due to AM access being required with >v1.2, this app is not usable with ninjhax v1.x.
+If you *really* want to build a NCCH version of the installer, use the same permissions as 3ds_homemenu_extdatatool, with the same data on SD card as from the release archive. Access to the HTTPC service, and access to an AM service for AM_ListTitles, is required. Due to AM access being required with >v1.2, this app is not usable with regular ninjhax v1.x without additional hax.
 
-If you haven't already done so before, you may have to enter the Home Menu theme-settings so that Home Menu can create the theme extdata.
+# Themes
+Starting with v2.0, you can now use menuhax with an actual theme you want. After installing >=v2.0, you have to enter the Home Menu theme-settings menu first, so that it can create the seperate extdata files. Under Home Menu theme-settings, the only theme-change you can do without menuhax being disabled, is selecting a DLC theme as a regular theme. Theme shuffling isn't usable. Under the menuhax_manager, there are menu options for installing custom-themes with menuhax already setup, and for setting up one of the Home Menu built-in "Basic: {color}" themes as a "custom-theme".
+
+When you're selecting a "Basic: {color}" theme with the menuhax_manager option mentioned above, you can keep the X button pressed while selecting the theme to dump the theme-data to '/3ds/menuhax_manager/'. This isn't needed unless you want to use that theme-data with other tools/etc. Note that this menu in menuhax_manager is only usable when the app is running via *hax payload >=v2.0.
+
+If you want to revert the theme to "no-theme" with menuhax still installed, you can keep the X button pressed while selecting the menuhax_manager "Delete" menu option. After doing so, you have to enter the Home Menu theme-settings menu again if you want to setup more themes later.
+
+With menuhax setup, Home Menu uses seperate theme-cache extdata filenames for everything except for BGM. These seperate filenames are the same as the original except that the first character is replaced with 'y'(see also source code). As a result, other custom-theme installation tools will not be compatible with installing to these seperate files, without an update for them to support this. Using those tools without being updated for this, will result in menuhax being overwritten with the custom-theme.
 
 # Credits
 * This vuln was, as said on this page(https://smealum.github.io/3ds/), "exploited jointly by yellows8 and smea". The payload.py script was written by smea, this is where the actual generation for the compressed data which triggers the buf-overflow is done.
+* menuhax_manager uses lodepng: https://github.com/lvandeve/lodepng
 
