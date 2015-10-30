@@ -101,4 +101,5 @@ With menuhax setup, Home Menu uses seperate theme-cache extdata filenames for ev
 # Credits
 * This vuln was, as said on this page(https://smealum.github.io/3ds/), "exploited jointly by yellows8 and smea". The payload.py script was written by smea, this is where the actual generation for the compressed data which triggers the buf-overflow is done.
 * menuhax_manager uses lodepng: https://github.com/lvandeve/lodepng
+* Graphics(#26): @NaxiD for the menuhax_manager icon and @LouchDaishiteru for the default haxx boot splash-screen.
 
