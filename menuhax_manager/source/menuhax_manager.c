@@ -46,6 +46,70 @@ u32 CVer_tidlow_regionarray[7] = {
 0x00017602 //TWN
 };
 
+void display_menu(char **menu_entries, int total_entries, int *menuindex, char *headerstr)
+{
+	int i;
+	u32 redraw = 1;
+
+	while(1)
+	{
+		gspWaitForVBlank();
+		hidScanInput();
+
+		u32 kDown = hidKeysDown();
+
+		if(redraw)
+		{
+			redraw = 0;
+
+			consoleClear();
+			printf("%s.\n\n", headerstr);
+
+			for(i=0; i<total_entries; i++)
+			{
+				if(*menuindex==i)
+				{
+					printf("-> ");
+				}
+				else
+				{
+					printf("   ");
+				}
+
+				printf("%s\n", menu_entries[i]);
+			}
+		}
+
+		if(kDown & KEY_B)
+		{
+			*menuindex = -1;
+			return;
+		}
+
+		if(kDown & KEY_DDOWN)
+		{
+			(*menuindex)++;
+			if(*menuindex>=total_entries)*menuindex = 0;
+			redraw = 1;
+
+			continue;
+		}
+		else if(kDown & KEY_DUP)
+		{
+			(*menuindex)--;
+			if(*menuindex<0)*menuindex = total_entries-1;
+			redraw = 1;
+
+			continue;
+		}
+
+		if(kDown & KEY_A)
+		{
+			break;
+		}
+	}
+}
+
 Result enablethemecache(u32 type)
 {	
 	Result ret=0;
@@ -363,8 +427,7 @@ Result delete_menuhax()
 Result setup_builtin_theme()
 {
 	Result ret=0;
-	int menuindex = 0, i;
-	u32 redraw = 1;
+	int menuindex = 0;
 	u32 filesize=0;
 
 	Handle filehandle = 0;
@@ -390,62 +453,9 @@ Result setup_builtin_theme()
 	fileLowPath.size = 0xc;
 	fileLowPath.data = (u8*)file_lowpath_data;
 
-	while(1)
-	{
-		gspWaitForVBlank();
-		hidScanInput();
+	display_menu(menu_entries, 5, &menuindex, "Select a built-in Home Menu theme for installation with the below menu. You can press the B button to exit. Note that this implementation can only work when this app is running from *hax payloads >=v2.0(https://smealum.github.io/3ds/). If you hold down the X button while selecting a theme via the A button, the theme-data will also be written to 'sdmc:/3ds/menuhax_manager/'.");
 
-		u32 kDown = hidKeysDown();
-
-		if(redraw)
-		{
-			redraw = 0;
-
-			consoleClear();
-			printf("Select a built-in Home Menu theme for installation with the below menu. You can press the B button to exit. Note that this implementation can only work when this app is running from *hax payloads >=v2.0(https://smealum.github.io/3ds/). If you hold down the X button while selecting a theme via the A button, the theme-data will also be written to 'sdmc:/3ds/menuhax_manager/'.\n\n");
-
-			for(i=0; i<5; i++)
-			{
-				if(menuindex==i)
-				{
-					printf("-> ");
-				}
-				else
-				{
-					printf("   ");
-				}
-
-				printf("%s\n", menu_entries[i]);
-			}
-		}
-
-		if(kDown & KEY_B)
-		{
-			return 0;
-		}
-
-		if(kDown & KEY_DDOWN)
-		{
-			menuindex++;
-			if(menuindex>4)menuindex = 0;
-			redraw = 1;
-
-			continue;
-		}
-		else if(kDown & KEY_DUP)
-		{
-			menuindex--;
-			if(menuindex<0)menuindex = 4;
-			redraw = 1;
-
-			continue;
-		}
-
-		if(kDown & KEY_A)
-		{
-			break;
-		}
-	}
+	if(menuindex==-1)return 0;
 
 	ret = FSUSER_OpenFileDirectly(NULL, &filehandle, archive, fileLowPath, FS_OPEN_READ, 0x0);
 	if(ret!=0)
@@ -1191,11 +1201,17 @@ void displaymessage_waitbutton()
 int main(int argc, char **argv)
 {
 	Result ret = 0;
-	int redraw = 0;
 	int menuindex = 0;
-	int i;
 
 	char ropbin_filepath[256];
+
+	char *menu_entries[] = {
+	"Install",
+	"Delete menuhax, clear the normal theme-cache files, and delete all additional menuhax-only extdata files. This will not delete any menuhax cfg files at SD root, use the belows menus for that. If the X button is held while selecting this, just the additional menuhax-only extdata files will be deleted(this can be used to set the theme to 'none' for example).",
+	"Configure/check haxx trigger button(s), which can override the default setting.",
+	"Configure menuhax main-screen image display.",
+	"Install custom theme for when the Home Menu theme-settings menu was entered at least once with menuhax >=v2.0 installed.",
+	"Setup a built-in Home Menu 'Basic' color theme, for when the Home Menu theme-settings menu was entered at least once with menuhax >=v2.0 installed."};
 
 	// Initialize services
 	gfxInitDefault();
@@ -1239,165 +1255,68 @@ int main(int argc, char **argv)
 		{
 			printf("Finished opening extdata.\n\n");
 
-			redraw = 1;
-
-			while(1)
+			while(ret==0)
 			{
-				gspWaitForVBlank();
-				hidScanInput();
+				display_menu(menu_entries, 6, &menuindex, "This can install Home Menu haxx to the SD card, for booting hblauncher. Select an option with the below menu. You can press the B button to exit.");
 
-				u32 kDown = hidKeysDown();
+				if(menuindex==-1)break;
 
-				if(redraw)
+				consoleClear();
+
+				switch(menuindex)
 				{
-					redraw = 0;
-
-					consoleClear();
-					printf("This can install Home Menu haxx to the SD card, for booting hblauncher. Select an option with the below menu. You can press the B button to exit.\n\n");
-
-					for(i=0; i<6; i++)
-					{
-						if(menuindex==i)
-						{
-							printf("-> ");
-						}
-						else
-						{
-							printf("   ");
-						}
-
-						switch(i)
-						{
-							case 0:
-								printf("Install");
-							break;
-
-							case 1:
-								printf("Delete menuhax, clear the normal theme-cache files, and delete all additional menuhax-only extdata files. This will not delete any menuhax cfg files at SD root, use the belows menus for that. If the X button is held while selecting this, just the additional menuhax-only extdata files will be deleted(this can be used to set the theme to 'none' for example).");
-							break;
-
-							case 2:
-								printf("Configure/check haxx trigger button(s), which can override the default setting.");
-							break;
-
-							case 3:
-								printf("Configure menuhax main-screen image display.");
-							break;
-
-							case 4:
-								printf("Install custom theme for when the Home Menu theme-settings menu was entered at least once with menuhax >=v2.0 installed.");
-							break;
-
-							case 5:
-								printf("Setup a built-in Home Menu 'Basic' color theme, for when the Home Menu theme-settings menu was entered at least once with menuhax >=v2.0 installed.");
-							break;
-						}
-
-						printf("\n");
-					}
-				}
-
-				if(kDown & KEY_B)
-				{
-					break;
-				}
-
-				if(kDown & KEY_DDOWN)
-				{
-					menuindex++;
-					if(menuindex>5)menuindex = 0;
-					redraw = 1;
-
-					continue;
-				}
-				else if(kDown & KEY_DUP)
-				{
-					menuindex--;
-					if(menuindex<0)menuindex = 5;
-					redraw = 1;
-
-					continue;
-				}
-
-				if(kDown & KEY_A)
-				{
-					consoleClear();
-
-					if(menuindex==0)
-					{
+					case 0:
 						ret = install_menuhax(ropbin_filepath);
 
 						if(ret==0)
 						{
 							printf("Install finished successfully. The following is the filepath which was just now written, you can delete any SD 'ropbinpayload_menuhax_*' file(s) which don't match the following exact filepath: '%s'. Doing so is completely optional. This only applies when menuhax >v1.2 was already installed where it was switched to a different system-version.\n", ropbin_filepath);
-
-							displaymessage_waitbutton();
-
-							redraw = 1;
 						}
 						else
 						{
 							printf("Install failed: 0x%08x.\n", (unsigned int)ret);
-
-							break;
 						}
-					}
-					else if(menuindex==1)
-					{
+					break;
+
+					case 1:
 						ret = delete_menuhax();
 						if(ret==0)
 						{
 							printf("Deletion finished successfully.\n");
-
-							displaymessage_waitbutton();
-
-							redraw = 1;
 						}
 						else
 						{
 							printf("Deletion failed: 0x%08x.\n", (unsigned int)ret);
-
-							break;
 						}
-					}
-					else if(menuindex==2)
-					{
+					break;
+
+					case 2:
 						ret = setup_sdcfg();
 
 						if(ret==0)
 						{
 							printf("Configuration finished successfully.\n");
-							displaymessage_waitbutton();
-
-							redraw = 1;
 						}
 						else
 						{
 							printf("Configuration failed: 0x%08x.\n", (unsigned int)ret);
-
-							break;
 						}
-					}
-					else if(menuindex==3)
-					{
+					break;
+
+					case 3:
 						ret = setup_imagedisplay();
 
 						if(ret==0)
 						{
 							printf("Configuration finished successfully.\n");
-							displaymessage_waitbutton();
-
-							redraw = 1;
 						}
 						else
 						{
 							printf("Configuration failed: 0x%08x.\n", (unsigned int)ret);
-
-							break;
 						}
-					}
-					else if(menuindex==4)
-					{
+					break;
+
+					case 4:
 						printf("Enabling persistent themecache...\n");
 						ret = menu_enablethemecache_persistent();
 						if(ret==0)
@@ -1409,36 +1328,28 @@ int main(int argc, char **argv)
 						if(ret==0)
 						{
 							printf("Custom theme installation finished successfully.\n");
-							displaymessage_waitbutton();
-
-							redraw = 1;
 						}
 						else
 						{
 							printf("Custom theme installation failed: 0x%08x. If you haven't already done so, you might need to enter the theme-settings menu under Home Menu, while menuhax is installed.\n", (unsigned int)ret);
-
-							break;
 						}
-					}
-					else if(menuindex==5)
-					{
+					break;
+
+					case 5:
 						ret = setup_builtin_theme();
 
 						if(ret==0)
 						{
 							printf("Theme setup finished successfully.\n");
-							displaymessage_waitbutton();
-
-							redraw = 1;
 						}
 						else
 						{
 							printf("Theme setup failed: 0x%08x.\n", (unsigned int)ret);
-
-							break;
 						}
-					}
+					break;
 				}
+
+				if(ret==0)displaymessage_waitbutton();
 			}
 		}
 	}
