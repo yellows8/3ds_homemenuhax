@@ -110,6 +110,17 @@ void display_menu(char **menu_entries, int total_entries, int *menuindex, char *
 	}
 }
 
+void displaymessage_waitbutton()
+{
+	printf("\nPress the A button to continue.\n");
+	while(1)
+	{
+		gspWaitForVBlank();
+		hidScanInput();
+		if(hidKeysDown() & KEY_A)break;
+	}
+}
+
 Result enablethemecache(u32 type)
 {	
 	Result ret=0;
@@ -923,9 +934,16 @@ void print_padbuttons(u32 val)
 Result setup_sdcfg()
 {
 	Result ret=0;
-	u32 kDown;
+	u32 kDown, padval=0;
+	int menuindex = 0;
 
 	u32 sdcfg[0x10>>2];//Last u32 is reserved atm.
+
+	char *menu_entries[] = {
+	"Type1: Only trigger the haxx when the PAD state matches the specified value(specified button(s) must be pressed).",
+	"Type2: Only trigger the haxx when the PAD state doesn't match the specified value.",
+	"Type0: Default PAD config is used.",
+	"Delete the config file(same end result on the menuhax as type0 basically)."};
 
 	printf("Configuring the padcfg file on SD...\n");
 
@@ -962,47 +980,31 @@ Result setup_sdcfg()
 		printf("The cfg file currently doesn't exist on SD.\n");
 	}
 
-	printf("Select a type by pressing a button: A = type1, B = type2, Y = type0. Or, press START to abort configuration(no file data will be written). You can also press X to delete the config file(same end result on the menuhax as type0 basically).\n");
-	printf("Type1: Only trigger the haxx when the PAD state matches the specified value(specified button(s) must be pressed).\n");
-	printf("Type2: Only trigger the haxx when the PAD state doesn't match the specified value.\n");
-	printf("Type0: Default PAD config is used.\n");
-
 	memset(sdcfg, 0, sizeof(sdcfg));
 
-	while(1)
+	displaymessage_waitbutton();
+
+	display_menu(menu_entries, 4, &menuindex, "Select a type with the below menu. You can press B to exit without changing anything.");
+
+	if(menuindex==-1)return 0;
+
+	switch(menuindex)
 	{
-		gspWaitForVBlank();
-		hidScanInput();
-		kDown = hidKeysDown();
-
-		if(kDown & KEY_A)
-		{
+		case 0:
 			sdcfg[0] = 0x1;
-			break;
-		}
+		break;
 
-		if(kDown & KEY_B)
-		{
+		case 1:
 			sdcfg[0] = 0x2;
-			break;
-		}
+		break;
 
-		if(kDown & KEY_Y)
-		{
+		case 2:
 			sdcfg[0] = 0x0;
-			break;
-		}
+		break;
 
-		if(kDown & KEY_START)
-		{
-			return 0;
-		}
-
-		if(kDown & KEY_X)
-		{
+		case 3:
 			unlink("sdmc:/menuhax_padcfg.bin");
-			return 0;
-		}
+		return 0;
 	}
 
 	if(sdcfg[0])
@@ -1017,13 +1019,14 @@ Result setup_sdcfg()
 
 			if(kDown & KEY_TOUCH)
 			{
-				sdcfg[sdcfg[0]] = kDown & 0xfff;
+				 padval = kDown & 0xfff;
 				break;
 			}
 		}
 
-		printf("Selected PAD value: 0x%x ", (unsigned int)sdcfg[sdcfg[0]]);
-		print_padbuttons(sdcfg[sdcfg[0]]);
+		printf("Selected PAD value: 0x%x ", (unsigned int)padval);
+		print_padbuttons(padval);
+		sdcfg[sdcfg[0]] = padval;
 		printf("\n");
 	}
 
@@ -1185,17 +1188,6 @@ Result setup_imagedisplay()
 	}
 
 	return ret;
-}
-
-void displaymessage_waitbutton()
-{
-	printf("\nPress the A button to continue.\n");
-	while(1)
-	{
-		gspWaitForVBlank();
-		hidScanInput();
-		if(hidKeysDown() & KEY_A)break;
-	}
 }
 
 int main(int argc, char **argv)
