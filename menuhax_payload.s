@@ -713,6 +713,9 @@ CALLFUNC_NOSP MEMSET32_OTHER, ROPBIN_BUFADR - (0x800*6), 0x2800, 0, 0 @ paramblk
 CALLFUNC_NOSP GSPGPU_FlushDataCache, ROPBIN_BUFADR - (0x800*6), (0x10000+0x2800), 0, 0
 #endif
 
+@ Delay 3-seconds. This seems to help with the *hax 2.5 payload booting issues which triggered in some cases(doesn't happen as much with this).
+CALLFUNC_NOSP svcSleepThread, 3000000000, 0, 0, 0
+
 ROPMACRO_STACKPIVOT ROPBIN_BUFADR, ROP_POPPC
 #endif
 
