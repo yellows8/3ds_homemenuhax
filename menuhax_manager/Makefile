@@ -43,10 +43,6 @@ APP_AUTHOR	:=	yellows8
 #---------------------------------------------------------------------------------
 DEFINES	:=	-DLODEPNG_NO_COMPILE_ENCODER -DLODEPNG_NO_COMPILE_DISK -DLODEPNG_NO_COMPILE_CPP
 
-ifneq ($(strip $(ENABLE_DEFAULTDISPLAYIMAGE)),)
-	DEFINES	:=	$(DEFINES) -DENABLE_DEFAULTDISPLAYIMAGE
-endif
-
 ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard
 
 CFLAGS	:=	-g -Wall -O2 -mword-relocations \

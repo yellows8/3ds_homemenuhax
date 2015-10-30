@@ -9,9 +9,7 @@
 
 #include "archive.h"
 
-#ifdef ENABLE_DEFAULTDISPLAYIMAGE
 #include "default_imagedisplay_png.h"
-#endif
 
 u8 *filebuffer;
 u32 filebuffer_maxsize = 0x400000;
@@ -50,13 +48,14 @@ void display_menu(char **menu_entries, int total_entries, int *menuindex, char *
 {
 	int i;
 	u32 redraw = 1;
+	u32 kDown = 0;
 
 	while(1)
 	{
 		gspWaitForVBlank();
 		hidScanInput();
 
-		u32 kDown = hidKeysDown();
+		kDown = hidKeysDown();
 
 		if(redraw)
 		{
@@ -86,7 +85,7 @@ void display_menu(char **menu_entries, int total_entries, int *menuindex, char *
 			return;
 		}
 
-		if(kDown & KEY_DDOWN)
+		if(kDown & (KEY_DDOWN | KEY_CPAD_DOWN))
 		{
 			(*menuindex)++;
 			if(*menuindex>=total_entries)*menuindex = 0;
@@ -94,7 +93,7 @@ void display_menu(char **menu_entries, int total_entries, int *menuindex, char *
 
 			continue;
 		}
-		else if(kDown & KEY_DUP)
+		else if(kDown & (KEY_DUP | KEY_CPAD_UP))
 		{
 			(*menuindex)--;
 			if(*menuindex<0)*menuindex = total_entries-1;
@@ -1040,14 +1039,20 @@ Result setup_sdcfg()
 Result setup_imagedisplay()
 {
 	Result ret=0;
+	int menuindex = 0;
 	unsigned w = 0, h = 0, x, y, pos0, pos1;
 	size_t pngsize = 0;
-	u32 imgdisp_exists = 0, imgtype;
+	u32 imgdisp_exists = 0, imgtype = 0;
 	u8 *outbuf = NULL;
 	u8 *pngbuf = NULL;
 	u8 *finalimage = NULL;
 
 	struct stat filestats;
+
+	char *menu_entries[] = {
+	"Default image.",
+	"Custom image loaded from a PNG on SD.",
+	"Delete the image-display file."};
 
 	imgdisp_exists = 1;
 	ret = stat("sdmc:/menuhax_imagedisplay.bin", &filestats);
@@ -1062,32 +1067,22 @@ Result setup_imagedisplay()
 	{
 		printf("The image-display file doesn't exist on SD.\n");
 	}
-	printf("Select an option by pressing a button:\n");
-	#ifdef ENABLE_DEFAULTDISPLAYIMAGE
-	printf("A = default image.\n");
-	#endif
-	printf("B = custom image loaded from a PNG on SD.\n");
-	if(imgdisp_exists)printf("X = delete the image-display file.\n");
-	printf("START = exit without changing anything.\n");
 
-	while(1)
+	displaymessage_waitbutton();
+
+	display_menu(menu_entries, 2 + imgdisp_exists, &menuindex, "Select an option with the below menu. You can press B to exit without changing anything.");
+
+	if(menuindex==-1)return 0;
+
+	switch(menuindex)
 	{
-		gspWaitForVBlank();
-		hidScanInput();
-		u32 kDown = hidKeysDown();
-
-		#ifdef ENABLE_DEFAULTDISPLAYIMAGE
-		if(kDown & KEY_A)
-		{
+		case 0:
 			pngbuf = (u8*)default_imagedisplay_png;
 			pngsize = default_imagedisplay_png_size;
 			imgtype = 0;
-			break;
-		}
-		#endif
+		break;
 
-		if(kDown & KEY_B)
-		{
+		case 1:
 			printf("Loading PNG from SD...\n");
 
 			ret = archive_getfilesize(SDArchive, "sdmc:/3ds/menuhax_manager/imagedisplay.png", (u32*)&pngsize);
@@ -1115,19 +1110,11 @@ Result setup_imagedisplay()
 
 			printf("SD loading finished.\n");
 
-			break;
-		}
+		break;
 
-		if(kDown & KEY_START)
-		{
-			return 0;
-		}
-
-		if(imgdisp_exists && (kDown & KEY_X))
-		{
+		case 2:
 			unlink("sdmc:/menuhax_imagedisplay.bin");
-			return 0;
-		}
+		return 0;
 	}
 
 	printf("Decoding PNG...\n");
