@@ -51,7 +51,7 @@ Build options:
 Building the menuhax_manager app requires zlib, handled the same way as hbmenu. Lodepng(https://github.com/lvandeve/lodepng) is also required: you must manually create a "menuhax_manager/lodepng/" directory, which contains the following(these can be symlinks for example): "lodepng.c" and "lodepng.h".
 
 # Usage
-Just boot the system, the haxx/initial-ROP will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata.
+Just boot the system, the haxx/initial-ROP will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. This happens when the Home Menu process is starting up. Prior to v2.0 Home Menu attempted theme-loading when returning from the power-off screen, however since Home Menu state is finally proper now with v2.0 that doesn't happen anymore. Said process boot can be triggered on Old3DS-only by entering a system-applet then leaving it. Hardware-reboot via System Settings for example has a similar affect too.
 
 When the ROP returns from the haxx to running the actual Home Menu code, such as when USE_PADCHECK is used where the current PAD state doesn't match the specified state, with the default build options Home Menu will attempt to load the theme from the seperate theme-cache files. If there's no theme available, the "default-theme" one will be used.
 
