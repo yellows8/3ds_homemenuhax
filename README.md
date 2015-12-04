@@ -27,7 +27,7 @@ Just run "make defaultbuild", or even "make clean && make defaultbuild". For bui
 
 If you don't want to use the prebuilt menurop(using the menurop_prebuilt is recommended), the menurop directories+files must be generated. "./generate_menurop_addrs.sh {path}". See the source of that script for details(this requires the Home Menu code-binaries).
 
-The built files for BodyCache.bin/Body_LZ.bin are located under "themepayload/".
+The built files for BodyCache.bin/Body_LZ.bin are located under "finaloutput/themepayload/".
 
 Note that the compression done in .py is rather slow: this is why building all versions and such takes a while.
 
@@ -49,6 +49,8 @@ Build options:
 * "ENABLE_IMAGEDISPLAY_SD=1" Only used if ENABLE_IMAGEDISPLAY was specified. Overwrite the raw image-display data in the payload, with the data from SD "/menuhax_imagedisplay.bin", if the data from SD is loaded successfully. The format is the same described above. The first 0x46500-bytes are for the 3D-left, the 0x46500-bytes after that are for the 3D-right. The size of this file on SD should be 0x8ca00-bytes(0x46500*2), but if it's smaller only part of the image-data in this payload will be overwritten. Note that the manager app includes functionality for handling this file.
 
 Building the menuhax_manager app requires zlib, handled the same way as hbmenu. Lodepng(https://github.com/lvandeve/lodepng) is also required: you must manually create a "menuhax_manager/lodepng/" directory, which contains the following(these can be symlinks for example): "lodepng.c" and "lodepng.h".
+
+Before building menuhax(_manager), you must run setup_modules.sh at least once. You won't need to run the script again unless the contents of the "modules" directory changes, or if the "setup_modules.sh" script changes.
 
 # Usage
 Just boot the system, the haxx/initial-ROP will automatically trigger when Home Menu loads the theme-data from the cache in SD extdata. This happens when the Home Menu process is starting up. Prior to v2.0 Home Menu attempted theme-loading when returning from the power-off screen, however since Home Menu state is finally proper now with v2.0 that doesn't happen anymore. Said process boot can be triggered on Old3DS-only by entering a system-applet then leaving it. Hardware-reboot via System Settings for example has a similar affect too.

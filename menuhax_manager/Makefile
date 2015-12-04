@@ -28,9 +28,9 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source lodepng
+SOURCES		:=	source lodepng source/modules
 DATA		:=	data
-INCLUDES	:=	include lodepng
+INCLUDES	:=	include lodepng source source/modules
 
 VERSION	:=	v2.0
 

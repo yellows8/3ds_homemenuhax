@@ -122,11 +122,15 @@ endif
 
 DEFINES	:=	$(DEFINES) -DROPBINPAYLOAD_PATH=\"sd:/ropbinpayload_$(BUILDPREFIX).bin\"
 
+BUILDMODULES_COMMAND	:=	
+
+include Makefile_modules_include
+
 defaultbuild:
 	make -f Makefile all --no-print-directory LOADSDPAYLOAD=1 USE_PADCHECK=0x200 ENABLE_LOADROPBIN=1 ENABLE_HBLAUNCHER=1 LOADSDCFG_PADCHECK=1 LOADOTHER_THEMEDATA=1 ENABLE_IMAGEDISPLAY=1 ENABLE_IMAGEDISPLAY_SD=1 MENUROP_PATH=menurop_prebuilt
 
 all:	
-	@mkdir -p themepayload
+	@mkdir -p finaloutput
 	@mkdir -p binpayload
 	@mkdir -p build
 	@if [ ! -d "$(MENUROP_PATH)/JPN" ]; then $$(error "The $(MENUROP_PATH)/JPN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
@@ -135,13 +139,8 @@ all:
 	#@if [ ! -d "$(MENUROP_PATH)/CHN" ]; then $$(error "The $(MENUROP_PATH)/CHN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
 	@if [ ! -d "$(MENUROP_PATH)/KOR" ]; then $$(error "The $(MENUROP_PATH)/KOR directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
 	#@if [ ! -d "$(MENUROP_PATH)/TWN" ]; then $$(error "The $(MENUROP_PATH)/TWN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-
-	@for path in themehax_menuversions/JPN/*; do make -f Makefile buildtheme --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
-	@for path in themehax_menuversions/USA/*; do make -f Makefile buildtheme --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
-	@for path in themehax_menuversions/EUR/*; do make -f Makefile buildtheme --no-print-directory REGION=EUR REGIONVAL=2 MENUVERSION=$$(basename "$$path"); done
-	#@for path in themehax_menuversions/CHN/*; do make -f Makefile buildtheme --no-print-directory REGION=CHN REGIONVAL=3 MENUVERSION=$$(basename "$$path"); done
-	@for path in themehax_menuversions/KOR/*; do make -f Makefile buildtheme --no-print-directory REGION=KOR REGIONVAL=4 MENUVERSION=$$(basename "$$path"); done
-	#@for path in themehax_menuversions/TWN/*; do make -f Makefile buildtheme --no-print-directory REGION=TWN REGIONVAL=5 MENUVERSION=$$(basename "$$path"); done
+	
+	$(BUILDMODULES_COMMAND)
 
 ropbins:	
 	@mkdir -p binpayload
@@ -178,13 +177,9 @@ bins:
 	#@for path in $(MENUROP_PATH)/TWN/*; do make -f Makefile buildbin --no-print-directory REGION=TWN REGIONVAL=5 MENUVERSION=$$(basename "$$path"); done
 
 clean:
-	@rm -R -f themepayload
+	@rm -R -f finaloutput
 	@rm -R -f binpayload
 	@rm -R -f build
-
-buildtheme:
-	@make -f Makefile themepayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds.lz --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_HAX_OLD3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 $(PARAMS)
-	@make -f Makefile themepayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds.lz --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_HAX_NEW3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 $(PARAMS)
 
 buildropbin:
 	@make -f Makefile binpayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_HAX_OLD3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 BUILDROPBIN=1 $(PARAMS)
@@ -193,9 +188,6 @@ buildropbin:
 buildbin:
 	@make -f Makefile binpayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_HAX_OLD3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 $(PARAMS)
 	@make -f Makefile binpayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_HAX_NEW3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 $(PARAMS)
-
-themepayload/$(BUILDPREFIX).lz:	binpayload/$(BUILDPREFIX).bin
-	python3 payload.py $< $@ 0x4652 0x15ff80 $(TARGETOVERWRITE_MEMCHUNKADR) $(HEAPBUF_OBJADDR)
 
 binpayload/$(BUILDPREFIX).bin:	build/$(BUILDPREFIX).elf
 	$(OBJCOPY) -O binary $< $@
