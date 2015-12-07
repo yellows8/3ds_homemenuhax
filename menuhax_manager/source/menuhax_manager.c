@@ -30,6 +30,7 @@ char regionids_table[7][4] = {//http://3dbrew.org/wiki/Nandrw/sys/SecureInfo_A
 
 typedef struct {
 	int initialized;
+	u32 index;
 	u32 unsupported_cver;
 	menuhaxcb_install haxinstall;
 	menuhaxcb_delete haxdelete;
@@ -57,15 +58,17 @@ void register_module(u32 unsupported_cver, menuhaxcb_install haxinstall, menuhax
 	}
 }
 
-Result modules_getcompatible_entry(OS_VersionBin *cver_versionbin, module_entry **module)
+Result modules_getcompatible_entry(OS_VersionBin *cver_versionbin, module_entry **module, u32 index)
 {
 	module_entry *ent;
-	int pos;
+	u32 pos;
 	u32 cver = MODULE_MAKE_CVER(cver_versionbin->mainver, cver_versionbin->minor, cver_versionbin->build);
 
 	*module = NULL;
 
-	for(pos=0; pos<MAX_MODULES; pos++)
+	if(index>=MAX_MODULES)return -1;
+
+	for(pos=index; pos<MAX_MODULES; pos++)
 	{
 		ent = &modules_list[pos];
 		if(!ent->initialized)continue;
@@ -79,8 +82,6 @@ Result modules_getcompatible_entry(OS_VersionBin *cver_versionbin, module_entry 
 
 		return 0;
 	}
-
-	printf("All of the exploit(s) included with this menuhax_manager app are not supported with your system-version due to the exploit(s) being fixed.\n");
 
 	return -7;
 }
@@ -382,8 +383,6 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 Result delete_menuhax()
 {
 	Result ret=0;
-	u32 i;
-	char str[256];
 
 	gspWaitForVBlank();
 	hidScanInput();
@@ -402,14 +401,13 @@ Result delete_menuhax()
 		printf("The menuhax itself has been deleted successfully.\n");
 	}
 
-	printf("Deleting the additional menuhax files under theme-cache extdata now. This can only work if Home Menu theme-settings menu was entered at least once with menuhax >=v2.0 installed. Note that failing to delete theme-shuffle data is normal.\n");
+	printf("Deleting the additional menuhax files under theme-cache extdata now. This can only work if Home Menu theme-settings menu was entered at least once with menuhax >=v2.0 installed.\n");
 
-	printf("Deleting the menuhax regular ThemeManage...\n");
+	printf("Deleting the menuhax ThemeManage...\n");
 	ret = archive_deletefile(Theme_Extdata, "/yhemeManage.bin");
 	if(ret!=0)
 	{
-		printf("Failed to delete the menuhax regular ThemeManage: 0x%08x.\n", (unsigned int)ret);
-		return ret;
+		printf("Failed to delete the menuhax ThemeManage: 0x%08x.\n", (unsigned int)ret);
 	}
 
 	printf("Deleting the menuhax regular BodyCache...\n");
@@ -417,7 +415,6 @@ Result delete_menuhax()
 	if(ret!=0)
 	{
 		printf("Failed to delete the menuhax regular BodyCache: 0x%08x.\n", (unsigned int)ret);
-		return ret;
 	}
 
 	printf("Deleting menuhax shuffle BodyCache...\n");
@@ -425,40 +422,6 @@ Result delete_menuhax()
 	if(ret!=0)
 	{
 		printf("Failed to delete the menuhax shuffle BodyCache: 0x%08x.\n", (unsigned int)ret);
-	}
-
-	if(ret==0)
-	{
-		for(i=0; i<10; i++)
-		{
-			memset(str, 0, sizeof(str));
-			snprintf(str, sizeof(str)-1, "/yhemeManage_%02d.bin", (unsigned int)i);
-
-			printf("Deleting menuhax shuffle ThemeManage_%02d...\n", (unsigned int)i);
-			ret = archive_deletefile(Theme_Extdata, str);
-			if(ret!=0)
-			{
-				printf("Failed to delete menuhax shuffle ThemeManage_%02d: 0x%08x.\n", (unsigned int)i, (unsigned int)ret);
-				break;
-			}
-		}
-	}
-
-	if(ret==0)
-	{
-		for(i=0; i<10; i++)
-		{
-			memset(str, 0, sizeof(str));
-			snprintf(str, sizeof(str)-1, "/yodyCache_%02d.bin", (unsigned int)i);
-
-			printf("Deleting menuhax shuffle BodyCache_%02d...\n", (unsigned int)i);
-			ret = archive_deletefile(Theme_Extdata, str);
-			if(ret!=0)
-			{
-				printf("Failed to delete menuhax shuffle BodyCache_%02d: 0x%08x.\n", (unsigned int)i, (unsigned int)ret);
-				break;
-			}
-		}
 	}
 
 	return 0;
@@ -511,46 +474,41 @@ Result setup_builtin_theme()
 		return ret;
 	}
 
-	printf("Enabling persistent themecache...\n");
-	ret = menu_enablethemecache_persistent();
-	if(ret==0)
+	memset(str, 0, sizeof(str));
+	snprintf(str, sizeof(str)-1, "romfs:/theme/%s_LZ.bin", menu_entries[menuindex]);
+
+	printf("Using the following theme: %s\n", str);
+
+	gspWaitForVBlank();
+	hidScanInput();
+
+	if(hidKeysHeld() & KEY_X)
 	{
-		memset(str, 0, sizeof(str));
-		snprintf(str, sizeof(str)-1, "romfs:/theme/%s_LZ.bin", menu_entries[menuindex]);
+		memset(str2, 0, sizeof(str2));
+		snprintf(str2, sizeof(str2)-1, "sdmc:/3ds/menuhax_manager/%s_LZ.bin", menu_entries[menuindex]);
 
-		printf("Using the following theme: %s\n", str);
+		printf("Since the X button is being pressed, copying the built-in theme to '%s'...\n", str2);
 
-		gspWaitForVBlank();
-		hidScanInput();
-
-		if(hidKeysHeld() & KEY_X)
+		ret = archive_getfilesize(SDArchive, str, &filesize);
+		if(ret!=0)
 		{
-			memset(str2, 0, sizeof(str2));
-			snprintf(str2, sizeof(str2)-1, "sdmc:/3ds/menuhax_manager/%s_LZ.bin", menu_entries[menuindex]);
-
-			printf("Since the X button is being pressed, copying the built-in theme to '%s'...\n", str2);
-
-			ret = archive_getfilesize(SDArchive, str, &filesize);
-			if(ret!=0)
-			{
-				printf("Failed to get the filesize for the theme-data: 0x%08x.\n", (unsigned int)ret);
-			}
-			else
-			{
-				ret = archive_copyfile(SDArchive, SDArchive, str, str2, filebuffer, filesize, 0x150000, "body-data");
-				if(ret!=0)
-				{
-					printf("Copy failed: 0x%08x.\n", (unsigned int)ret);
-				}
-			}
+			printf("Failed to get the filesize for the theme-data: 0x%08x.\n", (unsigned int)ret);
 		}
 		else
 		{
-			printf("Skipping theme-dumping since the X button isn't pressed.\n");
+			ret = archive_copyfile(SDArchive, SDArchive, str, str2, filebuffer, filesize, 0x150000, 0, "body-data");
+			if(ret!=0)
+			{
+				printf("Copy failed: 0x%08x.\n", (unsigned int)ret);
+			}
 		}
-
-		ret = sd2themecache(str, NULL, 1);
 	}
+	else
+	{
+		printf("Skipping theme-dumping since the X button isn't pressed.\n");
+	}
+
+	ret = sd2themecache(str, NULL, 1);
 
 	romfsExit();
 
@@ -655,7 +613,7 @@ Result http_download_payload(char *url, u32 *payloadsize)
 
 Result install_menuhax(char *ropbin_filepath)
 {
-	Result ret = 0;
+	Result ret = 0, tmpret;
 	u8 region=0;
 	u8 new3dsflag = 0;
 	u64 menu_programid = 0;
@@ -738,8 +696,12 @@ Result install_menuhax(char *ropbin_filepath)
 
 	printf("Detected system-version: %s %d.%d.%d-%d %s\n", new3dsflag?"New3DS":"Old3DS", cver_versionbin.mainver, cver_versionbin.minor, cver_versionbin.build, nver_versionbin.mainver, regionids_table[region]);
 
-	ret = modules_getcompatible_entry(&cver_versionbin, &module);
-	if(ret)return ret;
+	ret = modules_getcompatible_entry(&cver_versionbin, &module, 0);
+	if(ret)
+	{
+		if(ret == -7)printf("All of the exploit(s) included with this menuhax_manager app are not supported with your system-version due to the exploit(s) being fixed.\n");
+		return ret;
+	}
 
 	memset(filebuffer, 0, filebuffer_maxsize);
 
@@ -817,7 +779,28 @@ Result install_menuhax(char *ropbin_filepath)
 		memset(filebuffer, 0, filebuffer_maxsize);
 	}
 
-	return module->haxinstall(menuhax_basefn);
+	while(1)
+	{
+		ret = module->haxinstall(menuhax_basefn);
+		if(ret==0)break;
+
+		if(module->index+1 < MAX_MODULES)
+		{
+			tmpret = modules_getcompatible_entry(&cver_versionbin, &module, module->index+1);
+			if(tmpret)
+			{
+				break;
+			}
+
+			printf("Installation failed with error 0x%08x, attempting installation with another module...\n", (unsigned int)ret);
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	return ret;
 }
 
 void print_padbuttons(u32 val)
@@ -1272,13 +1255,8 @@ int main(int argc, char **argv)
 					break;
 
 					case 4:
-						printf("Enabling persistent themecache...\n");
-						ret = menu_enablethemecache_persistent();
-						if(ret==0)
-						{
-							printf("Installing custom-theme...\n");
-							ret = sd2themecache("sdmc:/3ds/menuhax_manager/body_LZ.bin", "sdmc:/3ds/menuhax_manager/bgm.bcstm", 1);
-						}
+						printf("Installing custom-theme...\n");
+						ret = sd2themecache("sdmc:/3ds/menuhax_manager/body_LZ.bin", "sdmc:/3ds/menuhax_manager/bgm.bcstm", 1);
 
 						if(ret==0)
 						{
