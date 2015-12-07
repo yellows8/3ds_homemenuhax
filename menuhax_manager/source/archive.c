@@ -184,7 +184,7 @@ Result archive_readfile(Archive archive, char *path, u8 *buffer, u32 size)
 	return ret;
 }
 
-Result archive_writefile(Archive archive, char *path, u8 *buffer, u32 size)
+Result archive_writefile(Archive archive, char *path, u8 *buffer, u32 size, u32 createsize)
 {
 	Result ret=0;
 	Handle filehandle=0;
@@ -211,7 +211,28 @@ Result archive_writefile(Archive archive, char *path, u8 *buffer, u32 size)
 	}
 
 	ret = FSUSER_OpenFile(NULL, &filehandle, extdata_archives[archive], FS_makePath(PATH_CHAR, path), FS_OPEN_WRITE, 0);
-	if(ret!=0)return ret;
+	if(ret!=0)
+	{
+		if(createsize)
+		{
+			printf("Error 0x%08x was returned while attempting to open the file for writing, attempting file-creation...\n", (unsigned int)ret);
+
+			ret = FSUSER_CreateFile(NULL, extdata_archives[archive], FS_makePath(PATH_CHAR, path), createsize);
+			if(ret)
+			{
+				printf("Failed to create the file: 0x%08x.\n", (unsigned int)ret);
+				return ret;
+			}
+
+			ret = FSUSER_OpenFile(NULL, &filehandle, extdata_archives[archive], FS_makePath(PATH_CHAR, path), FS_OPEN_WRITE, 0);
+			if(ret)
+			{
+				printf("Failed to open the file after creation: 0x%08x.\n", (unsigned int)ret);
+			}
+		}
+
+		if(ret)return ret;
+	}
 
 	ret = FSFILE_Write(filehandle, &tmpval, 0, buffer, size, FS_WRITE_FLUSH);
 
@@ -222,7 +243,7 @@ Result archive_writefile(Archive archive, char *path, u8 *buffer, u32 size)
 	return ret;
 }
 
-Result archive_copyfile(Archive inarchive, Archive outarchive, char *inpath, char *outpath, u8* buffer, u32 size, u32 maxbufsize, char *display_filepath)
+Result archive_copyfile(Archive inarchive, Archive outarchive, char *inpath, char *outpath, u8* buffer, u32 size, u32 maxbufsize, u32 createsize, char *display_filepath)
 {
 	Result ret=0;
 	u32 filesize=0;
@@ -254,7 +275,7 @@ Result archive_copyfile(Archive inarchive, Archive outarchive, char *inpath, cha
 
 	printf("Writing %s...\n", display_filepath);
 
-	ret = archive_writefile(outarchive, outpath, buffer, size);
+	ret = archive_writefile(outarchive, outpath, buffer, size, createsize);
 	if(ret!=0)
 	{
 		printf("Failed to write file: 0x%08x\n", (unsigned int)ret);

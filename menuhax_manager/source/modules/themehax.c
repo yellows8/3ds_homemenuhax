@@ -25,7 +25,7 @@ Result themehax_install(char *menuhax_basefn)
 
 	memset(body_filepath, 0, sizeof(body_filepath));
 
-	snprintf(body_filepath, sizeof(body_filepath)-1, "sdmc:/3ds/menuhax_manager/themepayload/%s.lz", menuhax_basefn);
+	snprintf(body_filepath, sizeof(body_filepath)-1, "sdmc:/3ds/menuhax_manager/finaloutput/themepayload/%s.lz", menuhax_basefn);
 
 	printf("Installing themehax...\n");
 
@@ -54,16 +54,16 @@ Result themehax_delete()
 
 	printf("Clearing the theme-cache extdata now...\n");
 
-	printf("Clearing the regular ThemeManage...\n");
-	ret = archive_writefile(Theme_Extdata, "/ThemeManage.bin", filebuffer, 0x800);
+	printf("Clearing the ThemeManage...\n");
+	ret = archive_writefile(Theme_Extdata, "/ThemeManage.bin", filebuffer, 0x800, 0x800);
 	if(ret!=0)
 	{
-		printf("Failed to clear the regular ThemeManage: 0x%08x.\n", (unsigned int)ret);
+		printf("Failed to clear the ThemeManage: 0x%08x.\n", (unsigned int)ret);
 		return ret;
 	}
 
 	printf("Clearing the regular BodyCache...\n");
-	ret = archive_writefile(Theme_Extdata, "/BodyCache.bin", filebuffer, 0x150000);
+	ret = archive_writefile(Theme_Extdata, "/BodyCache.bin", filebuffer, 0x150000, 0x150000);
 	if(ret!=0)
 	{
 		printf("Failed to clear the regular BodyCache: 0x%08x.\n", (unsigned int)ret);
@@ -71,7 +71,7 @@ Result themehax_delete()
 	}
 
 	printf("Clearing the regular BgmCache...\n");
-	ret = archive_writefile(Theme_Extdata, "/BgmCache.bin", filebuffer, 0x337000);
+	ret = archive_writefile(Theme_Extdata, "/BgmCache.bin", filebuffer, 0x337000, 0x337000);
 	if(ret!=0)
 	{
 		printf("Failed to clear the regular BgmCache: 0x%08x.\n", (unsigned int)ret);
