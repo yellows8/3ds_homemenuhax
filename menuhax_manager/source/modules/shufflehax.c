@@ -37,6 +37,10 @@ Result shufflehax_install(char *menuhax_basefn)
 	ret = sd2themecache(payload_filepath, "sdmc:/3ds/menuhax_manager/bgm_bundledmenuhax.bcstm", 0);
 	if(ret!=0)return ret;
 
+	printf("Initializing the seperate menuhax theme-data files...\n");
+	ret = sd2themecache("sdmc:/3ds/menuhax_manager/blanktheme.lz", NULL, 1);
+	if(ret!=0)return ret;
+
 	return 0;
 }
 
