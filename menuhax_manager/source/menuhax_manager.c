@@ -180,10 +180,15 @@ void displaymessage_waitbutton()
 	}
 }
 
-Result enablethemecache(u32 type)
+Result enablethemecache(u32 type, u32 shuffle, u32 index)
 {	
 	Result ret=0;
 	u32 filesize = 0;
+	u8 *ent;
+
+	if(index>10)index = 10;
+
+	ent = &filebuffer[0x13b8 + (index*0x8)];
 
 	printf("Reading SaveData.dat...\n");
 
@@ -209,20 +214,27 @@ Result enablethemecache(u32 type)
 
 	if(ret==0)
 	{
-		if(filebuffer[0x141b]==0 && filebuffer[0x13b8]!=0 && filebuffer[0x13bc]==0 && filebuffer[0x13bd]==type)
+		if(filebuffer[0x141b]==shuffle && ent[0x0]!=0 && ent[0x4]==0 && ent[0x5]==type)
 		{
 			ret = 0;
-			printf("SaveData.dat is already set for using the theme cache with a regular theme.\n");
+			printf("SaveData.dat is already set for using the theme cache with the intended theme.\n");
 			return ret;
 		}
 	}
 
 	if(ret==0)
 	{
-		filebuffer[0x141b]=0;//Disable theme shuffle.
-		memset(&filebuffer[0x13b8], 0, 8);//Clear the regular-theme structure.
-		filebuffer[0x13bd]=type;//theme-type
-		filebuffer[0x13b8] = 0xff;//theme-index
+		filebuffer[0x141b]=shuffle;//Theme shuffle flag.
+		memset(&filebuffer[0x13b8], 0, 11*8);//Clear the theme entry structures.
+		ent[0x5]=type;//theme-type
+		ent[0x0] = 0xff;//theme-index
+
+		if(index && index < 11)//Home Menu will enter an infinite loop if there isn't at least two theme-shuffle entries.
+		{
+			memcpy(&ent[0x8], ent, 0x8);
+		}
+
+		filebuffer[0x141c+1] = 0;//Map "theme1" to slot0 in the actual theme-data.
 
 		printf("Writing updated SaveData.dat...\n");
 
@@ -238,7 +250,7 @@ Result enablethemecache(u32 type)
 
 Result menu_enablethemecache_persistent()
 {
-	return enablethemecache(3);
+	return enablethemecache(3, 0, 0);
 }
 
 Result disablethemecache()
@@ -271,7 +283,9 @@ Result disablethemecache()
 	if(ret==0)
 	{
 		filebuffer[0x141b]=0;//Disable theme shuffle.
-		memset(&filebuffer[0x13b8], 0, 8);//Clear the regular-theme structure.
+		memset(&filebuffer[0x13b8], 0, 8*11);//Clear the theme structures.
+
+		filebuffer[0x141c+1] = 1;//Restore the "theme1" mapping to slot1 in the actual theme-data.
 
 		printf("Writing updated SaveData.dat...\n");
 
@@ -285,11 +299,47 @@ Result disablethemecache()
 	return ret;
 }
 
+Result savedatadat_getshufflestatus(u32 *out)
+{
+	Result ret=0;
+	u32 filesize = 0;
+
+	printf("Reading SaveData.dat...\n");
+
+	ret = archive_getfilesize(HomeMenu_Extdata, "/SaveData.dat", &filesize);
+	if(ret!=0)
+	{
+		printf("Failed to get filesize for extdata SaveData.dat: 0x%08x\n", (unsigned int)ret);
+		return ret;
+	}
+
+	if(filesize > filebuffer_maxsize)
+	{
+		printf("Extdata SaveData.dat filesize is too large: 0x%08x\n", (unsigned int)filesize);
+		return ret;
+	}
+
+	ret = archive_readfile(HomeMenu_Extdata, "/SaveData.dat", filebuffer, filesize);
+	if(ret!=0)
+	{
+		printf("Failed to read file: 0x%08x\n", (unsigned int)ret);
+		return ret;
+	}
+
+	if(ret==0)
+	{
+		*out = filebuffer[0x141b];//Theme-stuffle enabled flag.
+	}
+
+	return ret;
+}
+
 Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 {
 	Result ret=0;
 	u32 body_size=0, bgm_size=0;
 	u32 *thememanage = (u32*)filebuffer;
+	u32 shuffle=0;
 	u32 createsize;
 
 	char path[256];
@@ -334,6 +384,10 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 		}
 	}
 
+	ret = savedatadat_getshufflestatus(&shuffle);
+	if(ret)return ret;
+	if(shuffle)shuffle = 1;
+
 	printf("Generating a ThemeManage.bin + writing it to extdata...\n");
 
 	thememanage[0x0>>2] = 1;
@@ -342,8 +396,16 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 	thememanage[0x18>>2] = 0xff;
 	thememanage[0x1c>>2] = 0x200;
 
-	thememanage[0x8>>2] = body_size;
-	thememanage[0xC>>2] = bgm_size;
+	if(shuffle==0)
+	{
+		thememanage[0x8>>2] = body_size;
+		thememanage[0xC>>2] = bgm_size;
+	}
+	else
+	{
+		thememanage[(0x338>>2) + (shuffle-1)] = body_size;
+		thememanage[((0x338+0x28)>>2) + (shuffle-1)] = bgm_size;
+	}
 
 	ret = archive_writefile(Theme_Extdata, install_type==0 ? "/ThemeManage.bin" : "/yhemeManage.bin", (u8*)thememanage, 0x800, 0x800);
 
@@ -354,8 +416,16 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 	}
 
 	memset(path, 0, sizeof(path));
-	strncpy(path, install_type==0 ? "/BodyCache.bin" : "/yodyCache.bin", sizeof(path)-1);
-	createsize = 0x150000;
+	if(!shuffle)
+	{
+		strncpy(path, install_type==0 ? "/BodyCache.bin" : "/yodyCache.bin", sizeof(path)-1);
+		createsize = 0x150000;
+	}
+	else
+	{
+		strncpy(path, install_type==0 ? "/BodyCache_rd.bin" : "/yodyCache_rd.bin", sizeof(path)-1);
+		createsize = 0xd20000;
+	}
 
 	ret = archive_copyfile(SDArchive, Theme_Extdata, body_filepath, path, filebuffer, body_size, body_size, createsize, "body-data");
 
@@ -371,7 +441,8 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 	if(bgm_filepath && bgm_size)
 	{
 		memset(path, 0, sizeof(path));
-		strncpy(path, "/BgmCache.bin", sizeof(path)-1);
+		if(!shuffle)strncpy(path, "/BgmCache.bin", sizeof(path)-1);
+		if(shuffle)snprintf(path, sizeof(path)-1, "/BgmCache_%02d.bin", (int)(shuffle-1));
 
 		ret = archive_copyfile(SDArchive, Theme_Extdata, bgm_filepath, path, filebuffer, bgm_size, 0x337000, 0x337000, "bgm-data");
 

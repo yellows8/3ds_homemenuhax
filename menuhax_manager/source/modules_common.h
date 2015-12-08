@@ -7,6 +7,7 @@ void register_module(u32 unsupported_cver, menuhaxcb_install haxinstall, menuhax
 
 Result menu_enablethemecache_persistent();
 Result disablethemecache();
+Result enablethemecache(u32 type, u32 shuffle, u32 index);
 
 Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type);
 

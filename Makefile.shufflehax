@@ -1,0 +1,32 @@
+#SHUFFLEHAX_HEAPBUF_OLD3DS	:=	0x351A2080
+#SHUFFLEHAX_HEAPBUF_NEW3DS	:=	0x38DA2080
+
+#SHUFFLEHAX_HEAPBUF_OBJADDR_OLD3DS	:=	0x351A208C
+#SHUFFLEHAX_HEAPBUF_OBJADDR_NEW3DS	:=	0x38DA208C
+
+SHUFFLEHAX_TARGETOVERWRITE_MEMCHUNKADR	:=	0x0FFFFEA0
+
+# shufflehax_header.lz is the output of "bannertool lz11 -i shufflehax_header.bin -o shufflehax_header.lz", where shufflehax_header.bin is a 0xc4-byte theme-header with the same data as the themepayloads(all-zero except for the first word with value1).
+
+#SHUFFLEHAX_BUILDPARMS	:=	BUILDROPBIN=1 PAYLOAD_HEADERFILE=shufflehax_header.lz PAYLOAD_PADFILESIZE=0x150000 PAYLOAD_FOOTER_WORDS=1 PAYLOAD_FOOTER_WORD0=0x4652 PAYLOAD_FOOTER_WORD1=0x15ff80 PAYLOAD_FOOTER_WORD2=$(SHUFFLEHAX_TARGETOVERWRITE_MEMCHUNKADR)
+
+#PAYLOAD_FOOTER_WORD3=$(SHUFFLEHAX_HEAPBUF_OBJADDR_OLD3DS)
+#PAYLOAD_FOOTER_WORD3=$(SHUFFLEHAX_HEAPBUF_OBJADDR_NEW3DS)
+
+shufflehax_build:
+	@mkdir -p finaloutput/shufflepayload
+	
+	@for path in shufflehax_menuversions/JPN/*; do make -f Makefile buildshuffle --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
+	@for path in shufflehax_menuversions/USA/*; do make -f Makefile buildshuffle --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
+	@for path in shufflehax_menuversions/EUR/*; do make -f Makefile buildshuffle --no-print-directory REGION=EUR REGIONVAL=2 MENUVERSION=$$(basename "$$path"); done
+	#@for path in shufflehax_menuversions/CHN/*; do make -f Makefile buildshuffle --no-print-directory REGION=CHN REGIONVAL=3 MENUVERSION=$$(basename "$$path"); done
+	@for path in shufflehax_menuversions/KOR/*; do make -f Makefile buildshuffle --no-print-directory REGION=KOR REGIONVAL=4 MENUVERSION=$$(basename "$$path"); done
+	#@for path in shufflehax_menuversions/TWN/*; do make -f Makefile buildshuffle --no-print-directory REGION=TWN REGIONVAL=5 MENUVERSION=$$(basename "$$path"); done
+
+buildshuffle:
+	@make -f Makefile finaloutput/shufflepayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds.lz --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_HAX_OLD3DS) FIXHEAPBUF=$(HEAPBUF_HAX_OLD3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 $(PARAMS)
+	@make -f Makefile finaloutput/shufflepayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds.lz --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_HAX_NEW3DS) HEAPBUF=$(HEAPBUF_HAX_NEW3DS) FIXHEAPBUF=$(HEAPBUF_HAX_NEW3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 $(PARAMS)
+
+finaloutput/shufflepayload/$(BUILDPREFIX).lz:	binpayload/$(BUILDPREFIX).bin
+	python3 payload.py $< $@ 0x4652 0x15ff80 $(SHUFFLEHAX_TARGETOVERWRITE_MEMCHUNKADR) $(HEAPBUF_OBJADDR) 1
+
