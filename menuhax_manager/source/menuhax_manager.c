@@ -289,9 +289,12 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 {
 	Result ret=0;
 	u32 body_size=0, bgm_size=0;
-	u32 thememanage[0x20>>2];
+	u32 *thememanage = (u32*)filebuffer;
+	u32 createsize;
 
-	memset(thememanage, 0, sizeof(thememanage));
+	char path[256];
+
+	memset(thememanage, 0, 0x800);
 
 	ret = archive_getfilesize(SDArchive, body_filepath, &body_size);
 	if(ret!=0)
@@ -333,18 +336,16 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 
 	printf("Generating a ThemeManage.bin + writing it to extdata...\n");
 
-	memset(thememanage, 0, 0x20);
 	thememanage[0x0>>2] = 1;
-	thememanage[0x8>>2] = body_size;
-	thememanage[0xC>>2] = bgm_size;
 	thememanage[0x10>>2] = 0xff;
 	thememanage[0x14>>2] = 1;
 	thememanage[0x18>>2] = 0xff;
 	thememanage[0x1c>>2] = 0x200;
 
-	memset(filebuffer, 0, 0x800);
-	memcpy(filebuffer, thememanage, 0x20);
-	ret = archive_writefile(Theme_Extdata, install_type==0 ? "/ThemeManage.bin" : "/yhemeManage.bin", filebuffer, 0x800);
+	thememanage[0x8>>2] = body_size;
+	thememanage[0xC>>2] = bgm_size;
+
+	ret = archive_writefile(Theme_Extdata, install_type==0 ? "/ThemeManage.bin" : "/yhemeManage.bin", (u8*)thememanage, 0x800, 0x800);
 
 	if(ret!=0)
 	{
@@ -352,7 +353,11 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 		return ret;
 	}
 
-	ret = archive_copyfile(SDArchive, Theme_Extdata, body_filepath, install_type==0 ? "/BodyCache.bin" : "/yodyCache.bin", filebuffer, thememanage[0x8>>2], 0x150000, "body-data");
+	memset(path, 0, sizeof(path));
+	strncpy(path, install_type==0 ? "/BodyCache.bin" : "/yodyCache.bin", sizeof(path)-1);
+	createsize = 0x150000;
+
+	ret = archive_copyfile(SDArchive, Theme_Extdata, body_filepath, path, filebuffer, body_size, body_size, createsize, "body-data");
 
 	if(ret==0)
 	{
@@ -365,7 +370,10 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 
 	if(bgm_filepath && bgm_size)
 	{
-		ret = archive_copyfile(SDArchive, Theme_Extdata, bgm_filepath, "/BgmCache.bin", filebuffer, thememanage[0xC>>2], 0x337000, "bgm-data");
+		memset(path, 0, sizeof(path));
+		strncpy(path, "/BgmCache.bin", sizeof(path)-1);
+
+		ret = archive_copyfile(SDArchive, Theme_Extdata, bgm_filepath, path, filebuffer, bgm_size, 0x337000, 0x337000, "bgm-data");
 
 		if(ret==0)
 		{
