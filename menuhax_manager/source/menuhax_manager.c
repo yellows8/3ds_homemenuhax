@@ -226,7 +226,7 @@ Result enablethemecache(u32 type)
 
 		printf("Writing updated SaveData.dat...\n");
 
-		ret = archive_writefile(HomeMenu_Extdata, "/SaveData.dat", filebuffer, filesize);
+		ret = archive_writefile(HomeMenu_Extdata, "/SaveData.dat", filebuffer, filesize, 0);
 		if(ret!=0)
 		{
 			printf("Failed to write file: 0x%08x\n", (unsigned int)ret);
@@ -275,7 +275,7 @@ Result disablethemecache()
 
 		printf("Writing updated SaveData.dat...\n");
 
-		ret = archive_writefile(HomeMenu_Extdata, "/SaveData.dat", filebuffer, filesize);
+		ret = archive_writefile(HomeMenu_Extdata, "/SaveData.dat", filebuffer, filesize, 0);
 		if(ret!=0)
 		{
 			printf("Failed to write file: 0x%08x\n", (unsigned int)ret);
@@ -769,7 +769,7 @@ Result install_menuhax(char *ropbin_filepath)
 		printf("Writing the menuropbin to SD, to the following path: %s.\n", ropbin_filepath);
 		unlink("sdmc:/menuhax_ropbinpayload.bin");//Delete the ropbin with the filepath used by the <=v1.2 menuhax.
 		unlink(ropbin_filepath);
-		ret = archive_writefile(SDArchive, ropbin_filepath, filebuffer, 0x10000);
+		ret = archive_writefile(SDArchive, ropbin_filepath, filebuffer, 0x10000, 0);
 		if(ret!=0)
 		{
 			printf("Failed to write the menurop to the SD file: 0x%08x.\n", (unsigned int)ret);
@@ -969,7 +969,7 @@ Result setup_sdcfg()
 		printf("\n");
 	}
 
-	ret = archive_writefile(SDArchive, "sdmc:/menuhax_padcfg.bin", (u8*)sdcfg, sizeof(sdcfg));
+	ret = archive_writefile(SDArchive, "sdmc:/menuhax_padcfg.bin", (u8*)sdcfg, sizeof(sdcfg), 0);
 	if(ret!=0)printf("Failed to write the cfg file: 0x%x.\n", (unsigned int)ret);
 	if(ret==0)printf("Config file successfully written.\n");
 
@@ -1104,7 +1104,7 @@ Result setup_imagedisplay()
 
 	printf("Writing the final image to SD...\n");
 
-	ret = archive_writefile(SDArchive, "sdmc:/menuhax_imagedisplay.bin", finalimage, 0x8ca00);
+	ret = archive_writefile(SDArchive, "sdmc:/menuhax_imagedisplay.bin", finalimage, 0x8ca00, 0);
 	if(ret!=0)
 	{
 		printf("Failed to write the image-display file to SD: 0x%08x.\n", (unsigned int)ret);
