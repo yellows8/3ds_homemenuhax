@@ -570,8 +570,8 @@ Result setup_builtin_theme()
 
 	u32 file_lowpath_data[0xc>>2];
 
-	FS_archive archive = { ARCH_ROMFS, { PATH_EMPTY, 1, (u8*)"" }, 0, 0 };
-	FS_path fileLowPath;
+	FS_Archive archive = { ARCHIVE_ROMFS, { PATH_EMPTY, 1, (u8*)"" }, 0 };
+	FS_Path fileLowPath;
 
 	char *menu_entries[] = {
 	"Red",
@@ -593,7 +593,7 @@ Result setup_builtin_theme()
 
 	if(menuindex==-1)return 0;
 
-	ret = FSUSER_OpenFileDirectly(NULL, &filehandle, archive, fileLowPath, FS_OPEN_READ, 0x0);
+	ret = FSUSER_OpenFileDirectly(&filehandle, archive, fileLowPath, FS_OPEN_READ, 0x0);
 	if(ret!=0)
 	{
 		printf("Failed to open the RomFS image for the current process: 0x%08x.\n", (unsigned int)ret);
@@ -750,7 +750,7 @@ Result install_menuhax(char *ropbin_filepath)
 	u8 region=0;
 	u8 new3dsflag = 0;
 	u64 menu_programid = 0;
-	TitleList menu_title_entry;
+	AM_TitleEntry menu_title_entry;
 	u32 payloadinfo[4];
 	char menuhax_basefn[256];
 
@@ -774,7 +774,7 @@ Result install_menuhax(char *ropbin_filepath)
 
 	printf("Getting system-version/system-info etc...\n");
 
-	ret = initCfgu();
+	ret = cfguInit();
 	if(ret!=0)
 	{
 		printf("Failed to init cfgu: 0x%08x.\n", (unsigned int)ret);
@@ -792,12 +792,12 @@ Result install_menuhax(char *ropbin_filepath)
 		ret = -9;
 		return ret;
 	}
-	exitCfgu();
+	cfguExit();
 
-	APT_CheckNew3DS(NULL, &new3dsflag);
+	APT_CheckNew3DS(&new3dsflag);
 
 	aptOpenSession();
-	ret = APT_GetAppletInfo(NULL, APPID_HOMEMENU, &menu_programid, NULL, NULL, NULL, NULL);
+	ret = APT_GetAppletInfo(APPID_HOMEMENU, &menu_programid, NULL, NULL, NULL, NULL);
 	aptCloseSession();
 
 	if(ret!=0)
@@ -815,7 +815,7 @@ Result install_menuhax(char *ropbin_filepath)
 		return ret;
 	}
 
-	snprintf(menuhax_basefn, sizeof(menuhax_basefn)-1, "menuhax_%s%u_%s", regionids_table[region], menu_title_entry.titleVersion, new3dsflag?"new3ds":"old3ds");
+	snprintf(menuhax_basefn, sizeof(menuhax_basefn)-1, "menuhax_%s%u_%s", regionids_table[region], menu_title_entry.version, new3dsflag?"new3ds":"old3ds");
 	snprintf(ropbin_filepath, 255, "sdmc:/ropbinpayload_%s.bin", menuhax_basefn);
 
 	ret = osGetSystemVersionData(&nver_versionbin, &cver_versionbin);
@@ -1276,6 +1276,11 @@ int main(int argc, char **argv)
 	memset(ropbin_filepath, 0, sizeof(ropbin_filepath));
 
 	memset(modules_list, 0, sizeof(modules_list));
+
+	for(pos=0; pos<MAX_MODULES; pos++)
+	{
+		modules_list[pos].index = pos;
+	}
 
 	register_modules();
 
