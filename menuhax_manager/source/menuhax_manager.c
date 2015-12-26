@@ -39,6 +39,9 @@ typedef struct {
 #define MAX_MODULES 16
 module_entry modules_list[MAX_MODULES];
 
+static int menu_curprintscreen = 0;
+static PrintConsole menu_printscreen[2];
+
 void register_module(u32 unsupported_cver, menuhaxcb_install haxinstall, menuhaxcb_delete haxdelete)
 {
 	int pos;
@@ -160,6 +163,16 @@ void display_menu(char **menu_entries, int total_entries, int *menuindex, char *
 			redraw = 1;
 
 			continue;
+		}
+
+		if(kDown & KEY_Y)
+		{
+			gspWaitForVBlank();
+			consoleClear();
+
+			menu_curprintscreen = !menu_curprintscreen;
+			consoleSelect(&menu_printscreen[menu_curprintscreen]);
+			redraw = 1;
 		}
 
 		if(kDown & KEY_A)
@@ -534,7 +547,7 @@ Result delete_menuhax()
 		printf("The menuhax itself has been deleted successfully.\n");
 	}
 
-	printf("Deleting the additional menuhax files under theme-cache extdata now. This can only work if Home Menu theme-settings menu was entered at least once with menuhax >=v2.0 installed.\n");
+	printf("Deleting the additional menuhax files under theme-cache extdata now. Failing to delete anything here is normal when the file(s) don't already exist.\n");
 
 	printf("Deleting the menuhax ThemeManage...\n");
 	ret = archive_deletefile(Theme_Extdata, "/yhemeManage.bin");
@@ -1256,20 +1269,25 @@ int main(int argc, char **argv)
 	int menuindex = 0;
 	int pos, count=0;
 
+	char headerstr[512];
+
 	char ropbin_filepath[256];
 
 	char *menu_entries[] = {
 	"Install",
-	"Delete menuhax, clear the normal theme-cache files, and delete all additional menuhax-only extdata files. This will not delete any menuhax cfg files at SD root, use the belows menus for that. If the X button is held while selecting this, just the additional menuhax-only extdata files will be deleted(this can be used to set the theme to 'none' for example).",
+	"Delete. If the X button is held while selecting this, just the additional menuhax-only extdata files will be deleted.",
 	"Configure/check haxx trigger button(s), which can override the default setting.",
 	"Configure menuhax main-screen image display.",
-	"Install custom theme for when the Home Menu theme-settings menu was entered at least once with menuhax >=v2.0 installed.",
-	"Setup a built-in Home Menu 'Basic' color theme, for when the Home Menu theme-settings menu was entered at least once with menuhax >=v2.0 installed."};
+	"Install custom theme.",
+	"Setup a built-in Home Menu 'Basic' color theme."};
 
 	// Initialize services
 	gfxInitDefault();
 
-	consoleInit(GFX_BOTTOM, NULL);
+	menu_curprintscreen = 0;
+	consoleInit(GFX_TOP, &menu_printscreen[0]);
+	consoleInit(GFX_BOTTOM, &menu_printscreen[1]);
+	consoleSelect(&menu_printscreen[menu_curprintscreen]);
 
 	printf("menuhax_manager %s by yellows8.\n", VERSION);
 
@@ -1331,9 +1349,12 @@ int main(int argc, char **argv)
 		{
 			printf("Finished opening extdata.\n\n");
 
+			memset(headerstr, 0, sizeof(headerstr));
+			snprintf(headerstr, sizeof(headerstr)-1, "menuhax_manager %s by yellows8.\n\nThis can install Home Menu haxx to the SD card, for booting the *hax payloads. Select an option with the below menu. You can press the B button to exit. You can press the Y button at any time while at a menu like the below one, to toggle the screen being used by this app", VERSION);
+
 			while(ret==0)
 			{
-				display_menu(menu_entries, 6, &menuindex, "This can install Home Menu haxx to the SD card, for booting hblauncher. Select an option with the below menu. You can press the B button to exit.");
+				display_menu(menu_entries, 6, &menuindex, headerstr);
 
 				if(menuindex==-1)break;
 
