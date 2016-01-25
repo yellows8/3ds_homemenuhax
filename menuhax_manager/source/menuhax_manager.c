@@ -1174,7 +1174,7 @@ Result setup_imagedisplay()
 			ret = archive_getfilesize(SDArchive, "sdmc:/3ds/menuhax_manager/imagedisplay.png", (u32*)&pngsize);
 			if(ret!=0)
 			{
-				printf("Failed to get the filesize of the SD PNG: 0x%08x.\n", (unsigned int)ret);
+				printf("Failed to get the filesize of the SD PNG: 0x%08x. The file probably doesn't exist on SD.\n", (unsigned int)ret);
 				return ret;
 			}
 
@@ -1452,7 +1452,7 @@ int main(int argc, char **argv)
 
 	close_extdata();
 
-	if(ret!=0)printf("An error occured. If this is an actual issue not related to user failure, please report this to here if it persists(or comment on an already existing issue if needed), with an image of your 3DS system with the bottom-screen: https://github.com/yellows8/3ds_homemenuhax/issues\n");
+	if(ret!=0)printf("An error occured. If this is an actual issue not related to user failure, please report this to here if it persists(or comment on an already existing issue if needed), with a screenshot: https://github.com/yellows8/3ds_homemenuhax/issues\n");
 
 	printf("Press the START button to exit.\n");
 	// Main loop

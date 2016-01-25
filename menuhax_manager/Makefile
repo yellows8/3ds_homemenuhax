@@ -32,7 +32,7 @@ SOURCES		:=	source lodepng source/modules
 DATA		:=	data
 INCLUDES	:=	include lodepng source source/modules
 
-VERSION	:=	v2.1
+VERSION	:=	v2.2
 
 APP_TITLE	:=	menuhax_manager $(VERSION)
 APP_DESCRIPTION	:=	Tool for managing Home Menu haxx.
