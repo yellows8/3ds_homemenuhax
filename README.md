@@ -23,7 +23,7 @@ The 10.2.0-X update fixed the vuln with theme decompression(themehax).
 The Home Menu code changes *just* added a "if(decompressed_size_from_lzheader > 0x150000){exit};" check after loading a theme, prior to decompression.
 
 # Supported System Versions
-Every version starting with v9.0 is supported unless mentioned otherwise, system-versions starting with 10.2.0-X are not supported with themehax(see above). The release-archive builds for shufflehax are only built for 10.2.0-X, 10.3.0-X, and 10.4.0-X.
+Every version starting with v9.0 is supported unless mentioned otherwise, system-versions starting with 10.2.0-X are not supported with themehax(see above). The release-archive builds for shufflehax are only built for 10.2.0-X, 10.3.0-X, and 10.4.0-X(same builds for 10.5.0-X).
 
 The initial release archive only supported USA, EUR, and JPN. KOR builds are included in the release-archive starting with v2.0. TWN can't be supported currently. CHN isn't supported since the last Home Menu update(v7.0) was before themes even existed in Home Menu.
 
