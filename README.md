@@ -123,6 +123,8 @@ With menuhax setup, Home Menu uses seperate theme-cache extdata filenames for ev
 
 For custom-theme installation, the theme-data must be located at SD "/3ds/menuhax_manager/body_LZ.bin". If used, the BGM must be located at SD "/3ds/menuhax_manager/bgm.bcstm".
 
+If Home Menu is already using a theme with BGM, before installing a custom theme using BGM, you must first switch to a non-BGM theme and run menuhax_manager again. If this theme switch wasn't done via Home Menu itself, the Home Menu process must be restarted(like with a system-reboot for example). This applies to all custom theme installation tools, not just menuhax_manager.
+
 # Credits
 * The original vuln for themehax was, as said on this page(https://smealum.github.io/3ds/), "exploited jointly by yellows8 and smea". The payload.py script was originally written by smea, this is where the actual generation for the compressed data which triggers the buf-overflow is done.
 * menuhax_manager uses lodepng: https://github.com/lvandeve/lodepng
