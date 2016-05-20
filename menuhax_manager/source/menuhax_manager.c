@@ -361,8 +361,7 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 		printf("Failed to get the filesize of the body-filepath: %s\n", body_filepath);
 		if(install_type==0)
 		{
-			printf("Verify that you have a menuhax build for your system on SD card: make sure that the release archive you're using actually includes builds for your system-version.\n");
-			printf("Also verify that the following directory containing .lz files actually exists on your SD card: '/3ds/menuhax_manager/themepayload/'.\n");
+			printf("The release-archive you're using doesn't include support for your system. Check the menuhax repo README + verify you're using the latest release.\n");
 		}
 		return ret;
 	}
@@ -583,8 +582,10 @@ Result setup_builtin_theme()
 
 	u32 file_lowpath_data[0xc>>2];
 
-	FS_Archive archive = { ARCHIVE_ROMFS, { PATH_EMPTY, 1, (u8*)"" }, 0 };
+	FS_Path archpath = { PATH_EMPTY, 1, (u8*)"" };
 	FS_Path fileLowPath;
+
+	struct romfs_mount *mount = NULL;
 
 	char *menu_entries[] = {
 	"Red",
@@ -606,14 +607,14 @@ Result setup_builtin_theme()
 
 	if(menuindex==-1)return 0;
 
-	ret = FSUSER_OpenFileDirectly(&filehandle, archive, fileLowPath, FS_OPEN_READ, 0x0);
+	ret = FSUSER_OpenFileDirectly(&filehandle, ARCHIVE_ROMFS, archpath, fileLowPath, FS_OPEN_READ, 0x0);
 	if(ret!=0)
 	{
 		printf("Failed to open the RomFS image for the current process: 0x%08x.\n", (unsigned int)ret);
 		return ret;
 	}
 
-	ret = romfsInitFromFile(filehandle, 0x0);
+	ret = romfsMountFromFile(filehandle, 0x0, &mount);
 	if(ret!=0)
 	{
 		printf("Failed to mount the RomFS image for the current process: 0x%08x.\n", (unsigned int)ret);
@@ -656,7 +657,7 @@ Result setup_builtin_theme()
 
 	ret = sd2themecache(str, NULL, 1);
 
-	romfsExit();
+	romfsUnmount(mount);
 
 	return ret;
 }
@@ -821,7 +822,7 @@ Result install_menuhax(char *ropbin_filepath)
 
 	printf("Using Home Menu programID: 0x%016llx.\n", menu_programid);
 
-	ret = AM_ListTitles(0, 1, &menu_programid, &menu_title_entry);
+	ret = AM_GetTitleInfo(MEDIATYPE_NAND, 1, &menu_programid, &menu_title_entry);
 	if(ret!=0)
 	{
 		printf("Failed to get the Home Menu title-version: 0x%08x.\n", (unsigned int)ret);
@@ -1315,8 +1316,14 @@ int main(int argc, char **argv)
 
 	if(ret==0)
 	{
+		ret = romfsInit();
+		if(R_FAILED(ret))printf("romfsInit() failed: 0x%08x.\n", (unsigned int)ret);
+	}
+
+	if(ret==0)
+	{
 		ret = amInit();
-		if(ret!=0)
+		if(R_FAILED(ret))
 		{
 			printf("Failed to initialize AM: 0x%08x.\n", (unsigned int)ret);
 			if(ret==0xd8e06406)
@@ -1340,7 +1347,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if(ret>=0)
+	if(R_SUCCEEDED(ret))
 	{
 		printf("Opening extdata archives...\n");
 
@@ -1447,6 +1454,8 @@ int main(int argc, char **argv)
 	}
 
 	free(filebuffer);
+
+	romfsExit();
 
 	amExit();
 

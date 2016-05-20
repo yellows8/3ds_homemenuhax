@@ -19,6 +19,8 @@ Result open_extdata()
 	u32 extdataID_homemenu, extdataID_theme;
 	u8 region=0;
 
+	FS_Path archpath;
+
 	ret = cfguInit();
 	if(ret!=0)
 	{
@@ -51,13 +53,12 @@ Result open_extdata()
 		extdataID_theme = 0x000002cc;
 	}
 
+	memset(&archpath, 0, sizeof(FS_Path));
+	archpath.type = PATH_BINARY;
+	archpath.size = 0xc;
+
 	for(pos=0; pos<TotalExtdataArchives; pos++)
 	{
-		extdata_archives[pos].id = ARCHIVE_EXTDATA;
-		extdata_archives[pos].lowPath.type = PATH_BINARY;
-		extdata_archives[pos].lowPath.size = 0xc;
-		extdata_archives[pos].lowPath.data = (u8*)extdata_archives_lowpathdata[pos];
-
 		memset(extdata_archives_lowpathdata[pos], 0, 0xc);
 		extdata_archives_lowpathdata[pos][0] = 1;//mediatype, 1=SD
 	}
@@ -65,7 +66,9 @@ Result open_extdata()
 	extdata_archives_lowpathdata[HomeMenu_Extdata][1] = extdataID_homemenu;//extdataID-low
 	extdata_archives_lowpathdata[Theme_Extdata][1] = extdataID_theme;//extdataID-low
 
-	ret = FSUSER_OpenArchive(&extdata_archives[HomeMenu_Extdata]);
+	archpath.data = (u8*)extdata_archives_lowpathdata[HomeMenu_Extdata];
+
+	ret = FSUSER_OpenArchive(&extdata_archives[HomeMenu_Extdata], ARCHIVE_EXTDATA, archpath);
 	if(ret!=0)
 	{
 		printf("Failed to open homemenu extdata with extdataID=0x%08x, retval: 0x%08x\n", (unsigned int)extdataID_homemenu, (unsigned int)ret);
@@ -73,7 +76,9 @@ Result open_extdata()
 	}
 	extdata_initialized |= 0x1;
 
-	ret = FSUSER_OpenArchive(&extdata_archives[Theme_Extdata]);
+	archpath.data = (u8*)extdata_archives_lowpathdata[Theme_Extdata];
+
+	ret = FSUSER_OpenArchive(&extdata_archives[Theme_Extdata], ARCHIVE_EXTDATA, archpath);
 	if(ret!=0)
 	{
 		printf("Failed to open theme extdata with extdataID=0x%08x, retval: 0x%08x\n", (unsigned int)extdataID_theme, (unsigned int)ret);
@@ -91,7 +96,7 @@ void close_extdata()
 
 	for(pos=0; pos<TotalExtdataArchives; pos++)
 	{
-		if(extdata_initialized & (1<<pos))FSUSER_CloseArchive(&extdata_archives[pos]);
+		if(extdata_initialized & (1<<pos))FSUSER_CloseArchive(extdata_archives[pos]);
 	}
 }
 

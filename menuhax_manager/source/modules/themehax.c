@@ -25,7 +25,7 @@ Result themehax_install(char *menuhax_basefn)
 
 	memset(body_filepath, 0, sizeof(body_filepath));
 
-	snprintf(body_filepath, sizeof(body_filepath)-1, "sdmc:/3ds/menuhax_manager/finaloutput/themepayload/%s.lz", menuhax_basefn);
+	snprintf(body_filepath, sizeof(body_filepath)-1, "romfs:/finaloutput/themepayload/%s.lz", menuhax_basefn);
 
 	printf("Installing themehax...\n");
 
@@ -38,7 +38,7 @@ Result themehax_install(char *menuhax_basefn)
 	if(ret!=0)return ret;
 
 	printf("Initializing the seperate menuhax theme-data files...\n");
-	ret = sd2themecache("sdmc:/3ds/menuhax_manager/blanktheme.lz", NULL, 1);
+	ret = sd2themecache("romfs:/blanktheme.lz", NULL, 1);
 	if(ret!=0)return ret;
 
 	return 0;

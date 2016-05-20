@@ -25,7 +25,7 @@ Result shufflehax_install(char *menuhax_basefn)
 
 	memset(payload_filepath, 0, sizeof(payload_filepath));
 
-	snprintf(payload_filepath, sizeof(payload_filepath)-1, "sdmc:/3ds/menuhax_manager/finaloutput/shufflepayload/%s.lz", menuhax_basefn);
+	snprintf(payload_filepath, sizeof(payload_filepath)-1, "romfs:/finaloutput/shufflepayload/%s.lz", menuhax_basefn);
 
 	printf("Installing shufflehax...\n");
 
@@ -38,7 +38,7 @@ Result shufflehax_install(char *menuhax_basefn)
 	if(ret!=0)return ret;
 
 	printf("Initializing the seperate menuhax theme-data files...\n");
-	ret = sd2themecache("sdmc:/3ds/menuhax_manager/blanktheme.lz", NULL, 1);
+	ret = sd2themecache("romfs:/blanktheme.lz", NULL, 1);
 	if(ret!=0)return ret;
 
 	return 0;
