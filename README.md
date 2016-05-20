@@ -5,6 +5,11 @@ When the Home Menu is starting up, it can load theme-data from the home-menu the
 
 Although this triggers during Home Menu boot, this can't cause any true bricks: just remove the *SD card if any booting issues ever occur(or delete/rename the theme-cache extdata directory: http://3dbrew.org/wiki/Extdata). Note that this also applies when the ROP causes a crash(the installed exploit itself), like when the ROP is for a different version of Home Menu(this can also happen if you boot into a nandimage which has a different Home Menu version, but still uses the exact same SD data). In some(?) cases Home Menu crashes with this just result in Home Menu displaying the usual error dialog for system-applet crashes.
 
+# Old3DS return-to-menu
+On Old3DS with applications which trigger a firmlaunch due to requiring more memory for the APPLICATION memregion, pressing the HOME button will result in a hang due to Home Menu crashing with menuhax installed. This includes Super Smash Bros and Monster Hunter.
+
+The only way this could ever be resolved is with a Home Menu vuln which doesn't involve linearmem pre-\*hax-payload, unlike all of the ones used in this repo publicly currently.
+
 # Vulns
 * themehax: The original vuln for this repo was discovered on December 22, 2014. This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X on Old3DS, v8.1 on JPN-New3DS. Old3DS JPN theme support was "added" 9.1.0-XJ. The release date for this exploit was September 25, 2015.
 * shufflehax: The vuln for this was discovered on January 3, 2015. The shufflehax exploit itself was finally implemented in December 2015, it was finished on the 7th-8th. The release date for this exploit was on December 27, 2015, in US-time. https://events.ccc.de/congress/2015/Fahrplan/events/7240.html Exactly one week later from release-date would be exactly one year since the vuln was discovered. Theme-shuffling and this vuln were introduced with 9.3.0-X.
