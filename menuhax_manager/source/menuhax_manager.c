@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <3ds.h>
 
 #include <lodepng.h>
@@ -830,7 +831,11 @@ Result install_menuhax(char *ropbin_filepath)
 	}
 
 	snprintf(menuhax_basefn, sizeof(menuhax_basefn)-1, "menuhax_%s%u_%s", regionids_table[region], menu_title_entry.version, new3dsflag?"new3ds":"old3ds");
+
 	snprintf(ropbin_filepath, 255, "sdmc:/ropbinpayload_%s.bin", menuhax_basefn);
+	unlink(ropbin_filepath);
+
+	snprintf(ropbin_filepath, 255, "sdmc:/menuhax/ropbinpayload_%s.bin", menuhax_basefn);
 
 	ret = osGetSystemVersionData(&nver_versionbin, &cver_versionbin);
 	if(ret!=0)
@@ -863,7 +868,7 @@ Result install_menuhax(char *ropbin_filepath)
 		printf("The X button isn't being pressed, setting up ropbin payload...\n");
 
 		printf("Checking for the input payload on SD...\n");
-		ret = archive_getfilesize(SDArchive, "sdmc:/menuhaxmanager_input_payload.bin", &payloadsize);
+		ret = archive_getfilesize(SDArchive, "sdmc:/menuhax/menuhaxmanager_input_payload.bin", &payloadsize);
 		if(ret==0)
 		{
 			if(payloadsize==0 || payloadsize>filebuffer_maxsize)
@@ -872,7 +877,7 @@ Result install_menuhax(char *ropbin_filepath)
 				ret = -3;
 			}
 		}
-		if(ret==0)ret = archive_readfile(SDArchive, "sdmc:/menuhaxmanager_input_payload.bin", filebuffer, payloadsize);
+		if(ret==0)ret = archive_readfile(SDArchive, "sdmc:/menuhax/menuhaxmanager_input_payload.bin", filebuffer, payloadsize);
 
 		if(ret==0)
 		{
@@ -945,6 +950,12 @@ Result install_menuhax(char *ropbin_filepath)
 		{
 			break;
 		}
+	}
+
+	if(ret==0)
+	{
+		rename("sdmc:/menuhax_padcfg.bin", "sdmc:/menuhax/menuhax_cfg.bin");
+		rename("sdmc:/menuhax_imagedisplay.bin", "sdmc:/menuhax/menuhax_imagedisplay.bin");
 	}
 
 	return ret;
@@ -1035,7 +1046,7 @@ Result setup_sdcfg()
 
 	memset(sdcfg, 0, sizeof(sdcfg));
 
-	ret = archive_readfile(SDArchive, "sdmc:/menuhax_padcfg.bin", (u8*)sdcfg, sizeof(sdcfg));
+	ret = archive_readfile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)sdcfg, sizeof(sdcfg));
 	if(ret==0)
 	{
 		printf("The cfg file already exists on SD.\n");
@@ -1089,7 +1100,7 @@ Result setup_sdcfg()
 		break;
 
 		case 3:
-			unlink("sdmc:/menuhax_padcfg.bin");
+			unlink("sdmc:/menuhax/menuhax_cfg.bin");
 		return 0;
 	}
 
@@ -1116,7 +1127,7 @@ Result setup_sdcfg()
 		printf("\n");
 	}
 
-	ret = archive_writefile(SDArchive, "sdmc:/menuhax_padcfg.bin", (u8*)sdcfg, sizeof(sdcfg), 0);
+	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)sdcfg, sizeof(sdcfg), 0);
 	if(ret!=0)printf("Failed to write the cfg file: 0x%x.\n", (unsigned int)ret);
 	if(ret==0)printf("Config file successfully written.\n");
 
@@ -1142,7 +1153,7 @@ Result setup_imagedisplay()
 	"Delete the image-display file."};
 
 	imgdisp_exists = 1;
-	ret = stat("sdmc:/menuhax_imagedisplay.bin", &filestats);
+	ret = stat("sdmc:/menuhax/menuhax_imagedisplay.bin", &filestats);
 	if(ret==-1)imgdisp_exists = 0;
 
 	printf("This will configure the image displayed on the main-screen when menuhax triggers. When the image-display file isn't loaded successfully by menuhax, it will display junk.\n");
@@ -1200,7 +1211,7 @@ Result setup_imagedisplay()
 		break;
 
 		case 2:
-			unlink("sdmc:/menuhax_imagedisplay.bin");
+			unlink("sdmc:/menuhax/menuhax_imagedisplay.bin");
 		return 0;
 	}
 
@@ -1251,7 +1262,7 @@ Result setup_imagedisplay()
 
 	printf("Writing the final image to SD...\n");
 
-	ret = archive_writefile(SDArchive, "sdmc:/menuhax_imagedisplay.bin", finalimage, 0x8ca00, 0);
+	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_imagedisplay.bin", finalimage, 0x8ca00, 0);
 	if(ret!=0)
 	{
 		printf("Failed to write the image-display file to SD: 0x%08x.\n", (unsigned int)ret);
@@ -1262,6 +1273,44 @@ Result setup_imagedisplay()
 	}
 
 	return ret;
+}
+
+void delete_dir(const char *dirpath)
+{
+	DIR *dirp;
+	struct dirent *direntry;
+
+	char entpath[NAME_MAX];
+
+	dirp = opendir(dirpath);
+	if(dirp==NULL)return;
+
+	while((direntry = readdir(dirp)))
+	{
+		if(strcmp(direntry->d_name, ".")==0 || strcmp(direntry->d_name, "..")==0)continue;
+
+		memset(entpath, 0, sizeof(entpath));
+
+		snprintf(entpath, sizeof(entpath)-1, "%s/%s", dirpath, direntry->d_name);
+
+		unlink(entpath);
+	}
+
+	closedir(dirp);
+	rmdir(dirpath);
+}
+
+void deleteold_sd_data()
+{
+	printf("Deleting old SD data from old menuhax versions, etc...\n");
+
+	mkdir("sdmc:/menuhax/", 0777);
+
+	unlink("sdmc:/3ds/menuhax_manager/blanktheme.lz");
+
+	delete_dir("sdmc:/3ds/menuhax_manager/finaloutput/themepayload");
+	delete_dir("sdmc:/3ds/menuhax_manager/finaloutput/shufflepayload");
+	rmdir("sdmc:/3ds/menuhax_manager/finaloutput");
 }
 
 int main(int argc, char **argv)
@@ -1349,6 +1398,8 @@ int main(int argc, char **argv)
 
 	if(R_SUCCEEDED(ret))
 	{
+		deleteold_sd_data();
+
 		printf("Opening extdata archives...\n");
 
 		ret = open_extdata();

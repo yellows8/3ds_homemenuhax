@@ -146,7 +146,7 @@ $(BUILD):
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf
+	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf $(CURDIR)/$(ROMFS)
 
 
 #---------------------------------------------------------------------------------
@@ -158,12 +158,18 @@ DEPENDS	:=	$(OFILES:.o=.d)
 # main targets
 #---------------------------------------------------------------------------------
 ifeq ($(strip $(NO_SMDH)),)
-$(OUTPUT).3dsx	:	$(OUTPUT).elf $(OUTPUT).smdh
+$(OUTPUT).3dsx	:	$(OUTPUT).elf $(OUTPUT).smdh $(CURDIR)/$(ROMFS)
 else
 $(OUTPUT).3dsx	:	$(OUTPUT).elf
 endif
 
 $(OUTPUT).elf	:	$(OFILES)
+
+$(CURDIR)/$(ROMFS)	:	
+	@mkdir -p $(CURDIR)/../$(ROMFS)
+	@cp $(CURDIR)/../blanktheme.lz $(CURDIR)/../$(ROMFS)/blanktheme.lz
+	@cp -R $(CURDIR)/../../finaloutput $(CURDIR)/../$(ROMFS)/
+	
 
 #---------------------------------------------------------------------------------
 # you need a rule like this for each extension you use as binary data
