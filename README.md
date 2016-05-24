@@ -49,7 +49,7 @@ Build options:
 * "LOADSDPAYLOAD=1" Enable loading a code binary from SD for loading into the launched process("/menuhax_payload.bin"). The total size of the code(including additional code prior to the binary from SD) loaded into the process is 0x4000-bytes. Therefore, the max size of the code binary from SD is a bit less than 0x3000-bytes.
 * "BOOTGAMECARD=1" Reboot the system via NSS:RebootSystem to launch the gamecard(region-free). This is handled right after the ROP for LOADROPBIN, if that's even enabled. If GAMECARD_PADCHECK isn't used, the ROP will always execute this without executing the title-launch + takeover ROP.
 * "USE_PADCHECK=val" When set, at the very start of the menu ROP it will check if the current HID PAD state is set to the specified value. When they match, it continues the ROP, otherwise it returns to the homemenu code. This is done before writing to the framebuffers.
-* "LOADSDCFG_PADCHECK=1" When USE_PADCHECK was used, load a config file which overrides the value used for USE_PADCHECK, and can invert PADCHECK too if specified(see source code for details).
+* "LOADSDCFG=1" When USE_PADCHECK was used, load a config file which overrides the value used for USE_PADCHECK, and can invert PADCHECK too if specified(see source code for details).
 * "GAMECARD_PADCHECK=val" Similar to USE_PADCHECK except for BOOTGAMECARD: the BOOTGAMECARD ROP only gets executed when the specified HID PAD state matches the current one. After writing to framebufs the ROP will delay 3 seconds, then run this PADCHECK ROP.
 * "EXITMENU=1" Terminate homemenu X seconds(see source) after getting code exec under the launched process.
 * "ENABLE_LOADROPBIN=1" Load a homemenu ropbin then stack-pivot to it, see the Makefile HEAPBUF_ROPBIN_\* values for the load-address. When LOADSDPAYLOAD isn't used, the binary is the one specified by CODEBINPAYLOAD, otherwise it's loaded from a filepath which is different for each build, see the Makefile for that. The binary size should be <=0x10000-bytes.
@@ -77,7 +77,7 @@ The ROP does the following:
 * 1) Mount SD archive.
 * 2) Restore Home Menu state to what it was pre-hax, and setup stack/etc for returning to the actual Home Menu code if needed later.
 * 3) Setup the memory + string ptrs for the filepaths used with LOADOTHER_THEMEDATA, when that option is enabled(which it is by default).
-* 4) Load the PAD sdcfg when LOADSDCFG_PADCHECK is enabled(which is the default).
+* 4) Load the PAD sdcfg when LOADSDCFG is enabled(which is the default).
 * 5) Check PAD, if it's enabled with USE_PADCHECK(which it is with the release archive). On mismatch it will return to executing the actual Home Menu code.
 * 6) Overwrite framebuffer data.
 * 7) Run the actual main ROP.

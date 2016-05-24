@@ -40,6 +40,18 @@ typedef struct {
 #define MAX_MODULES 16
 module_entry modules_list[MAX_MODULES];
 
+typedef struct {
+	u32 version;//Must be 0x3, the menuhax ROP will ignore the cfg otherwise.
+	u32 type;
+	u32 padvalues[2];
+	u32 exec_type;//This will be reset to 0x0 by the menuhax ROP once done, if non-zero. This field is mainly intended for use by other applications that need it. 0x1: Force-enable the main menuhax ROP regardless of PADCHECK. 0x2: Force-disable the main menuhax ROP regardless of PADCHECK.
+	u64 delay_value;//Nano-seconds value to use with svcSleepThread() in the menuhax ROP right before jumping to the *hax payload homemenu ROP.
+	u32 flags;
+} PACKED menuhax_cfg;
+
+#define MENUHAXCFG_DEFAULT_DELAYVAL 3000000000ULL //3 seconds.
+#define MENUHAXCFG_FLAG_THEME (1<<0) //Disable the menuhax_manager theme menus when set.
+
 static int menu_curprintscreen = 0;
 static PrintConsole menu_printscreen[2];
 
@@ -774,6 +786,9 @@ Result install_menuhax(char *ropbin_filepath)
 
 	module_entry *module = NULL;
 
+	u32 sdcfg[0x10>>2];
+	menuhax_cfg new_sdcfg;
+
 	u32 payloadsize = 0;
 
 	char payloadurl[0x80];
@@ -954,6 +969,28 @@ Result install_menuhax(char *ropbin_filepath)
 
 	if(ret==0)
 	{
+		memset(sdcfg, 0, sizeof(sdcfg));
+		memset(&new_sdcfg, 0, sizeof(new_sdcfg));
+
+		ret = archive_readfile(SDArchive, "sdmc:/menuhax_padcfg.bin", (u8*)sdcfg, sizeof(sdcfg));
+		if(ret==0)
+		{
+			memcpy(&new_sdcfg.type, sdcfg, 0xc);
+			new_sdcfg.version = 0x3;
+			new_sdcfg.delay_value = MENUHAXCFG_DEFAULT_DELAYVAL;
+
+			ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&new_sdcfg, sizeof(new_sdcfg), 0);
+			if(ret!=0)
+			{
+				printf("Warning: successfully read the old padcfg file,\nbut writing to the new file failed: 0x%08x.\nContinuing anyway.\n", (unsigned int)ret);
+				ret = 0;
+			}
+			else
+			{
+				unlink("sdmc:/menuhax_padcfg.bin");
+			}
+		}
+
 		rename("sdmc:/menuhax_padcfg.bin", "sdmc:/menuhax/menuhax_cfg.bin");
 		rename("sdmc:/menuhax_imagedisplay.bin", "sdmc:/menuhax/menuhax_imagedisplay.bin");
 	}
@@ -1034,7 +1071,7 @@ Result setup_sdcfg()
 	u32 kDown, padval=0;
 	int menuindex = 0;
 
-	u32 sdcfg[0x10>>2];//Last u32 is reserved atm.
+	menuhax_cfg sdcfg;
 
 	char *menu_entries[] = {
 	"Type1: Only trigger the haxx when the PAD state matches the specified value(specified button(s) must be pressed).",
@@ -1044,27 +1081,35 @@ Result setup_sdcfg()
 
 	printf("Configuring the padcfg file on SD...\n");
 
-	memset(sdcfg, 0, sizeof(sdcfg));
+	memset(&sdcfg, 0, sizeof(sdcfg));
 
-	ret = archive_readfile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)sdcfg, sizeof(sdcfg));
+	ret = archive_readfile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&sdcfg, sizeof(sdcfg));
 	if(ret==0)
 	{
 		printf("The cfg file already exists on SD.\n");
-		printf("Current cfg:\n");
-		printf("Type 0x%x: ", (unsigned int)sdcfg[0]);
 
-		if(sdcfg[0]==0x1)
+		if(sdcfg.version!=0x3)//0x3 is used since lower values would collide with the PAD type-values at that same offset in the original format version.
+		{
+			printf("The cfg format version is invalid(0x%x).\nThe cfg will be deleted, after that you can try using the cfg menu again.\n", (unsigned int)sdcfg.version);
+			unlink("sdmc:/menuhax/menuhax_cfg.bin");
+			return 0;
+		}
+
+		printf("Current cfg:\n");
+		printf("Type 0x%x: ", (unsigned int)sdcfg.type);
+
+		if(sdcfg.type==0x1)
 		{
 			printf("Only trigger the haxx when the PAD state matches the specified value(specified button(s) must be pressed).\n");
-			printf("Currently selected PAD value: 0x%x ", (unsigned int)sdcfg[1]);
-			print_padbuttons(sdcfg[1]);
+			printf("Currently selected PAD value: 0x%x ", (unsigned int)sdcfg.padvalues[0]);
+			print_padbuttons(sdcfg.padvalues[0]);
 			printf("\n");
 		}
-		else if(sdcfg[0]==0x2)
+		else if(sdcfg.type==0x2)
 		{
 			printf("Only trigger the haxx when the PAD state doesn't match the specified value.\n");
-			printf("Currently selected PAD value: 0x%x ", (unsigned int)sdcfg[2]);
-			print_padbuttons(sdcfg[2]);
+			printf("Currently selected PAD value: 0x%x ", (unsigned int)sdcfg.padvalues[1]);
+			print_padbuttons(sdcfg.padvalues[1]);
 			printf("\n");
 		}
 		else
@@ -1075,9 +1120,12 @@ Result setup_sdcfg()
 	else
 	{
 		printf("The cfg file currently doesn't exist on SD.\n");
+
+		sdcfg.version=0x3;
+		sdcfg.delay_value = MENUHAXCFG_DEFAULT_DELAYVAL;
 	}
 
-	memset(sdcfg, 0, sizeof(sdcfg));
+	memset(sdcfg.padvalues, 0, sizeof(sdcfg.padvalues));
 
 	displaymessage_waitbutton();
 
@@ -1088,15 +1136,15 @@ Result setup_sdcfg()
 	switch(menuindex)
 	{
 		case 0:
-			sdcfg[0] = 0x1;
+			sdcfg.type = 0x1;
 		break;
 
 		case 1:
-			sdcfg[0] = 0x2;
+			sdcfg.type = 0x2;
 		break;
 
 		case 2:
-			sdcfg[0] = 0x0;
+			sdcfg.type = 0x0;
 		break;
 
 		case 3:
@@ -1104,7 +1152,7 @@ Result setup_sdcfg()
 		return 0;
 	}
 
-	if(sdcfg[0])
+	if(sdcfg.type)
 	{
 		printf("Press the button(s) you want to select for the PAD state value as described above(no New3DS-only buttons). If you want to select <no-buttons>, don't press any buttons. Then, while the buttons are being pressed, if any, touch the bottom-screen.\n");
 
@@ -1116,18 +1164,18 @@ Result setup_sdcfg()
 
 			if(kDown & KEY_TOUCH)
 			{
-				 padval = kDown & 0xfff;
+				padval = kDown & 0xfff;
 				break;
 			}
 		}
 
 		printf("Selected PAD value: 0x%x ", (unsigned int)padval);
 		print_padbuttons(padval);
-		sdcfg[sdcfg[0]] = padval;
+		sdcfg.padvalues[sdcfg.type-1] = padval;
 		printf("\n");
 	}
 
-	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)sdcfg, sizeof(sdcfg), 0);
+	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&sdcfg, sizeof(sdcfg), 0);
 	if(ret!=0)printf("Failed to write the cfg file: 0x%x.\n", (unsigned int)ret);
 	if(ret==0)printf("Config file successfully written.\n");
 
