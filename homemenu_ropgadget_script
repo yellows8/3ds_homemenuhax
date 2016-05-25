@@ -46,6 +46,7 @@
 --patterndata=f12b196453c8d76905a0abe3a5395295471ba44f4b1ac6d3fe7f585b59c217ec --patternsha256size=0x18 "--plainout=#define IFile_Open "
 --patterndata=d2dfec7874a22d753a2715e6ad640e0572d6b3d86d12792762d259ff0216705e --patternsha256size=0x18 "--plainout=#define IFile_Close "
 --patterndata=7c1b921157c09b6c974ed6c215e00d4ade20467835b0db46a38a138f03bbcaf5 --patternsha256size=0x20 "--plainout=#define IFile_Read "
+--patterndata=2a72257f87c4aef9163306d410bf2ab78ab9f07e132440abb0fc992c2173b294 --patternsha256size=0x20 "--plainout=#define IFile_Write "
 
 --patterndata=871fa0535022597b28d37811aa235ea59f56dd7b02d813c7a3dbc38306efc82b --patterndatamask=ffffffffffffffffffffffffffffffff000000ffffffffff --patternsha256size=0x18 "--plainout=#define ROP_COND_THROWFATALERR "
 

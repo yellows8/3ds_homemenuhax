@@ -46,6 +46,7 @@
 #define IFile_Open 0x0022b860
 #define IFile_Close 0x0022f5f8
 #define IFile_Read 0x0022b74c
+#define IFile_Write 0x00220af0
 
 #define ROP_COND_THROWFATALERR 0x001028e4
 
