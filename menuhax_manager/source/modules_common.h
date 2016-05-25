@@ -3,7 +3,16 @@ typedef Result (*menuhaxcb_delete)(void);
 
 #define MODULE_MAKE_CVER(major, minor, build) ((major<<16) | (minor<<8) | build)
 
-void register_module(u32 unsupported_cver, menuhaxcb_install haxinstall, menuhaxcb_delete haxdelete);
+typedef struct {
+	int initialized;
+	u32 index;
+	u32 unsupported_cver;
+	menuhaxcb_install haxinstall;
+	menuhaxcb_delete haxdelete;
+	bool themeflag;//The SD-cfg themeflag will be set to this once installation was successful.
+} module_entry;
+
+void register_module(module_entry *module);
 
 Result menu_enablethemecache_persistent();
 Result disablethemecache();

@@ -29,19 +29,11 @@ char regionids_table[7][4] = {//http://3dbrew.org/wiki/Nandrw/sys/SecureInfo_A
 "TWN"
 };
 
-typedef struct {
-	int initialized;
-	u32 index;
-	u32 unsupported_cver;
-	menuhaxcb_install haxinstall;
-	menuhaxcb_delete haxdelete;
-} module_entry;
-
 #define MAX_MODULES 16
 module_entry modules_list[MAX_MODULES];
 
 typedef struct {
-	u32 version;//Must be 0x3, the menuhax ROP will ignore the cfg otherwise.
+	u32 version;//Must be MENUHAXCFG_CURVERSION, the menuhax ROP will ignore the cfg otherwise.
 	u32 type;
 	u32 padvalues[2];
 	u32 exec_type;//This will be reset to 0x0 by the menuhax ROP once done, if non-zero. This field is mainly intended for use by other applications that need it. 0x1: Force-enable the main menuhax ROP regardless of PADCHECK. 0x2: Force-disable the main menuhax ROP regardless of PADCHECK.
@@ -49,26 +41,34 @@ typedef struct {
 	u32 flags;
 } PACKED menuhax_cfg;
 
+#define MENUHAXCFG_CURVERSION 0x3//0x3 is used since lower values would collide with the PAD type-values at that same offset in the original format version.
 #define MENUHAXCFG_DEFAULT_DELAYVAL 3000000000ULL //3 seconds.
 #define MENUHAXCFG_FLAG_THEME (1<<0) //Disable the menuhax_manager theme menus when set.
 
 static int menu_curprintscreen = 0;
 static PrintConsole menu_printscreen[2];
 
-void register_module(u32 unsupported_cver, menuhaxcb_install haxinstall, menuhaxcb_delete haxdelete)
+void menuhaxcfg_create();
+bool menuhaxcfg_get_themeflag();
+void menuhaxcfg_set_themeflag(bool themeflag);
+
+void register_module(module_entry *module)
 {
 	int pos;
 	module_entry *ent;
+	module_entry tmp;
 
 	for(pos=0; pos<MAX_MODULES; pos++)
 	{
 		ent = &modules_list[pos];
 		if(ent->initialized)continue;
 
-		ent->initialized = 1;
-		ent->unsupported_cver = unsupported_cver;
-		ent->haxinstall = haxinstall;
-		ent->haxdelete = haxdelete;
+		memcpy(&tmp, module, sizeof(module_entry));
+
+		tmp.initialized = 1;
+		tmp.index = ent->index;
+
+		memcpy(ent, &tmp, sizeof(module_entry));
 
 		return;
 	}
@@ -559,27 +559,32 @@ Result delete_menuhax()
 		printf("The menuhax itself has been deleted successfully.\n");
 	}
 
-	printf("Deleting the additional menuhax files under theme-cache extdata now. Failing to delete anything here is normal when the file(s) don't already exist.\n");
-
-	printf("Deleting the menuhax ThemeManage...\n");
-	ret = archive_deletefile(Theme_Extdata, "/yhemeManage.bin");
-	if(ret!=0)
+	if(!menuhaxcfg_get_themeflag())
 	{
-		printf("Failed to delete the menuhax ThemeManage: 0x%08x.\n", (unsigned int)ret);
-	}
+		menuhaxcfg_set_themeflag(true);
 
-	printf("Deleting the menuhax regular BodyCache...\n");
-	ret = archive_deletefile(Theme_Extdata, "/yodyCache.bin");
-	if(ret!=0)
-	{
-		printf("Failed to delete the menuhax regular BodyCache: 0x%08x.\n", (unsigned int)ret);
-	}
+		printf("Deleting the additional menuhax files under theme-cache extdata now. Errors will be ignored since those don't matter here.\n");
 
-	printf("Deleting menuhax shuffle BodyCache...\n");
-	ret = archive_deletefile(Theme_Extdata, "/yodyCache_rd.bin");
-	if(ret!=0)
-	{
-		printf("Failed to delete the menuhax shuffle BodyCache: 0x%08x.\n", (unsigned int)ret);
+		printf("Deleting the menuhax ThemeManage...\n");
+		ret = archive_deletefile(Theme_Extdata, "/yhemeManage.bin");
+		if(ret!=0)
+		{
+			printf("Failed to delete the menuhax ThemeManage: 0x%08x.\n", (unsigned int)ret);
+		}
+
+		printf("Deleting the menuhax regular BodyCache...\n");
+		ret = archive_deletefile(Theme_Extdata, "/yodyCache.bin");
+		if(ret!=0)
+		{
+			printf("Failed to delete the menuhax regular BodyCache: 0x%08x.\n", (unsigned int)ret);
+		}
+
+		printf("Deleting menuhax shuffle BodyCache...\n");
+		ret = archive_deletefile(Theme_Extdata, "/yodyCache_rd.bin");
+		if(ret!=0)
+		{
+			printf("Failed to delete the menuhax shuffle BodyCache: 0x%08x.\n", (unsigned int)ret);
+		}
 	}
 
 	return 0;
@@ -802,7 +807,7 @@ Result install_menuhax(char *ropbin_filepath)
 
 	memset(payloadurl, 0, sizeof(payloadurl));
 
-	printf("Getting system-version/system-info etc...\n");
+	printf("Getting system info...\n");
 
 	ret = cfguInit();
 	if(ret!=0)
@@ -835,8 +840,6 @@ Result install_menuhax(char *ropbin_filepath)
 		printf("Failed to get the Home Menu programID: 0x%08x.\n", (unsigned int)ret);
 		return ret;
 	}
-
-	printf("Using Home Menu programID: 0x%016llx.\n", menu_programid);
 
 	ret = AM_GetTitleInfo(MEDIATYPE_NAND, 1, &menu_programid, &menu_title_entry);
 	if(ret!=0)
@@ -976,8 +979,9 @@ Result install_menuhax(char *ropbin_filepath)
 		if(ret==0)
 		{
 			memcpy(&new_sdcfg.type, sdcfg, 0xc);
-			new_sdcfg.version = 0x3;
+			new_sdcfg.version = MENUHAXCFG_CURVERSION;
 			new_sdcfg.delay_value = MENUHAXCFG_DEFAULT_DELAYVAL;
+			new_sdcfg.flags = MENUHAXCFG_FLAG_THEME;
 
 			ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&new_sdcfg, sizeof(new_sdcfg), 0);
 			if(ret!=0)
@@ -996,6 +1000,10 @@ Result install_menuhax(char *ropbin_filepath)
 		}
 
 		rename("sdmc:/menuhax_imagedisplay.bin", "sdmc:/menuhax/menuhax_imagedisplay.bin");
+
+		menuhaxcfg_create();
+
+		menuhaxcfg_set_themeflag(module->themeflag);
 	}
 
 	return ret;
@@ -1079,8 +1087,7 @@ Result setup_sdcfg()
 	char *menu_entries[] = {
 	"Type1: Only trigger the haxx when the PAD state matches the specified value(specified button(s) must be pressed).",
 	"Type2: Only trigger the haxx when the PAD state doesn't match the specified value.",
-	"Type0: Default PAD config is used.",
-	"Delete the config file(same end result on the menuhax as type0 basically)."};
+	"Type0: Default PAD config is used."};
 
 	printf("Configuring the padcfg file on SD...\n");
 
@@ -1091,7 +1098,7 @@ Result setup_sdcfg()
 	{
 		printf("The cfg file already exists on SD.\n");
 
-		if(sdcfg.version!=0x3)//0x3 is used since lower values would collide with the PAD type-values at that same offset in the original format version.
+		if(sdcfg.version!=MENUHAXCFG_CURVERSION)
 		{
 			printf("The cfg format version is invalid(0x%x).\nThe cfg will be deleted, after that you can try using the cfg menu again.\n", (unsigned int)sdcfg.version);
 			unlink("sdmc:/menuhax/menuhax_cfg.bin");
@@ -1124,15 +1131,16 @@ Result setup_sdcfg()
 	{
 		printf("The cfg file currently doesn't exist on SD.\n");
 
-		sdcfg.version=0x3;
+		sdcfg.version = MENUHAXCFG_CURVERSION;
 		sdcfg.delay_value = MENUHAXCFG_DEFAULT_DELAYVAL;
+		sdcfg.flags = MENUHAXCFG_FLAG_THEME;
 	}
 
 	memset(sdcfg.padvalues, 0, sizeof(sdcfg.padvalues));
 
 	displaymessage_waitbutton();
 
-	display_menu(menu_entries, 4, &menuindex, "Select a type with the below menu. You can press B to exit without changing anything.");
+	display_menu(menu_entries, 3, &menuindex, "Select a type with the below menu. You can press B to exit without changing anything.");
 
 	if(menuindex==-1)return 0;
 
@@ -1149,10 +1157,6 @@ Result setup_sdcfg()
 		case 2:
 			sdcfg.type = 0x0;
 		break;
-
-		case 3:
-			unlink("sdmc:/menuhax/menuhax_cfg.bin");
-		return 0;
 	}
 
 	if(sdcfg.type)
@@ -1183,6 +1187,58 @@ Result setup_sdcfg()
 	if(ret==0)printf("Config file successfully written.\n");
 
 	return ret;
+}
+
+void menuhaxcfg_create()//Create the cfg file when it doesn't already exist.
+{
+	Result ret=0;
+	menuhax_cfg sdcfg;
+
+	ret = archive_readfile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&sdcfg, sizeof(sdcfg));
+	if(ret==0)return;
+
+	memset(&sdcfg, 0, sizeof(sdcfg));
+
+	sdcfg.version = MENUHAXCFG_CURVERSION;
+	sdcfg.delay_value = MENUHAXCFG_DEFAULT_DELAYVAL;
+	sdcfg.flags = MENUHAXCFG_FLAG_THEME;
+
+	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&sdcfg, sizeof(sdcfg), 0);
+}
+
+bool menuhaxcfg_get_themeflag()
+{
+	Result ret=0;
+	menuhax_cfg sdcfg;
+	u32 old_sdcfg[0x10>>2];
+
+	ret = archive_readfile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&sdcfg, sizeof(sdcfg));
+	if(ret!=0)//When the old/new cfg files don't exist, return true for disabled user-themes.
+	{
+		memset(old_sdcfg, 0, sizeof(old_sdcfg));
+
+		ret = archive_readfile(SDArchive, "sdmc:/menuhax_padcfg.bin", (u8*)old_sdcfg, sizeof(old_sdcfg));
+		if(ret==0)return false;//When the new cfg file doesn't exist but the old cfg file does exist, return false for enabled user-themes.
+
+		return true;
+	}
+
+	if(sdcfg.flags & MENUHAXCFG_FLAG_THEME)return true;
+	return false;
+}
+
+void menuhaxcfg_set_themeflag(bool themeflag)
+{
+	Result ret=0;
+	menuhax_cfg sdcfg;
+
+	ret = archive_readfile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&sdcfg, sizeof(sdcfg));
+	if(ret!=0)return;
+
+	sdcfg.flags &= ~MENUHAXCFG_FLAG_THEME;
+	if(themeflag)sdcfg.flags |= MENUHAXCFG_FLAG_THEME;
+
+	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&sdcfg, sizeof(sdcfg), 0);
 }
 
 Result setup_imagedisplay()
@@ -1369,6 +1425,7 @@ int main(int argc, char **argv)
 	Result ret = 0;
 	int menuindex = 0;
 	int pos, count=0;
+	int menucount;
 
 	char headerstr[512];
 
@@ -1459,11 +1516,14 @@ int main(int argc, char **argv)
 			printf("Finished opening extdata.\n\n");
 
 			memset(headerstr, 0, sizeof(headerstr));
-			snprintf(headerstr, sizeof(headerstr)-1, "menuhax_manager %s by yellows8.\n\nThis can install Home Menu haxx to the SD card, for booting the *hax payloads. Select an option with the below menu. You can press the B button to exit. You can press the Y button at any time while at a menu like the below one, to toggle the screen being used by this app", VERSION);
+			snprintf(headerstr, sizeof(headerstr)-1, "menuhax_manager %s by yellows8.\n\nThis can install Home Menu haxx to the SD card, for booting the *hax payloads. Select an option with the below menu. You can press the B button to exit. You can press the Y button at any time while at a menu like the below one, to toggle the screen being used by this app.\nThe theme menu options are only available when the cfg file exists on SD with an exploit installed which requires seperate theme-data files\n", VERSION);
 
 			while(ret==0)
 			{
-				display_menu(menu_entries, 6, &menuindex, headerstr);
+				menucount = 6;
+				if(menuhaxcfg_get_themeflag())menucount-= 2;
+
+				display_menu(menu_entries, menucount, &menuindex, headerstr);
 
 				if(menuindex==-1)break;
 
@@ -1562,6 +1622,8 @@ int main(int argc, char **argv)
 	amExit();
 
 	close_extdata();
+
+	printf("\n");
 
 	if(ret!=0)printf("An error occured. If this is an actual issue not related to user failure, please report this to here if it persists(or comment on an already existing issue if needed), with a screenshot: https://github.com/yellows8/3ds_homemenuhax/issues\n");
 

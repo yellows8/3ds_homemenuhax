@@ -222,8 +222,6 @@ Result archive_writefile(Archive archive, char *path, u8 *buffer, u32 size, u32 
 	{
 		if(createsize)
 		{
-			printf("Error 0x%08x was returned while attempting to open the file for writing, attempting file-creation...\n", (unsigned int)ret);
-
 			ret = FSUSER_CreateFile(extdata_archives[archive], fsMakePath(PATH_ASCII, path), 0, createsize);
 			if(ret)
 			{

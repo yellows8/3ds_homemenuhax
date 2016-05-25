@@ -14,7 +14,14 @@ Result shufflehax_delete();
 
 void register_module_shufflehax()
 {
-	register_module(MODULE_MAKE_CVER(0, 0, 0), shufflehax_install, shufflehax_delete);
+	module_entry module = {
+		.unsupported_cver = MODULE_MAKE_CVER(0, 0, 0),
+		.haxinstall = shufflehax_install,
+		.haxdelete = shufflehax_delete,
+		.themeflag = false
+	};
+
+	register_module(&module);
 }
 
 Result shufflehax_install(char *menuhax_basefn)

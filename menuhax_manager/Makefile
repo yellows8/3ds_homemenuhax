@@ -36,6 +36,10 @@ ROMFS		:=	romfs
 
 VERSION	:=	v2.2
 
+ifeq ($(RELEASE),)
+	VERSION	:=	$(VERSION)_git
+endif
+
 APP_TITLE	:=	menuhax_manager $(VERSION)
 APP_DESCRIPTION	:=	Tool for managing Home Menu haxx.
 APP_AUTHOR	:=	yellows8

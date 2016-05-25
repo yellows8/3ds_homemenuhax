@@ -14,7 +14,14 @@ Result themehax_delete();
 
 void register_module_themehax()
 {
-	register_module(MODULE_MAKE_CVER(10, 2, 0), themehax_install, themehax_delete);
+	module_entry module = {
+		.unsupported_cver = MODULE_MAKE_CVER(10, 2, 0),
+		.haxinstall = themehax_install,
+		.haxdelete = themehax_delete,
+		.themeflag = false
+	};
+
+	register_module(&module);
 }
 
 Result themehax_install(char *menuhax_basefn)
