@@ -990,8 +990,11 @@ Result install_menuhax(char *ropbin_filepath)
 				unlink("sdmc:/menuhax_padcfg.bin");
 			}
 		}
+		else
+		{
+			ret = 0;//Ignore file-read failure for the old cfg file.
+		}
 
-		rename("sdmc:/menuhax_padcfg.bin", "sdmc:/menuhax/menuhax_cfg.bin");
 		rename("sdmc:/menuhax_imagedisplay.bin", "sdmc:/menuhax/menuhax_imagedisplay.bin");
 	}
 
