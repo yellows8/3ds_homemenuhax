@@ -348,6 +348,9 @@ sdfile_imagedisplay_path:
 #ifdef LOADSDCFG
 menuhax_cfg:
 .space 0x20
+
+menuhax_cfg_new:
+.space 0x20
 #endif
 
 #ifdef LOADOTHER_THEMEDATA
@@ -546,6 +549,55 @@ ROP_SETLR ROP_POPPC
 .word (HEAPBUF + ((menuhax_cfg+0x18) - _start)) @ r1
 
 .word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from filebuf+0x18 to hblauncher_svcsleepthread_delayhigh.
+
+rop_cfg_cmpbegin_exectypestart: @ Compare u32 filebuf+0x10(exec_type) with 0x0, on match continue to the ROP following this(which jumps to rop_cfg_cmpbegin1), otherwise jump to rop_cfg_cmpbegin_exectypeprepare.
+ROP_SETLR ROP_POPPC
+ROPMACRO_CMPDATA (HEAPBUF + ((menuhax_cfg+0x10) - _start)), 0x0, (HEAPBUF + (rop_cfg_cmpbegin_exectypeprepare - _start)), 0x0
+ROPMACRO_STACKPIVOT (HEAPBUF + (rop_cfg_cmpbegin1 - _start)), ROP_POPPC
+
+rop_cfg_cmpbegin_exectypeprepare:
+
+CALLFUNC_NOSP MEMCPY, (HEAPBUF + ((menuhax_cfg_new) - _start)), (HEAPBUF + ((menuhax_cfg) - _start)), 0x20, 0
+
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word 0x0 @ r0
+
+.word POP_R1PC
+.word (HEAPBUF + ((menuhax_cfg_new+0x10) - _start)) @ r1
+
+.word ROP_STR_R0TOR1 @ Write 0x0 to cfg exec_type.
+
+@ Write the updated cfg to the file.
+
+CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
+
+CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_cfg_path - _start)), 0x3, 0
+
+CALLFUNC IFile_Write, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (menuhax_cfg_new - _start)), 0x20, 1, 0, 0, 0
+
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word (HEAPBUF + (IFile_ctx - _start))
+
+.word ROP_LDR_R0FROMR0
+
+.word IFile_Close
+
+@ Compare u32 filebuf+0x10(exec_type) with 0x1, on match continue to the ROP following this, otherwise jump to rop_cfg_cmpbegin_exectype2.
+ROP_SETLR ROP_POPPC
+ROPMACRO_CMPDATA (HEAPBUF + ((menuhax_cfg+0x10) - _start)), 0x1, (HEAPBUF + (rop_cfg_cmpbegin_exectype2 - _start)), 0x0
+
+@ Jump to padcheck_finish.
+ROPMACRO_STACKPIVOT (HEAPBUF + (padcheck_finish - _start)), ROP_POPPC
+
+rop_cfg_cmpbegin_exectype2: @ Compare u32 filebuf+0x10(exec_type) with 0x2, on match continue to the ROP following this, otherwise jump to rop_cfg_cmpbegin1.
+ROP_SETLR ROP_POPPC
+ROPMACRO_CMPDATA (HEAPBUF + ((menuhax_cfg+0x10) - _start)), 0x2, (HEAPBUF + (rop_cfg_cmpbegin1 - _start)), 0x0
+
+RET2MENUCODE
 
 rop_cfg_cmpbegin1: @ Compare u32 filebuf+0x4 with 0x1, on match continue to the ROP following this, otherwise jump to rop_cfg_cmpbegin2.
 ROP_SETLR ROP_POPPC
