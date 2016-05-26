@@ -10,6 +10,8 @@
 
 #include "archive.h"
 
+#include "menu.h"
+
 #include "default_imagedisplay_png.h"
 
 #include "modules_common.h"
@@ -44,9 +46,6 @@ typedef struct {
 #define MENUHAXCFG_CURVERSION 0x3//0x3 is used since lower values would collide with the PAD type-values at that same offset in the original format version.
 #define MENUHAXCFG_DEFAULT_DELAYVAL 3000000000ULL //3 seconds.
 #define MENUHAXCFG_FLAG_THEME (1<<0) //Disable the menuhax_manager theme menus when set.
-
-static int menu_curprintscreen = 0;
-static PrintConsole menu_printscreen[2];
 
 void menuhaxcfg_create();
 bool menuhaxcfg_get_themeflag();
@@ -118,92 +117,6 @@ Result modules_haxdelete()
 	}
 
 	return 0;
-}
-
-void display_menu(char **menu_entries, int total_entries, int *menuindex, char *headerstr)
-{
-	int i;
-	u32 redraw = 1;
-	u32 kDown = 0;
-
-	while(1)
-	{
-		gspWaitForVBlank();
-		hidScanInput();
-
-		kDown = hidKeysDown();
-
-		if(redraw)
-		{
-			redraw = 0;
-
-			consoleClear();
-			printf("%s.\n\n", headerstr);
-
-			for(i=0; i<total_entries; i++)
-			{
-				if(*menuindex==i)
-				{
-					printf("-> ");
-				}
-				else
-				{
-					printf("   ");
-				}
-
-				printf("%s\n", menu_entries[i]);
-			}
-		}
-
-		if(kDown & KEY_B)
-		{
-			*menuindex = -1;
-			return;
-		}
-
-		if(kDown & (KEY_DDOWN | KEY_CPAD_DOWN))
-		{
-			(*menuindex)++;
-			if(*menuindex>=total_entries)*menuindex = 0;
-			redraw = 1;
-
-			continue;
-		}
-		else if(kDown & (KEY_DUP | KEY_CPAD_UP))
-		{
-			(*menuindex)--;
-			if(*menuindex<0)*menuindex = total_entries-1;
-			redraw = 1;
-
-			continue;
-		}
-
-		if(kDown & KEY_Y)
-		{
-			gspWaitForVBlank();
-			consoleClear();
-
-			menu_curprintscreen = !menu_curprintscreen;
-			consoleSelect(&menu_printscreen[menu_curprintscreen]);
-			redraw = 1;
-		}
-
-		if(kDown & KEY_A)
-		{
-			break;
-		}
-	}
-}
-
-void displaymessage_waitbutton()
-{
-	printf("\nPress the A button to continue.\n");
-	while(1)
-	{
-		gspWaitForVBlank();
-		hidScanInput();
-		if(hidKeysDown() & KEY_A)break;
-	}
 }
 
 Result enablethemecache(u32 type, u32 shuffle, u32 index)
@@ -541,28 +454,30 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 Result delete_menuhax()
 {
 	Result ret=0;
+	bool themeflag;
 
-	gspWaitForVBlank();
-	hidScanInput();
+	ret = displaymessage_prompt("Do you want to skip deleting menuhax itself, so that only the menuhax-specific theme-data if any is deleted?", NULL);
 
-	if(hidKeysHeld() & KEY_X)
+	themeflag = menuhaxcfg_get_themeflag();
+
+	if(ret==0)
 	{
-		printf("Skipping menuhax deletion since the X button is pressed.\n");
+		printf("Skipping menuhax deletion.\n");
 	}
 	else
 	{
-		printf("Deleting menuhax since the X button isn't pressed.\n");
+		printf("Deleting menuhax.\n");
 
 		ret = modules_haxdelete();
 		if(ret)return ret;
 
 		printf("The menuhax itself has been deleted successfully.\n");
+
+		if(!themeflag)menuhaxcfg_set_themeflag(true);
 	}
 
-	if(!menuhaxcfg_get_themeflag())
+	if(!themeflag)
 	{
-		menuhaxcfg_set_themeflag(true);
-
 		printf("Deleting the additional menuhax files under theme-cache extdata now. Errors will be ignored since those don't matter here.\n");
 
 		printf("Deleting the menuhax ThemeManage...\n");
@@ -621,7 +536,7 @@ Result setup_builtin_theme()
 	fileLowPath.size = 0xc;
 	fileLowPath.data = (u8*)file_lowpath_data;
 
-	display_menu(menu_entries, 5, &menuindex, "Select a built-in Home Menu theme for installation with the below menu. You can press the B button to exit. Note that this implementation can only work when this app is running from *hax payloads >=v2.0(https://smealum.github.io/3ds/). If you hold down the X button while selecting a theme via the A button, the theme-data will also be written to 'sdmc:/3ds/menuhax_manager/'.");
+	display_menu(menu_entries, 5, &menuindex, "Select a built-in Home Menu theme for installation with the below menu. You can press the B button to exit. Note that this implementation can only work when this app is running from *hax payloads >=v2.0(https://smealum.github.io/3ds/).");
 
 	if(menuindex==-1)return 0;
 
@@ -642,17 +557,16 @@ Result setup_builtin_theme()
 	memset(str, 0, sizeof(str));
 	snprintf(str, sizeof(str)-1, "romfs:/theme/%s_LZ.bin", menu_entries[menuindex]);
 
-	printf("Using the following theme: %s\n", str);
+	printf("Using the following theme: %s\n\n", str);
 
-	gspWaitForVBlank();
-	hidScanInput();
+	ret = displaymessage_prompt("Dump the theme-data to the menuhax_manager SD directory? Normally there's no need to use this.", NULL);
 
-	if(hidKeysHeld() & KEY_X)
+	if(ret==0)
 	{
 		memset(str2, 0, sizeof(str2));
 		snprintf(str2, sizeof(str2)-1, "sdmc:/3ds/menuhax_manager/%s_LZ.bin", menu_entries[menuindex]);
 
-		printf("Since the X button is being pressed, copying the built-in theme to '%s'...\n", str2);
+		printf("Copying the built-in theme to '%s'...\n", str2);
 
 		ret = archive_getfilesize(SDArchive, str, &filesize);
 		if(ret!=0)
@@ -670,7 +584,7 @@ Result setup_builtin_theme()
 	}
 	else
 	{
-		printf("Skipping theme-dumping since the X button isn't pressed.\n");
+		printf("Skipping theme-dumping.\n");
 	}
 
 	ret = sd2themecache(str, NULL, 1);
@@ -875,17 +789,17 @@ Result install_menuhax(char *ropbin_filepath)
 
 	memset(filebuffer, 0, filebuffer_maxsize);
 
-	gspWaitForVBlank();
-	hidScanInput();
-	if(hidKeysHeld() & KEY_X)
+	printf("\n");
+	ret = displaymessage_prompt("Skip ropbin-payload setup? Normally you should just press B.", NULL);
+
+	if(ret==0)
 	{
-		printf("The X button is being pressed, skipping ropbin payload setup. If this was not intended, re-run the install again after this.\n");
+		printf("Skipping ropbin payload setup. If this was not intended, re-run the install again after this.\n");
 	}
 	else
 	{
-		printf("The X button isn't being pressed, setting up ropbin payload...\n");
+		printf("Setting up ropbin payload...\n");
 
-		printf("Checking for the input payload on SD...\n");
 		ret = archive_getfilesize(SDArchive, "sdmc:/menuhax/menuhaxmanager_input_payload.bin", &payloadsize);
 		if(ret==0)
 		{
@@ -1433,19 +1347,16 @@ int main(int argc, char **argv)
 
 	char *menu_entries[] = {
 	"Install",
-	"Delete. If the X button is held while selecting this, just the additional menuhax-only extdata files will be deleted.",
-	"Configure/check haxx trigger button(s), which can override the default setting.",
-	"Configure menuhax main-screen image display.",
+	"Delete",
+	"Configure menuhax.",
+	"Configure the menuhax splash-screen.",
 	"Install custom theme.",
 	"Setup a built-in Home Menu 'Basic' color theme."};
 
 	// Initialize services
 	gfxInitDefault();
 
-	menu_curprintscreen = 0;
-	consoleInit(GFX_TOP, &menu_printscreen[0]);
-	consoleInit(GFX_BOTTOM, &menu_printscreen[1]);
-	consoleSelect(&menu_printscreen[menu_curprintscreen]);
+	initialize_menu();
 
 	printf("menuhax_manager %s by yellows8.\n", VERSION);
 
@@ -1516,7 +1427,7 @@ int main(int argc, char **argv)
 			printf("Finished opening extdata.\n\n");
 
 			memset(headerstr, 0, sizeof(headerstr));
-			snprintf(headerstr, sizeof(headerstr)-1, "menuhax_manager %s by yellows8.\n\nThis can install Home Menu haxx to the SD card, for booting the *hax payloads. Select an option with the below menu. You can press the B button to exit. You can press the Y button at any time while at a menu like the below one, to toggle the screen being used by this app.\nThe theme menu options are only available when the cfg file exists on SD with an exploit installed which requires seperate theme-data files\n", VERSION);
+			snprintf(headerstr, sizeof(headerstr)-1, "menuhax_manager %s by yellows8.\n\nThis can install Home Menu haxx to the SD card, for booting the *hax payloads. Select an option with the below menu. You can press the B button to exit. You can press the Y button at any time while at a menu like the below one, to toggle the screen being used by this app.\nThe theme menu options are only available when the cfg file exists on SD with an exploit installed which requires seperate theme-data files", VERSION);
 
 			while(ret==0)
 			{
@@ -1625,7 +1536,7 @@ int main(int argc, char **argv)
 
 	printf("\n");
 
-	if(ret!=0)printf("An error occured. If this is an actual issue not related to user failure, please report this to here if it persists(or comment on an already existing issue if needed), with a screenshot: https://github.com/yellows8/3ds_homemenuhax/issues\n");
+	if(ret!=0)printf("An error occured. If this is an actual issue not related to user failure, please report this to here if it persists(or comment on an already existing issue if needed), with a screenshot(https://smealum.github.io/3ds/): https://github.com/yellows8/3ds_homemenuhax/issues\n");
 
 	printf("Press the START button to exit.\n");
 	// Main loop
