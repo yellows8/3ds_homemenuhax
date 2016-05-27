@@ -995,13 +995,20 @@ Result setup_sdcfg()
 	Result ret=0;
 	u32 kDown, padval=0;
 	int menuindex = 0;
+	int draw;
+	unsigned long long nanosec = 1000000000ULL;
+	unsigned long long delayval;
+	int endpos;
+	int pos, pos2;
+	unsigned long long delay_adjustval, delay_adjustval_tmp;
 
 	menuhax_cfg sdcfg;
 
 	char *menu_entries[] = {
 	"Type1: Only trigger the haxx when the PAD state matches the specified value(specified button(s) must be pressed).",
 	"Type2: Only trigger the haxx when the PAD state doesn't match the specified value.",
-	"Type0: Default PAD config is used."};
+	"Type0: Default PAD config is used.",
+	"Configure the delay value used with the delay right before jumping to the *hax payload. This may affect the random *hax payload boot failures."};
 
 	printf("Configuring the padcfg file on SD...\n");
 
@@ -1040,6 +1047,10 @@ Result setup_sdcfg()
 		{
 			printf("None, the default PAD trigger is used.\n");
 		}
+
+		delayval = (unsigned long long)sdcfg.delay_value;
+
+		printf("Current delay value: %llu(%f seconds).\n", delayval, ((double)delayval) / nanosec);
 	}
 	else
 	{
@@ -1048,13 +1059,13 @@ Result setup_sdcfg()
 		sdcfg.version = MENUHAXCFG_CURVERSION;
 		sdcfg.delay_value = MENUHAXCFG_DEFAULT_DELAYVAL;
 		sdcfg.flags = MENUHAXCFG_FLAG_THEME;
-	}
 
-	memset(sdcfg.padvalues, 0, sizeof(sdcfg.padvalues));
+		delayval = (unsigned long long)sdcfg.delay_value;
+	}
 
 	displaymessage_waitbutton();
 
-	display_menu(menu_entries, 3, &menuindex, "Select a type with the below menu. You can press B to exit without changing anything.");
+	display_menu(menu_entries, 4, &menuindex, "Select a type/option with the below menu. You can press B to exit without changing anything.");
 
 	if(menuindex==-1)return 0;
 
@@ -1073,7 +1084,9 @@ Result setup_sdcfg()
 		break;
 	}
 
-	if(sdcfg.type)
+	if(menuindex!=3)memset(sdcfg.padvalues, 0, sizeof(sdcfg.padvalues));
+
+	if(sdcfg.type && menuindex!=3)
 	{
 		printf("Press the button(s) you want to select for the PAD state value as described above(no New3DS-only buttons). If you want to select <no-buttons>, don't press any buttons. Then, while the buttons are being pressed, if any, touch the bottom-screen.\n");
 
@@ -1094,6 +1107,83 @@ Result setup_sdcfg()
 		print_padbuttons(padval);
 		sdcfg.padvalues[sdcfg.type-1] = padval;
 		printf("\n");
+	}
+
+	if(menuindex==3)
+	{
+		draw = 1;
+		delay_adjustval = nanosec;
+
+		while(1)
+		{
+			gspWaitForVBlank();
+			hidScanInput();
+			kDown = hidKeysDown();
+
+			if(draw)
+			{
+				draw = 0;
+				consoleClear();
+
+				printf("Select the new nano-seconds delay value with the D-Pad/Circle-Pad, then press A to continue, or B to abort.\nThe initial config is exactly 3-seconds, press Y to set the delay to that.\n");
+				endpos = printf("%llu", delayval);
+				printf("(%f seconds).\n", ((double)delayval) / nanosec);
+
+				pos2 = 0;
+				delay_adjustval_tmp = delay_adjustval;
+				while(delay_adjustval_tmp>1)
+				{
+					pos2++;
+					delay_adjustval_tmp/= 10;
+				}
+
+				while(pos2+1 > endpos)
+				{
+					pos2--;
+					delay_adjustval/= 10;
+				}
+
+				for(pos=0; pos<endpos-(pos2+1); pos++)printf(" ");
+				printf("^\n");
+			}
+
+			if(kDown & KEY_A)
+			{
+				break;
+			}
+			else if(kDown & KEY_B)
+			{
+				return 0;
+			}
+
+			if((kDown & (KEY_DDOWN | KEY_CPAD_DOWN)) && delayval!=0)
+			{
+				delayval-= delay_adjustval;
+				draw = 1;
+			}
+			else if(kDown & (KEY_DUP | KEY_CPAD_UP))
+			{
+				delayval+= delay_adjustval;
+				draw = 1;
+			}
+			else if(kDown & (KEY_DLEFT | KEY_CPAD_LEFT))
+			{
+				delay_adjustval*= 10;
+				draw = 1;
+			}
+			else if((kDown & (KEY_DRIGHT | KEY_CPAD_RIGHT)) && delay_adjustval>1)
+			{
+				delay_adjustval/= 10;
+				draw = 1;
+			}
+			else if(kDown & KEY_Y)
+			{
+				delayval = MENUHAXCFG_DEFAULT_DELAYVAL;
+				draw = 1;
+			}
+		}
+
+		sdcfg.delay_value = (u64)delayval;
 	}
 
 	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&sdcfg, sizeof(sdcfg), 0);
