@@ -37,7 +37,7 @@ ROMFS		:=	romfs
 VERSION	:=	v2.2
 
 ifeq ($(RELEASE),)
-	VERSION	:=	$(VERSION)_git
+	VERSION	:=	$(VERSION)-$(shell git describe --abbrev=7 --dirty --always)
 endif
 
 APP_TITLE	:=	menuhax_manager $(VERSION)
