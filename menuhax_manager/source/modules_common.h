@@ -6,6 +6,8 @@ typedef Result (*menuhaxcb_delete)(void);
 typedef struct {
 	int initialized;
 	u32 index;
+
+	char name[16];
 	u32 unsupported_cver;
 	menuhaxcb_install haxinstall;
 	menuhaxcb_delete haxdelete;

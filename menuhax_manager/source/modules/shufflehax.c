@@ -15,7 +15,7 @@ Result shufflehax_delete();
 void register_module_shufflehax()
 {
 	module_entry module = {
-		.unsupported_cver = MODULE_MAKE_CVER(0, 0, 0),
+		.name = "shufflehax",
 		.haxinstall = shufflehax_install,
 		.haxdelete = shufflehax_delete,
 		.themeflag = false

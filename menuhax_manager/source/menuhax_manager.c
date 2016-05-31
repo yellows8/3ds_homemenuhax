@@ -12,6 +12,7 @@
 
 #include "menu.h"
 
+#include "builtin_rootca_der.h"
 #include "default_imagedisplay_png.h"
 
 #include "modules_common.h"
@@ -21,7 +22,7 @@
 u8 *filebuffer;
 u32 filebuffer_maxsize = 0x400000;
 
-char regionids_table[7][4] = {//http://3dbrew.org/wiki/Nandrw/sys/SecureInfo_A
+char regionids_table[7][4] = {//https://3dbrew.org/wiki/Nandrw/sys/SecureInfo_A
 "JPN",
 "USA",
 "EUR",
@@ -92,6 +93,28 @@ Result modules_getcompatible_entry(OS_VersionBin *cver_versionbin, module_entry 
 		{
 			continue;
 		}
+
+		*module = ent;
+
+		return 0;
+	}
+
+	return -7;
+}
+
+Result modules_findentryname(char *name, module_entry **module)
+{
+	module_entry *ent;
+	u32 pos;
+
+	*module = NULL;
+
+	for(pos=0; pos<MAX_MODULES; pos++)
+	{
+		ent = &modules_list[pos];
+		if(!ent->initialized)continue;
+
+		if(strncmp(ent->name, name, sizeof(ent->name)))continue;
 
 		*module = ent;
 
@@ -609,6 +632,14 @@ Result http_getactual_payloadurl(char *requrl, char *outurl, u32 outurl_maxsize)
 		return ret;
 	}
 
+	ret = httpcAddTrustedRootCA(&context, (u8*)builtin_rootca_der, builtin_rootca_der_size);
+	if(R_FAILED(ret))
+	{
+		printf("httpcAddTrustedRootCA returned 0x%08x.\n", (unsigned int)ret);
+		httpcCloseContext(&context);
+		return ret;
+	}
+
 	ret = httpcBeginRequest(&context);
 	if(ret!=0)
 	{
@@ -616,6 +647,7 @@ Result http_getactual_payloadurl(char *requrl, char *outurl, u32 outurl_maxsize)
 		return ret;
 	}
 
+	memset(outurl, 0, outurl_maxsize);
 	ret = httpcGetResponseHeader(&context, "Location", outurl, outurl_maxsize);
 
 	httpcCloseContext(&context);
@@ -623,11 +655,10 @@ Result http_getactual_payloadurl(char *requrl, char *outurl, u32 outurl_maxsize)
 	return 0;
 }
 
-Result http_download_payload(char *url, u32 *payloadsize)
+Result http_download_content(char *url, u32 *contentsize)
 {
 	Result ret=0;
 	u32 statuscode=0;
-	u32 contentsize=0;
 	httpcContext context;
 
 	ret = httpcOpenContext(&context, HTTPC_METHOD_GET, url, 1);
@@ -636,6 +667,22 @@ Result http_download_payload(char *url, u32 *payloadsize)
 	ret = httpcAddRequestHeaderField(&context, "User-Agent", "menuhax_manager/"VERSION);
 	if(ret!=0)
 	{
+		httpcCloseContext(&context);
+		return ret;
+	}
+
+	ret = httpcAddTrustedRootCA(&context, (u8*)builtin_rootca_der, builtin_rootca_der_size);
+	if(R_FAILED(ret))
+	{
+		printf("httpcAddTrustedRootCA returned 0x%08x.\n", (unsigned int)ret);
+		httpcCloseContext(&context);
+		return ret;
+	}
+
+	ret = httpcAddDefaultCert(&context, SSLC_DefaultRootCert_DigiCert_EV);
+	if(R_FAILED(ret))
+	{
+		printf("httpcAddDefaultCert returned 0x%08x.\n", (unsigned int)ret);
 		httpcCloseContext(&context);
 		return ret;
 	}
@@ -661,22 +708,22 @@ Result http_download_payload(char *url, u32 *payloadsize)
 		return -2;
 	}
 
-	ret=httpcGetDownloadSizeState(&context, NULL, &contentsize);
+	ret=httpcGetDownloadSizeState(&context, NULL, contentsize);
 	if(ret!=0)
 	{
 		httpcCloseContext(&context);
 		return ret;
 	}
 
-	if(contentsize==0 || contentsize>filebuffer_maxsize)
+	if((*contentsize)==0 || (*contentsize)>filebuffer_maxsize)
 	{
-		printf("Invalid HTTP content-size: 0x%08x.\n", (unsigned int)contentsize);
+		printf("Invalid HTTP content-size: 0x%08x.\n", (unsigned int)*contentsize);
 		ret = -3;
 		httpcCloseContext(&context);
 		return ret;
 	}
 
-	ret = httpcDownloadData(&context, filebuffer, contentsize, NULL);
+	ret = httpcDownloadData(&context, filebuffer, *contentsize, NULL);
 	if(ret!=0)
 	{
 		httpcCloseContext(&context);
@@ -685,9 +732,153 @@ Result http_download_payload(char *url, u32 *payloadsize)
 
 	httpcCloseContext(&context);
 
-	*payloadsize = contentsize;
+	return 0;
+}
+
+//Parse the config. The format of the first line is: "release_version=<version>". The format of each line starting with the second one is: "<modulename> <X.X.X>", where X.X.X is the unsupported_cver version.
+Result parse_config(char *config, u32 configsize)
+{
+	Result ret=0;
+	u32 configpos=0;
+	u32 line_endpos;
+	u32 line_len;
+	u32 linenum=0;
+	unsigned char version[3];
+
+	char *linestr;
+	char *strptr, *strptr2;
+	module_entry *module;
+
+	while(configpos < configsize)
+	{
+		linestr = &config[configpos];
+		line_endpos = configsize;
+
+		strptr = strchr(linestr, '\n');
+		if(strptr)
+		{
+			line_len = ((size_t)strptr) - ((size_t)linestr);
+			line_endpos = configpos+line_len;
+		}
+		else
+		{
+			line_len = line_endpos - configpos;
+		}
+
+		*strptr = 0;
+
+		if(line_len)
+		{
+			if(linenum==0)
+			{
+				strptr = strstr(linestr, "release_version=");
+				if(strptr)
+				{
+					strptr = strtok(&strptr[16], " ");
+					if(strptr)
+					{
+						if(strncmp(strptr, VERSION, strlen(strptr)))
+						{
+							printf("This menuhax_manager build's version doesn't match the version from config.\nYou likely aren't using the latest release version, outdated versions are not supported.\n");
+							return -2;
+						}
+					}
+				}
+			}
+			else
+			{
+				strptr = strtok(linestr, " ");
+				if(strptr)strptr2 = strtok(NULL, " ");
+
+				if(strptr==NULL || strptr2==NULL)
+				{
+					printf("A line in the config is invalid.\n");
+					return -1;
+				}
+				else
+				{
+					memset(version, 0, sizeof(version));
+					sscanf(strptr2, "%hhu.%hhu.%hhu", &version[0], &version[1], &version[2]);
+
+					module = NULL;
+					ret = modules_findentryname(strptr, &module);
+					if(ret!=0)
+					{
+						printf("This menuhax_manager build doesn't include a module with the name specified by the config: %s. Ignoring this.\n", strptr);
+					}
+
+					module->unsupported_cver = MODULE_MAKE_CVER(version[0], version[1], version[2]);
+				}
+			}
+		}
+
+		linenum++;
+		configpos = line_endpos+1;
+	}
 
 	return 0;
+}
+
+Result load_config()
+{
+	Result ret=0;
+	u32 configsize=0;
+	char *sd_cfgpath = "sdmc:/3ds/menuhax_manager/config";
+
+	memset(filebuffer, 0, filebuffer_maxsize);
+
+	printf("Downloading config via HTTPC...\n");
+	
+	ret = httpcInit(0);
+	if(R_FAILED(ret))
+	{
+		printf("Failed to initialize HTTPC: 0x%08x.\n", (unsigned int)ret);
+	}
+	else
+	{
+		ret = http_download_content("https://yls8.mtheall.com/menuhax/config", &configsize);
+		httpcExit();
+
+		if(ret==0)
+		{
+			unlink(sd_cfgpath);
+			ret = archive_writefile(SDArchive, sd_cfgpath, filebuffer, configsize, configsize);
+			if(ret!=0)
+			{
+				printf("Failed to write the config to SD(0x%08x), ignoring.\n", (unsigned int)ret);
+				ret = 0;
+			}
+		}
+	}
+
+	if(ret!=0)
+	{
+		memset(filebuffer, 0, filebuffer_maxsize);
+
+		printf("Config download failed(0x%08x), trying to load it from SD...\n", (unsigned int)ret);
+
+		ret = archive_getfilesize(SDArchive, sd_cfgpath, &configsize);
+		if(ret==0 && configsize>filebuffer_maxsize)
+		{
+			printf("Filesize is too large(0x%x).\n", (unsigned int)configsize);
+			ret = -1;
+		}
+
+		if(ret==0)ret = archive_readfile(SDArchive, sd_cfgpath, filebuffer, configsize);
+		if(ret!=0)printf("Failed to load config from SD: 0x%08x.\n", (unsigned int)ret);
+	}
+
+	if(ret!=0)return ret;
+
+	if(configsize==filebuffer_maxsize)
+	{
+		configsize--;
+		filebuffer[configsize] = 0;
+	}
+
+	printf("Parsing config...\n");
+
+	return parse_config((char*)filebuffer, configsize);
 }
 
 Result install_menuhax(char *ropbin_filepath)
@@ -776,7 +967,7 @@ Result install_menuhax(char *ropbin_filepath)
 		return ret;
 	}
 
-	snprintf(payloadurl, sizeof(payloadurl)-1, "http://smea.mtheall.com/get_ropbin_payload.php?version=%s-%d-%d-%d-%d-%s", new3dsflag?"NEW":"OLD", cver_versionbin.mainver, cver_versionbin.minor, cver_versionbin.build, nver_versionbin.mainver, regionids_table[region]);
+	snprintf(payloadurl, sizeof(payloadurl)-1, "https://smea.mtheall.com/get_ropbin_payload.php?version=%s-%d-%d-%d-%d-%s", new3dsflag?"NEW":"OLD", cver_versionbin.mainver, cver_versionbin.minor, cver_versionbin.build, nver_versionbin.mainver, regionids_table[region]);
 
 	printf("Detected system-version: %s %d.%d.%d-%d %s\n", new3dsflag?"New3DS":"Old3DS", cver_versionbin.mainver, cver_versionbin.minor, cver_versionbin.build, nver_versionbin.mainver, regionids_table[region]);
 
@@ -818,34 +1009,41 @@ Result install_menuhax(char *ropbin_filepath)
 		else
 		{
 			ret = httpcInit(0);
-			if(ret!=0)
+			if(R_FAILED(ret))
 			{
 				printf("Failed to initialize HTTPC: 0x%08x.\n", (unsigned int)ret);
 				if(ret==0xd8e06406)
 				{
-					printf("The HTTPC service is inaccessible. With the hblauncher-payload this may happen if the process this app is running under doesn't have access to that service. Please try rebooting the system, boot hblauncher-payload, then directly launch the app.\n");
+					printf("The HTTPC service is inaccessible. With the *hax-payload this may happen if the process this app is running under doesn't have access to that service. Please try rebooting the system, boot *hax-payload, then directly launch the app.\n");
 				}
 
 				return ret;
 			}
 
-			printf("Requesting the actual payload URL with HTTP...\n");
+			printf("Requesting the actual payload URL with HTTPC...\n");
 			ret = http_getactual_payloadurl(payloadurl, payloadurl, sizeof(payloadurl));
 			if(ret!=0)
 			{
 				printf("Failed to request the actual payload URL: 0x%08x.\n", (unsigned int)ret);
-				printf("If the server isn't down, and the HTTP request was actually done, this may mean your system-version or region isn't supported by the hblauncher-payload currently.\n");
+				printf("If the server isn't down, and the HTTP request was actually done, this may mean your system-version or region isn't supported by the *hax-payload currently.\n");
 				httpcExit();
 				return ret;
 			}
 
-			printf("Downloading the actual payload with HTTP...\n");
-			ret = http_download_payload(payloadurl, &payloadsize);
+			//Use https instead of http with the below site.
+			if(strncmp(payloadurl, "http://smealum.github.io/", 25)==0)
+			{
+				memmove(&payloadurl[5], &payloadurl[4], strlen(payloadurl)-4);
+				payloadurl[4] = 's';
+			}
+
+			printf("Downloading the actual payload with HTTPC...\n");
+			ret = http_download_content(payloadurl, &payloadsize);
 			httpcExit();
 			if(ret!=0)
 			{
 				printf("Failed to download the actual payload with HTTP: 0x%08x.\n", (unsigned int)ret);
-				printf("If the server isn't down, and the HTTP request was actually done, this may mean your system-version or region isn't supported by the hblauncher-payload currently.\n");
+				printf("If the server isn't down, and the HTTP request was actually done, this may mean your system-version or region isn't supported by the *hax-payload currently.\n");
 				return ret;
 			}
 		}
@@ -1486,7 +1684,7 @@ int main(int argc, char **argv)
 			printf("Failed to initialize AM: 0x%08x.\n", (unsigned int)ret);
 			if(ret==0xd8e06406)
 			{
-				printf("The AM service is inaccessible. With the hblauncher-payload this should never happen. This is normal with plain ninjhax v1.x: this app isn't usable from ninjhax v1.x without any further hax.\n");
+				printf("The AM service is inaccessible. With the *hax-payload this should never happen. This is normal with plain ninjhax v1.x: this app isn't usable from ninjhax v1.x without any further hax.\n");
 			}
 		}
 	}
@@ -1518,6 +1716,12 @@ int main(int argc, char **argv)
 
 			memset(headerstr, 0, sizeof(headerstr));
 			snprintf(headerstr, sizeof(headerstr)-1, "menuhax_manager %s by yellows8.\n\nThis can install Home Menu haxx to the SD card, for booting the *hax payloads. Select an option with the below menu. You can press the B button to exit. You can press the Y button at any time while at a menu like the below one, to toggle the screen being used by this app.\nThe theme menu options are only available when the cfg file exists on SD with an exploit installed which requires seperate theme-data files", VERSION);
+
+			ret = load_config();
+			if(ret!=0)
+			{
+				printf("Failed to load config: 0x%08x.\n", (unsigned int)ret);
+			}
 
 			while(ret==0)
 			{

@@ -15,7 +15,7 @@ Result themehax_delete();
 void register_module_themehax()
 {
 	module_entry module = {
-		.unsupported_cver = MODULE_MAKE_CVER(10, 2, 0),
+		.name = "themehax",
 		.haxinstall = themehax_install,
 		.haxdelete = themehax_delete,
 		.themeflag = false
