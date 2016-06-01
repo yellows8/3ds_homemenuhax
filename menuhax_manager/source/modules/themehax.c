@@ -32,7 +32,7 @@ Result themehax_install(char *menuhax_basefn)
 
 	memset(body_filepath, 0, sizeof(body_filepath));
 
-	snprintf(body_filepath, sizeof(body_filepath)-1, "romfs:/finaloutput/themepayload/%s.lz", menuhax_basefn);
+	snprintf(body_filepath, sizeof(body_filepath)-1, "romfs:/finaloutput/themepayload.zip@%s.lz", menuhax_basefn);
 
 	printf("Installing themehax...\n");
 

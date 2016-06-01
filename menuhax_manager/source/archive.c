@@ -6,6 +6,8 @@
 #include <errno.h>
 #include <3ds.h>
 
+#include <unzip.h>
+
 #include "archive.h"
 
 u32 extdata_archives_lowpathdata[TotalExtdataArchives][3];
@@ -112,6 +114,59 @@ Result archive_deletefile(Archive archive, char *path)
 	return FSUSER_DeleteFile(extdata_archives[archive], fsMakePath(PATH_ASCII, path));
 }
 
+//Opens a file contained in a .zip, where path is: "<path to .zip>@<filename in .zip>". The decompressed filesize is written to outsize if not NULL, and the filedata is also read if the input parameters for that are set.
+int fszip_readzipfile(const char *path, u32 *outsize, u8 *buffer, u32 size)
+{
+	unzFile zipf;
+	unz_file_info file_info;
+	int ret=0;
+	char *strptr = NULL;
+
+	char tmp_path[1024];
+
+	memset(tmp_path, 0, sizeof(tmp_path));
+	strncpy(tmp_path, path, sizeof(tmp_path)-1);
+
+	strptr = strchr(tmp_path, '@');
+	if(strptr==NULL)return -1;
+
+	*strptr = 0;
+	strptr++;
+
+	zipf = unzOpen(tmp_path);
+	if(zipf==NULL)return -2;
+
+	ret = unzLocateFile(zipf, strptr, 0);
+
+	if(ret==UNZ_OK)ret = unzOpenCurrentFile(zipf);
+
+	if(ret==UNZ_OK)
+	{
+		ret = unzGetCurrentFileInfo(zipf, &file_info, NULL, 0, NULL, 0, NULL, 0);
+
+		if(ret==UNZ_OK && outsize!=NULL)*outsize = file_info.uncompressed_size;
+
+		if(ret==UNZ_OK && buffer!=NULL && size!=0)
+		{
+			ret = unzReadCurrentFile(zipf, buffer, size);
+			if((u32)ret < size)
+			{
+				ret = -3;
+			}
+			else
+			{
+				ret = UNZ_OK;
+			}
+		}
+
+		unzCloseCurrentFile(zipf);
+	}
+
+	unzClose(zipf);
+
+	return ret;
+}
+
 Result archive_getfilesize(Archive archive, char *path, u32 *outsize)
 {
 	Result ret=0;
@@ -123,6 +178,8 @@ Result archive_getfilesize(Archive archive, char *path, u32 *outsize)
 
 	if(archive==SDArchive)
 	{
+		if(strchr(path, '@'))return fszip_readzipfile(path, outsize, NULL, 0);
+
 		f = fopen(path, "r");
 		if(f==NULL)return errno;
 
@@ -163,6 +220,8 @@ Result archive_readfile(Archive archive, char *path, u8 *buffer, u32 size)
 
 	if(archive==SDArchive)
 	{
+		if(strchr(path, '@'))return fszip_readzipfile(path, NULL, buffer, size);
+
 		memset(filepath, 0, 256);
 		strncpy(filepath, path, 255);
 

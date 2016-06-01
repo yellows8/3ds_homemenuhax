@@ -32,7 +32,7 @@ Result shufflehax_install(char *menuhax_basefn)
 
 	memset(payload_filepath, 0, sizeof(payload_filepath));
 
-	snprintf(payload_filepath, sizeof(payload_filepath)-1, "romfs:/finaloutput/shufflepayload/%s.lz", menuhax_basefn);
+	snprintf(payload_filepath, sizeof(payload_filepath)-1, "romfs:/finaloutput/shufflepayload.zip@%s.lz", menuhax_basefn);
 
 	printf("Installing shufflehax...\n");
 

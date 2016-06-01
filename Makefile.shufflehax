@@ -23,6 +23,8 @@ shufflehax_build:
 	@for path in shufflehax_menuversions/KOR/*; do make -f Makefile buildshuffle --no-print-directory REGION=KOR REGIONVAL=4 MENUVERSION=$$(basename "$$path"); done
 	#@for path in shufflehax_menuversions/TWN/*; do make -f Makefile buildshuffle --no-print-directory REGION=TWN REGIONVAL=5 MENUVERSION=$$(basename "$$path"); done
 
+	@zip -rj finaloutput/shufflepayload.zip finaloutput/shufflepayload
+
 buildshuffle:
 	@make -f Makefile finaloutput/shufflepayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds.lz --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_HAX_OLD3DS) FIXHEAPBUF=$(HEAPBUF_HAX_OLD3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 $(PARAMS)
 	@make -f Makefile finaloutput/shufflepayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds.lz --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_HAX_NEW3DS) HEAPBUF=$(HEAPBUF_HAX_NEW3DS) FIXHEAPBUF=$(HEAPBUF_HAX_NEW3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 $(PARAMS)

@@ -8,6 +8,8 @@ themehax_build:
 	@for path in themehax_menuversions/KOR/*; do make -f Makefile buildtheme --no-print-directory REGION=KOR REGIONVAL=4 MENUVERSION=$$(basename "$$path"); done
 	#@for path in themehax_menuversions/TWN/*; do make -f Makefile buildtheme --no-print-directory REGION=TWN REGIONVAL=5 MENUVERSION=$$(basename "$$path"); done
 
+	@zip -rj finaloutput/themepayload.zip finaloutput/themepayload
+
 buildtheme:
 	@make -f Makefile finaloutput/themepayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds.lz --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_HAX_OLD3DS) FIXHEAPBUF=$(HEAPBUF_HAX_OLD3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 $(PARAMS)
 	@make -f Makefile finaloutput/themepayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds.lz --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_HAX_NEW3DS) FIXHEAPBUF=$(HEAPBUF_HAX_NEW3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 $(PARAMS)

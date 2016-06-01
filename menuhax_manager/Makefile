@@ -62,7 +62,7 @@ CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lctru -lm -lz
+LIBS	:= -lctru -lm -lminiunzip -lz
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
@@ -172,8 +172,8 @@ $(OUTPUT).elf	:	$(OFILES)
 $(CURDIR)/$(ROMFS)	:	
 	@mkdir -p $(CURDIR)/../$(ROMFS)
 	@cp $(CURDIR)/../blanktheme.lz $(CURDIR)/../$(ROMFS)/blanktheme.lz
-	@cp -R $(CURDIR)/../../finaloutput $(CURDIR)/../$(ROMFS)/
-	
+	@mkdir $(CURDIR)/../$(ROMFS)/finaloutput
+	@cp -R $(CURDIR)/../../finaloutput/*.zip $(CURDIR)/../$(ROMFS)/finaloutput
 
 #---------------------------------------------------------------------------------
 # you need a rule like this for each extension you use as binary data
