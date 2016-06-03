@@ -34,7 +34,7 @@ DATA		:=	data
 INCLUDES	:=	include lodepng source source/modules
 ROMFS		:=	romfs
 
-VERSION	:=	v2.2
+VERSION	:=	$(shell cat ../../release_version)
 
 ifeq ($(RELEASE),)
 	VERSION	:=	$(VERSION)-$(shell git describe --abbrev=7 --dirty --always)
