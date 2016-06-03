@@ -9,6 +9,7 @@
 #include <unzip.h>
 
 #include "archive.h"
+#include "log.h"
 
 u32 extdata_archives_lowpathdata[TotalExtdataArchives][3];
 FS_Archive extdata_archives[TotalExtdataArchives];
@@ -26,14 +27,14 @@ Result open_extdata()
 	ret = cfguInit();
 	if(ret!=0)
 	{
-		printf("Failed to init cfg: 0x%08x\n", (unsigned int)ret);
+		log_printf(LOGTAR_ALL, "Failed to init cfg: 0x%08x\n", (unsigned int)ret);
 		return ret;
 	}
 
 	ret = CFGU_SecureInfoGetRegion(&region);
 	if(ret!=0)
 	{
-		printf("CFGU_SecureInfoGetRegion() failed: 0x%08x\n", (unsigned int)ret);
+		log_printf(LOGTAR_ALL, "CFGU_SecureInfoGetRegion() failed: 0x%08x\n", (unsigned int)ret);
 		return ret;
 	}
 
@@ -73,7 +74,7 @@ Result open_extdata()
 	ret = FSUSER_OpenArchive(&extdata_archives[HomeMenu_Extdata], ARCHIVE_EXTDATA, archpath);
 	if(ret!=0)
 	{
-		printf("Failed to open homemenu extdata with extdataID=0x%08x, retval: 0x%08x\n", (unsigned int)extdataID_homemenu, (unsigned int)ret);
+		log_printf(LOGTAR_ALL, "Failed to open homemenu extdata with extdataID=0x%08x, retval: 0x%08x\n", (unsigned int)extdataID_homemenu, (unsigned int)ret);
 		return ret;
 	}
 	extdata_initialized |= 0x1;
@@ -83,8 +84,8 @@ Result open_extdata()
 	ret = FSUSER_OpenArchive(&extdata_archives[Theme_Extdata], ARCHIVE_EXTDATA, archpath);
 	if(ret!=0)
 	{
-		printf("Failed to open theme extdata with extdataID=0x%08x, retval: 0x%08x\n", (unsigned int)extdataID_theme, (unsigned int)ret);
-		printf("Exit this app, then goto Home Menu theme-settings so that Home Menu can create the theme extdata.\n");
+		log_printf(LOGTAR_ALL, "Failed to open theme extdata with extdataID=0x%08x, retval: 0x%08x\n", (unsigned int)extdataID_theme, (unsigned int)ret);
+		log_printf(LOGTAR_ALL, "Exit this app, then goto Home Menu theme-settings so that Home Menu can create the theme extdata.\n");
 		return ret;
 	}
 	extdata_initialized |= 0x2;
@@ -284,14 +285,14 @@ Result archive_writefile(Archive archive, char *path, u8 *buffer, u32 size, u32 
 			ret = FSUSER_CreateFile(extdata_archives[archive], fsMakePath(PATH_ASCII, path), 0, createsize);
 			if(ret)
 			{
-				printf("Failed to create the file: 0x%08x.\n", (unsigned int)ret);
+				log_printf(LOGTAR_ALL, "Failed to create the file: 0x%08x.\n", (unsigned int)ret);
 				return ret;
 			}
 
 			ret = FSUSER_OpenFile(&filehandle, extdata_archives[archive], fsMakePath(PATH_ASCII, path), FS_OPEN_WRITE, 0);
 			if(ret)
 			{
-				printf("Failed to open the file after creation: 0x%08x.\n", (unsigned int)ret);
+				log_printf(LOGTAR_ALL, "Failed to open the file after creation: 0x%08x.\n", (unsigned int)ret);
 			}
 
 			if(ret==0 && size!=createsize)
@@ -337,26 +338,26 @@ Result archive_copyfile(Archive inarchive, Archive outarchive, char *inpath, cha
 
 	if(size>maxbufsize)
 	{
-		printf("Size is too large.\n");
+		log_printf(LOGTAR_ALL, "Size is too large.\n");
 		ret = -1;
 		return ret;
 	}
 
-	printf("Reading %s...\n", display_filepath);
+	log_printf(LOGTAR_ALL, "Reading %s...\n", display_filepath);
 
 	ret = archive_readfile(inarchive, inpath, buffer, size);
 	if(ret!=0)
 	{
-		printf("Failed to read file: 0x%08x\n", (unsigned int)ret);
+		log_printf(LOGTAR_ALL, "Failed to read file: 0x%08x\n", (unsigned int)ret);
 		return ret;
 	}
 
-	printf("Writing %s...\n", display_filepath);
+	log_printf(LOGTAR_ALL, "Writing %s...\n", display_filepath);
 
 	ret = archive_writefile(outarchive, outpath, buffer, size, createsize);
 	if(ret!=0)
 	{
-		printf("Failed to write file: 0x%08x\n", (unsigned int)ret);
+		log_printf(LOGTAR_ALL, "Failed to write file: 0x%08x\n", (unsigned int)ret);
 		return ret;
 	}
 

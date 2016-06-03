@@ -1,3 +1,5 @@
+#pragma once
+
 typedef Result (*menuhaxcb_install)(char *menuhax_basefn);
 typedef Result (*menuhaxcb_delete)(void);
 
@@ -8,6 +10,7 @@ typedef struct {
 	u32 index;
 
 	char name[16];
+	bool manual_name_display;//When true the module itself should print the name instead of letting that being handled automatically.
 	u32 unsupported_cver;
 	menuhaxcb_install haxinstall;
 	menuhaxcb_delete haxdelete;

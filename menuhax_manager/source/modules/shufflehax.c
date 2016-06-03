@@ -6,6 +6,7 @@
 #include <3ds.h>
 
 #include "archive.h"
+#include "log.h"
 
 #include "modules_common.h"
 
@@ -34,17 +35,15 @@ Result shufflehax_install(char *menuhax_basefn)
 
 	snprintf(payload_filepath, sizeof(payload_filepath)-1, "romfs:/finaloutput/shufflepayload.zip@%s.lz", menuhax_basefn);
 
-	printf("Installing shufflehax...\n");
-
-	printf("Enabling shuffle themecache...\n");
+	log_printf(LOGTAR_ALL, "Enabling shuffle themecache...\n");
 	ret = enablethemecache(3, 1, 1);
 	if(ret!=0)return ret;
 
-	printf("Installing to the SD theme-cache...\n");
+	log_printf(LOGTAR_ALL, "Installing to the SD theme-cache...\n");
 	ret = sd2themecache(payload_filepath, "sdmc:/3ds/menuhax_manager/bgm_bundledmenuhax.bcstm", 0);
 	if(ret!=0)return ret;
 
-	printf("Initializing the seperate menuhax theme-data files...\n");
+	log_printf(LOGTAR_ALL, "Initializing the seperate menuhax theme-data files...\n");
 	ret = sd2themecache("romfs:/blanktheme.lz", NULL, 1);
 	if(ret!=0)return ret;
 
@@ -59,9 +58,7 @@ Result shufflehax_delete()
 
 	char str[256];
 
-	printf("Deleting shufflehax...\n");
-
-	printf("Disabling theme-usage via SaveData.dat...\n");
+	log_printf(LOGTAR_ALL, "Disabling theme-usage via SaveData.dat...\n");
 	ret = disablethemecache();
 	if(ret!=0)return ret;
 
@@ -70,28 +67,28 @@ Result shufflehax_delete()
 	tmpbuf = malloc(0xd20000);
 	if(tmpbuf==NULL)
 	{
-		printf("Failed to allocate memory for the shuffle-BodyCache clearing buffer.");
+		log_printf(LOGTAR_ALL, "Failed to allocate memory for the shuffle-BodyCache clearing buffer.");
 		return 1;
 	}
 	memset(tmpbuf, 0, 0xd20000);
 
-	printf("Clearing the theme-cache extdata now...\n");
+	log_printf(LOGTAR_ALL, "Clearing the theme-cache extdata now...\n");
 
-	printf("Clearing the ThemeManage...\n");
+	log_printf(LOGTAR_ALL, "Clearing the ThemeManage...\n");
 	ret = archive_writefile(Theme_Extdata, "/ThemeManage.bin", filebuffer, 0x800, 0x800);
 	if(ret!=0)
 	{
-		printf("Failed to clear the ThemeManage: 0x%08x.\n", (unsigned int)ret);
+		log_printf(LOGTAR_ALL, "Failed to clear the ThemeManage: 0x%08x.\n", (unsigned int)ret);
 		free(tmpbuf);
 		return ret;
 	}
 
-	printf("Clearing the shuffle BodyCache...\n");
+	log_printf(LOGTAR_ALL, "Clearing the shuffle BodyCache...\n");
 	ret = archive_writefile(Theme_Extdata, "/BodyCache_rd.bin", tmpbuf, 0xd20000, 0xd20000);
 	free(tmpbuf);
 	if(ret!=0)
 	{
-		printf("Failed to clear the shuffle BodyCache: 0x%08x.\n", (unsigned int)ret);
+		log_printf(LOGTAR_ALL, "Failed to clear the shuffle BodyCache: 0x%08x.\n", (unsigned int)ret);
 		return ret;
 	}
 
@@ -100,11 +97,11 @@ Result shufflehax_delete()
 		memset(str, 0, sizeof(str));
 		snprintf(str, sizeof(str)-1, "/BgmCache_%02d.bin", i);
 
-		printf("Clearing shuffle BgmCache_%02d...\n", i);
+		log_printf(LOGTAR_ALL, "Clearing shuffle BgmCache_%02d...\n", i);
 		ret = archive_writefile(Theme_Extdata, str, filebuffer, 0x337000, 0x337000);
 		if(ret!=0)
 		{
-			printf("Failed to clear shuffle BgmCache_%02d: 0x%08x.\n", i, (unsigned int)ret);
+			log_printf(LOGTAR_ALL, "Failed to clear shuffle BgmCache_%02d: 0x%08x.\n", i, (unsigned int)ret);
 			return ret;
 		}
 	}

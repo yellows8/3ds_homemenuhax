@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <3ds.h>
 
+#include "log.h"
+
 static int menu_curprintscreen = 0;
 static PrintConsole menu_printscreen[2];
 
@@ -33,20 +35,20 @@ void display_menu(char **menu_entries, int total_entries, int *menuindex, char *
 			redraw = 0;
 
 			consoleClear();
-			printf("%s.\n\n", headerstr);
+			log_printf(LOGTAR_ALL, "%s.\n\n", headerstr);
 
 			for(i=0; i<total_entries; i++)
 			{
 				if(*menuindex==i)
 				{
-					printf("-> ");
+					log_printf(LOGTAR_ALL, "-> ");
 				}
 				else
 				{
-					printf("   ");
+					log_printf(LOGTAR_ALL, "   ");
 				}
 
-				printf("%s\n", menu_entries[i]);
+				log_printf(LOGTAR_ALL, "%s\n", menu_entries[i]);
 			}
 		}
 
@@ -92,7 +94,7 @@ void display_menu(char **menu_entries, int total_entries, int *menuindex, char *
 
 void displaymessage_waitbutton()
 {
-	printf("\nPress the A button to continue.\n");
+	log_printf(LOGTAR_ALL, "\nPress the A button to continue.\n");
 	while(1)
 	{
 		gspWaitForVBlank();
@@ -105,7 +107,7 @@ int displaymessage_prompt(const char *message, const char *keymsg)
 {
 	if(keymsg==NULL)keymsg = "A = Yes, B = No.";
 
-	printf("%s\n%s\n\n", message, keymsg);
+	log_printf(LOGTAR_ALL, "%s\n%s\n\n", message, keymsg);
 	while(1)
 	{
 		gspWaitForVBlank();
