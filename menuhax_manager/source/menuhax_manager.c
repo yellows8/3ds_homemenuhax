@@ -1611,7 +1611,7 @@ void delete_dir(const char *dirpath)
 
 void deleteold_sd_data()
 {
-	printf("Deleting old SD data from old menuhax versions, etc...\n");
+	printf("Deleting old SD data from old menuhax_manager versions, etc...\n");
 
 	mkdir("sdmc:/menuhax/", 0777);
 
@@ -1684,7 +1684,7 @@ int main(int argc, char **argv)
 			printf("Failed to initialize AM: 0x%08x.\n", (unsigned int)ret);
 			if(ret==0xd8e06406)
 			{
-				printf("The AM service is inaccessible. With the *hax-payload this should never happen. This is normal with plain ninjhax v1.x: this app isn't usable from ninjhax v1.x without any further hax.\n");
+				printf("The AM service is inaccessible. With the *hax-payload this should never happen. This is normal with plain ninjhax v1.x, ninjhax >=v2.x should be used instead.\n");
 			}
 		}
 	}
