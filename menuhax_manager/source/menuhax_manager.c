@@ -307,7 +307,7 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 	ret = archive_getfilesize(SDArchive, body_filepath, &body_size);
 	if(ret!=0)
 	{
-		printf("Failed to get the filesize of the body-filepath: %s\n", body_filepath);
+		printf("Failed to get the filesize of the body-filepath(file likely doesn't exist): %s\n", body_filepath);
 		if(install_type==0)
 		{
 			printf("The release-archive you're using doesn't include support for your system. Check the menuhax repo README + verify you're using the latest release.\n");
@@ -331,7 +331,7 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 		if(ret!=0)
 		{
 			ret = archive_getfilesize(SDArchive, bgm_filepath, &bgm_size);
-			printf("Skipping BGM copying since  failed for it.\n");
+			printf("Skipping BGM copying.\n");
 
 			bgm_size = 0;
 		}
@@ -917,18 +917,18 @@ Result install_menuhax(char *ropbin_filepath)
 	ret = cfguInit();
 	if(ret!=0)
 	{
-		printf("Failed to init cfgu: 0x%08x.\n", (unsigned int)ret);
+		printf("Failed to init cfg: 0x%08x.\n", (unsigned int)ret);
 		return ret;
 	}
 	ret = CFGU_SecureInfoGetRegion(&region);
 	if(ret!=0)
 	{
-		printf("Failed to get region from cfgu: 0x%08x.\n", (unsigned int)ret);
+		printf("Failed to get region from cfg: 0x%08x.\n", (unsigned int)ret);
 		return ret;
 	}
 	if(region>=7)
 	{
-		printf("Region value from cfgu is invalid: 0x%02x.\n", (unsigned int)region);
+		printf("Region value from cfg is invalid: 0x%02x.\n", (unsigned int)region);
 		ret = -9;
 		return ret;
 	}
@@ -1004,7 +1004,7 @@ Result install_menuhax(char *ropbin_filepath)
 
 		if(ret==0)
 		{
-			printf("The input payload for this installer already exists on SD, that will be used instead of downloading the payload via HTTP.\n");
+			printf("The input payload already exists on SD, that will be used instead of downloading the payload.\n");
 		}
 		else
 		{
@@ -1611,7 +1611,7 @@ void delete_dir(const char *dirpath)
 
 void deleteold_sd_data()
 {
-	printf("Deleting old SD data from old menuhax_manager versions, etc...\n");
+	printf("Deleting SD data from old menuhax_manager versions, etc...\n");
 
 	mkdir("sdmc:/menuhax/", 0777);
 

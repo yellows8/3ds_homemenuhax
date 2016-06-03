@@ -26,7 +26,7 @@ Result open_extdata()
 	ret = cfguInit();
 	if(ret!=0)
 	{
-		printf("initCfgu() failed: 0x%08x\n", (unsigned int)ret);
+		printf("Failed to init cfg: 0x%08x\n", (unsigned int)ret);
 		return ret;
 	}
 
@@ -328,7 +328,6 @@ Result archive_copyfile(Archive inarchive, Archive outarchive, char *inpath, cha
 	u32 filesize=0;
 
 	ret = archive_getfilesize(inarchive, inpath, &filesize);
-	printf("archive_getfilesize() ret=0x%08x, size=0x%08x\n", (unsigned int)ret, (unsigned int)filesize);
 	if(ret!=0)return ret;
 
 	if(size==0 || size>filesize)
