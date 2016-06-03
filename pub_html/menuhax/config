@@ -1,8 +1,31 @@
 <?php
 
+$con = "";
 
+$con.= "release_version=v2.2\n";
+
+$dirpath = "/home/yellows8/yellows8github/3ds_homemenuhax/modules_verlist";
+
+$dirlist = scandir($dirpath);
+
+if(count($dirlist) > 0)
+{
+	foreach($dirlist as $dirent)
+	{
+		if($dirent === "." || $dirent === "..")continue;
+
+		$filepath = "$dirpath/$dirent";
+
+		if(file_exists($filepath)===TRUE)
+		{
+			$filecon = file_get_contents($filepath);
+			if($filecon===FALSE || $filecon==="")continue;
+
+			$con.= "$dirent $filecon\n";
+		}
+	}
+}
+
+echo "$con";
 
 ?>
-release_version=v2.2
-themehax 10.2.0
-shufflehax 10.6.0
