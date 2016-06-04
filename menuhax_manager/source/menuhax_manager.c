@@ -1454,45 +1454,45 @@ Result imagedisplay_loadpng(char *filepath, u8 **finalimage_out)
 
 	*finalimage_out = NULL;
 
-	log_printf(LOGTAR_ALL, "Loading PNG from FS...\n");
+	log_printf(LOGTAR_LOG, "Loading PNG from FS: %s\n", filepath);
 
 	ret = archive_getfilesize(SDArchive, filepath, (u32*)&pngsize);
 	if(ret!=0)
 	{
-		log_printf(LOGTAR_ALL, "Failed to get the filesize of the PNG: 0x%08x. The file probably doesn't exist.\n", (unsigned int)ret);
+		log_printf(LOGTAR_LOG, "Failed to get the filesize of the PNG: 0x%08x. The file probably doesn't exist.\n", (unsigned int)ret);
 		return ret;
 	}
 
 	pngbuf = malloc(pngsize);
 	if(pngbuf==NULL)
 	{
-		log_printf(LOGTAR_ALL, "Failed to alloc the PNG buffer with size 0x%08x.\n", (unsigned int)pngsize);
+		log_printf(LOGTAR_LOG, "Failed to alloc the PNG buffer with size 0x%08x.\n", (unsigned int)pngsize);
 		return 1;
 	}
 
 	ret = archive_readfile(SDArchive, filepath, pngbuf, pngsize);
 	if(ret!=0)
 	{
-		log_printf(LOGTAR_ALL, "Failed to read the PNG from FS: 0x%08x.\n", (unsigned int)ret);
+		log_printf(LOGTAR_LOG, "Failed to read the PNG from FS: 0x%08x.\n", (unsigned int)ret);
 		free(pngbuf);
 		return ret;
 	}
 
-	log_printf(LOGTAR_ALL, "Decoding PNG...\n");
+	log_printf(LOGTAR_LOG, "Decoding PNG...\n");
 
 	ret = lodepng_decode24(&outbuf, &w, &h, pngbuf, pngsize);
 	free(pngbuf);
 	if(ret!=0)
 	{
-		log_printf(LOGTAR_ALL, "lodepng returned an error: %s\n", lodepng_error_text(ret));
+		log_printf(LOGTAR_LOG, "lodepng returned an error: %s\n", lodepng_error_text(ret));
 		return ret;
 	}
 
-	log_printf(LOGTAR_ALL, "Decoding finished.\n");
+	log_printf(LOGTAR_LOG, "Decoding finished.\n");
 
 	if(!(w==800 && h==240) && !(w==240 && h==800))
 	{
-		log_printf(LOGTAR_ALL, "PNG width and/or height is invalid. 800x240 or 240x800 is required but the PNG is %ux%u.\n", (unsigned int)w, (unsigned int)h);
+		log_printf(LOGTAR_LOG, "PNG width and/or height is invalid. 800x240 or 240x800 is required but the PNG is %ux%u.\n", (unsigned int)w, (unsigned int)h);
 		free(outbuf);
 		return 2;
 	}
@@ -1500,12 +1500,12 @@ Result imagedisplay_loadpng(char *filepath, u8 **finalimage_out)
 	finalimage = malloc(0x8ca00);
 	if(finalimage==NULL)
 	{
-		log_printf(LOGTAR_ALL, "Failed to alloc the finalimage buffer.\n");
+		log_printf(LOGTAR_LOG, "Failed to alloc the finalimage buffer.\n");
 		free(outbuf);
 		return 1;
 	}
 
-	log_printf(LOGTAR_ALL, "Converting the image to the required format...\n");
+	log_printf(LOGTAR_LOG, "Converting the image to the required format...\n");
 
 	for(x=0; x<w; x++)
 	{
@@ -1535,15 +1535,20 @@ Result setup_imagedisplay()
 	Result ret=0;
 	int menuindex = 0;
 	u32 imgdisp_exists = 0;
-	char *filepath = NULL;
-	u8 *finalimage = NULL;
+	u32 imgid = 0;
+	u32 pos;
+	u8 *finalimages[2];
 
 	struct stat filestats;
 
 	char *menu_entries[] = {
 	"Default image.",
-	"Custom image loaded from a PNG on SD.",
+	"Custom image from SD.",
 	"Delete the image-display file."};
+
+	char new_menutext[64];
+
+	memset(finalimages, 0, sizeof(finalimages));
 
 	imgdisp_exists = 1;
 	ret = stat("sdmc:/menuhax/menuhax_imagedisplay.bin", &filestats);
@@ -1561,48 +1566,61 @@ Result setup_imagedisplay()
 
 	displaymessage_waitbutton();
 
+	log_printf(LOGTAR_ALL, "Loading PNGs...\n");
+
+	imagedisplay_loadpng("romfs:/default_imagedisplay.png", &finalimages[0]);
+	imagedisplay_loadpng("sdmc:/3ds/menuhax_manager/imagedisplay.png", &finalimages[1]);
+
+	memset(new_menutext, 0, sizeof(new_menutext));
+
+	for(pos=0; pos<2; pos++)
+	{
+		if(finalimages[pos]==NULL)
+		{
+			snprintf(&new_menutext[32*pos], 31, "%s %s", menu_entries[pos], "N/A since PNG loading failed.");
+			menu_entries[pos] = &new_menutext[32*pos];
+		}
+	}
+
 	display_menu(menu_entries, 2 + imgdisp_exists, &menuindex, "Select an option with the below menu. You can press B to exit without changing anything");
 
 	log_printf(LOGTAR_ALL, "\n");
 
-	if(menuindex==-1)return 0;
+	if(menuindex==-1)
+	{
+		for(pos=0; pos<2; pos++)free(finalimages[pos]);
+		return 0;
+	}
 
 	switch(menuindex)
 	{
 		case 0:
-			filepath = "romfs:/default_imagedisplay.png";
-		break;
-
 		case 1:
-			filepath = "sdmc:/3ds/menuhax_manager/imagedisplay.png";
+			imgid = (u32)menuindex;
 		break;
 
 		case 2:
 			unlink("sdmc:/menuhax/menuhax_imagedisplay.bin");
+			for(pos=0; pos<2; pos++)free(finalimages[pos]);
 		return 0;
 	}
 
-	finalimage = NULL;
-	ret = imagedisplay_loadpng(filepath, &finalimage);
-	if(ret!=0)
+	if(finalimages[imgid]==NULL)
 	{
-		printf("PNG loading failed: 0x%08x.\n", (unsigned int)ret);
-		return ret;
+		log_printf(LOGTAR_ALL, "The selected image isn't available since PNG loading failed(details were logged).\n");
+		for(pos=0; pos<2; pos++)free(finalimages[pos]);
+		return -1;
 	}
 
 	log_printf(LOGTAR_ALL, "Writing the final image to SD...\n");
 
-	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_imagedisplay.bin", finalimage, 0x8ca00, 0);
+	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_imagedisplay.bin", finalimages[imgid], 0x8ca00, 0);
 	if(ret!=0)
 	{
 		log_printf(LOGTAR_ALL, "Failed to write the image-display file to SD: 0x%08x.\n", (unsigned int)ret);
 	}
-	else
-	{
-		log_printf(LOGTAR_ALL, "Successfully wrote the file to SD.\n");
-	}
 
-	free(finalimage);
+	for(pos=0; pos<2; pos++)free(finalimages[pos]);
 
 	return ret;
 }
