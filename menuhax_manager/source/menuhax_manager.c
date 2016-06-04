@@ -13,7 +13,6 @@
 #include "log.h"
 
 #include "builtin_rootca_der.h"
-#include "default_imagedisplay_png.h"
 
 #include "modules_common.h"
 
@@ -1444,91 +1443,45 @@ void menuhaxcfg_set_themeflag(bool themeflag)
 	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&sdcfg, sizeof(sdcfg), 0);
 }
 
-Result setup_imagedisplay()
+Result imagedisplay_loadpng(char *filepath, u8 **finalimage_out)
 {
 	Result ret=0;
-	int menuindex = 0;
 	unsigned w = 0, h = 0, x, y, pos0, pos1;
 	size_t pngsize = 0;
-	u32 imgdisp_exists = 0, imgtype = 0;
 	u8 *outbuf = NULL;
 	u8 *pngbuf = NULL;
 	u8 *finalimage = NULL;
 
-	struct stat filestats;
+	*finalimage_out = NULL;
 
-	char *menu_entries[] = {
-	"Default image.",
-	"Custom image loaded from a PNG on SD.",
-	"Delete the image-display file."};
+	log_printf(LOGTAR_ALL, "Loading PNG from FS...\n");
 
-	imgdisp_exists = 1;
-	ret = stat("sdmc:/menuhax/menuhax_imagedisplay.bin", &filestats);
-	if(ret==-1)imgdisp_exists = 0;
-
-	log_printf(LOGTAR_ALL, "This will configure the image displayed on the main-screen when menuhax triggers. When the image-display file isn't loaded successfully by menuhax, it will display junk.\n");
-	if(imgdisp_exists)
+	ret = archive_getfilesize(SDArchive, filepath, (u32*)&pngsize);
+	if(ret!=0)
 	{
-		log_printf(LOGTAR_ALL, "The image-display file already exists on SD.\n");
-	}
-	else
-	{
-		log_printf(LOGTAR_ALL, "The image-display file doesn't exist on SD.\n");
+		log_printf(LOGTAR_ALL, "Failed to get the filesize of the PNG: 0x%08x. The file probably doesn't exist.\n", (unsigned int)ret);
+		return ret;
 	}
 
-	displaymessage_waitbutton();
-
-	display_menu(menu_entries, 2 + imgdisp_exists, &menuindex, "Select an option with the below menu. You can press B to exit without changing anything.");
-
-	if(menuindex==-1)return 0;
-
-	switch(menuindex)
+	pngbuf = malloc(pngsize);
+	if(pngbuf==NULL)
 	{
-		case 0:
-			pngbuf = (u8*)default_imagedisplay_png;
-			pngsize = default_imagedisplay_png_size;
-			imgtype = 0;
-		break;
+		log_printf(LOGTAR_ALL, "Failed to alloc the PNG buffer with size 0x%08x.\n", (unsigned int)pngsize);
+		return 1;
+	}
 
-		case 1:
-			log_printf(LOGTAR_ALL, "Loading PNG from SD...\n");
-
-			ret = archive_getfilesize(SDArchive, "sdmc:/3ds/menuhax_manager/imagedisplay.png", (u32*)&pngsize);
-			if(ret!=0)
-			{
-				log_printf(LOGTAR_ALL, "Failed to get the filesize of the SD PNG: 0x%08x. The file probably doesn't exist on SD.\n", (unsigned int)ret);
-				return ret;
-			}
-
-			pngbuf = malloc(pngsize);
-			if(pngbuf==NULL)
-			{
-				log_printf(LOGTAR_ALL, "Failed to alloc the PNG buffer with size 0x%08x.\n", (unsigned int)pngsize);
-				return 1;
-			}
-
-			ret = archive_readfile(SDArchive, "sdmc:/3ds/menuhax_manager/imagedisplay.png", pngbuf, pngsize);
-			if(ret!=0)
-			{
-				log_printf(LOGTAR_ALL, "Failed to read the SD PNG: 0x%08x.\n", (unsigned int)ret);
-				return ret;
-			}
-
-			imgtype = 1;
-
-			log_printf(LOGTAR_ALL, "SD loading finished.\n");
-
-		break;
-
-		case 2:
-			unlink("sdmc:/menuhax/menuhax_imagedisplay.bin");
-		return 0;
+	ret = archive_readfile(SDArchive, filepath, pngbuf, pngsize);
+	if(ret!=0)
+	{
+		log_printf(LOGTAR_ALL, "Failed to read the PNG from FS: 0x%08x.\n", (unsigned int)ret);
+		free(pngbuf);
+		return ret;
 	}
 
 	log_printf(LOGTAR_ALL, "Decoding PNG...\n");
 
 	ret = lodepng_decode24(&outbuf, &w, &h, pngbuf, pngsize);
-	if(imgtype==1)free(pngbuf);
+	free(pngbuf);
 	if(ret!=0)
 	{
 		log_printf(LOGTAR_ALL, "lodepng returned an error: %s\n", lodepng_error_text(ret));
@@ -1540,6 +1493,7 @@ Result setup_imagedisplay()
 	if(!(w==800 && h==240) && !(w==240 && h==800))
 	{
 		log_printf(LOGTAR_ALL, "PNG width and/or height is invalid. 800x240 or 240x800 is required but the PNG is %ux%u.\n", (unsigned int)w, (unsigned int)h);
+		free(outbuf);
 		return 2;
 	}
 
@@ -1547,6 +1501,7 @@ Result setup_imagedisplay()
 	if(finalimage==NULL)
 	{
 		log_printf(LOGTAR_ALL, "Failed to alloc the finalimage buffer.\n");
+		free(outbuf);
 		return 1;
 	}
 
@@ -1570,6 +1525,71 @@ Result setup_imagedisplay()
 
 	free(outbuf);
 
+	*finalimage_out = finalimage;
+
+	return 0;
+}
+
+Result setup_imagedisplay()
+{
+	Result ret=0;
+	int menuindex = 0;
+	u32 imgdisp_exists = 0;
+	char *filepath = NULL;
+	u8 *finalimage = NULL;
+
+	struct stat filestats;
+
+	char *menu_entries[] = {
+	"Default image.",
+	"Custom image loaded from a PNG on SD.",
+	"Delete the image-display file."};
+
+	imgdisp_exists = 1;
+	ret = stat("sdmc:/menuhax/menuhax_imagedisplay.bin", &filestats);
+	if(ret==-1)imgdisp_exists = 0;
+
+	log_printf(LOGTAR_ALL, "This will configure the image displayed on the main-screen when menuhax triggers. When the image-display file isn't loaded successfully by menuhax, it will display junk.\nToggling the screen used by this app via the Y button is disabled under this menu.\n\n");
+	if(imgdisp_exists)
+	{
+		log_printf(LOGTAR_ALL, "The image-display file already exists on SD.\n");
+	}
+	else
+	{
+		log_printf(LOGTAR_ALL, "The image-display file doesn't exist on SD.\n");
+	}
+
+	displaymessage_waitbutton();
+
+	display_menu(menu_entries, 2 + imgdisp_exists, &menuindex, "Select an option with the below menu. You can press B to exit without changing anything");
+
+	log_printf(LOGTAR_ALL, "\n");
+
+	if(menuindex==-1)return 0;
+
+	switch(menuindex)
+	{
+		case 0:
+			filepath = "romfs:/default_imagedisplay.png";
+		break;
+
+		case 1:
+			filepath = "sdmc:/3ds/menuhax_manager/imagedisplay.png";
+		break;
+
+		case 2:
+			unlink("sdmc:/menuhax/menuhax_imagedisplay.bin");
+		return 0;
+	}
+
+	finalimage = NULL;
+	ret = imagedisplay_loadpng(filepath, &finalimage);
+	if(ret!=0)
+	{
+		printf("PNG loading failed: 0x%08x.\n", (unsigned int)ret);
+		return ret;
+	}
+
 	log_printf(LOGTAR_ALL, "Writing the final image to SD...\n");
 
 	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_imagedisplay.bin", finalimage, 0x8ca00, 0);
@@ -1581,6 +1601,8 @@ Result setup_imagedisplay()
 	{
 		log_printf(LOGTAR_ALL, "Successfully wrote the file to SD.\n");
 	}
+
+	free(finalimage);
 
 	return ret;
 }
@@ -1629,6 +1651,7 @@ int main(int argc, char **argv)
 	int menuindex = 0;
 	int pos, count=0;
 	int menucount;
+	int curscreen = 0;
 
 	char headerstr[512];
 
@@ -1785,6 +1808,9 @@ int main(int argc, char **argv)
 					break;
 
 					case 3:
+						curscreen = menu_getcurscreen();
+						menu_configscreencontrol(false, 1);
+
 						ret = setup_imagedisplay();
 
 						if(ret==0)
@@ -1826,6 +1852,8 @@ int main(int argc, char **argv)
 				}
 
 				if(ret==0)displaymessage_waitbutton();
+
+				if(ret==0 && menuindex==3)menu_configscreencontrol(true, curscreen);
 			}
 		}
 	}

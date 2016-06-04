@@ -34,7 +34,7 @@ DATA		:=	data
 INCLUDES	:=	include lodepng source source/modules
 ROMFS		:=	romfs
 
-VERSION	:=	$(shell cat ../../release_version)
+VERSION	:=	$(shell cat $(TOPDIR)/../release_version)
 
 ifeq ($(RELEASE),)
 	VERSION	:=	$(VERSION)-$(shell git describe --abbrev=7 --dirty --always)
@@ -170,10 +170,11 @@ endif
 $(OUTPUT).elf	:	$(OFILES)
 
 $(CURDIR)/$(ROMFS)	:	
-	@mkdir -p $(CURDIR)/../$(ROMFS)
-	@cp $(CURDIR)/../blanktheme.lz $(CURDIR)/../$(ROMFS)/blanktheme.lz
-	@mkdir $(CURDIR)/../$(ROMFS)/finaloutput
-	@cp -R $(CURDIR)/../../finaloutput/*.zip $(CURDIR)/../$(ROMFS)/finaloutput
+	@mkdir -p $(TOPDIR)/$(ROMFS)
+	@cp $(TOPDIR)/blanktheme.lz $(TOPDIR)/$(ROMFS)/blanktheme.lz
+	@cp $(TOPDIR)/default_imagedisplay.png $(TOPDIR)/$(ROMFS)/default_imagedisplay.png
+	@mkdir $(TOPDIR)/$(ROMFS)/finaloutput
+	@cp -R $(TOPDIR)/../finaloutput/*.zip $(TOPDIR)/$(ROMFS)/finaloutput
 
 #---------------------------------------------------------------------------------
 # you need a rule like this for each extension you use as binary data

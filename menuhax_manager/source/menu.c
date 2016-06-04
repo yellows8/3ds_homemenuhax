@@ -6,15 +6,33 @@
 
 #include "log.h"
 
+static bool menu_allowscreencontrol = true;
 static int menu_curprintscreen = 0;
 static PrintConsole menu_printscreen[2];
 
 void initialize_menu()
 {
+	menu_allowscreencontrol = true;
 	menu_curprintscreen = 0;
 	consoleInit(GFX_TOP, &menu_printscreen[0]);
 	consoleInit(GFX_BOTTOM, &menu_printscreen[1]);
 	consoleSelect(&menu_printscreen[menu_curprintscreen]);
+}
+
+void menu_configscreencontrol(bool flag, int curscreen)
+{
+	if(curscreen)curscreen = 1;
+
+	menu_allowscreencontrol = flag;
+	menu_curprintscreen = curscreen;
+
+	consoleClear();
+	consoleSelect(&menu_printscreen[menu_curprintscreen]);
+}
+
+int menu_getcurscreen(void)
+{
+	return menu_curprintscreen;
 }
 
 void display_menu(char **menu_entries, int total_entries, int *menuindex, char *headerstr)
