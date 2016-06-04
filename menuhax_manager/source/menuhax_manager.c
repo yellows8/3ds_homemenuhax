@@ -1543,10 +1543,10 @@ Result setup_imagedisplay()
 
 	char *menu_entries[] = {
 	"Default image.",
-	"Custom image from SD.",
+	"Custom image.",
 	"Delete the image-display file."};
 
-	char new_menutext[64];
+	char new_menutext[128];
 
 	memset(finalimages, 0, sizeof(finalimages));
 
@@ -1577,8 +1577,8 @@ Result setup_imagedisplay()
 	{
 		if(finalimages[pos]==NULL)
 		{
-			snprintf(&new_menutext[32*pos], 31, "%s %s", menu_entries[pos], "N/A since PNG loading failed.");
-			menu_entries[pos] = &new_menutext[32*pos];
+			snprintf(&new_menutext[64*pos], 63, "%s %s", menu_entries[pos], "N/A since PNG loading failed.");
+			menu_entries[pos] = &new_menutext[64*pos];
 		}
 	}
 
