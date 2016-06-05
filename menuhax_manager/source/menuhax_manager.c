@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <errno.h>
 #include <3ds.h>
 
 #include <lodepng.h>
@@ -1354,22 +1355,22 @@ Result setup_sdcfg()
 				return 0;
 			}
 
-			if((kDown & (KEY_DDOWN | KEY_CPAD_DOWN)) && delayval!=0)
+			if((kDown & KEY_DOWN) && delayval!=0)
 			{
 				delayval-= delay_adjustval;
 				draw = 1;
 			}
-			else if(kDown & (KEY_DUP | KEY_CPAD_UP))
+			else if(kDown & KEY_UP)
 			{
 				delayval+= delay_adjustval;
 				draw = 1;
 			}
-			else if(kDown & (KEY_DLEFT | KEY_CPAD_LEFT))
+			else if(kDown & KEY_LEFT)
 			{
 				delay_adjustval*= 10;
 				draw = 1;
 			}
-			else if((kDown & (KEY_DRIGHT | KEY_CPAD_RIGHT)) && delay_adjustval>1)
+			else if((kDown & KEY_RIGHT) && delay_adjustval>1)
 			{
 				delay_adjustval/= 10;
 				draw = 1;
@@ -1530,6 +1531,198 @@ Result imagedisplay_loadpng(char *filepath, u8 **finalimage_out)
 	return 0;
 }
 
+int imagedisplay_dirfilter(const struct dirent *dirent)//Only return dir-entries with a name ending with ".png".
+{
+	size_t len;
+
+	len = strlen(dirent->d_name);
+	if(len < 4)return 0;
+
+	if(strncmp(&dirent->d_name[len-4], ".png", 4))return 0;
+
+	return 1;
+}
+
+//Originally this was supposed to use scandir() but scandir() isn't actually available.
+Result imagedisplay_scandir(const char *dirpath, struct dirent ***namelist, size_t *total_entries)
+{
+	Result ret=0;
+
+	size_t pos=0;
+	DIR *dirp;
+	struct dirent *direntry;
+
+	*total_entries = 0;
+
+	dirp = opendir(dirpath);
+	if(dirp==NULL)return errno;
+
+	while((direntry = readdir(dirp)))
+	{
+		if(imagedisplay_dirfilter(direntry)==0)continue;
+
+		(*total_entries)++;
+	}
+
+	closedir(dirp);
+
+	if(*total_entries == 0)return 0;
+
+	dirp = opendir(dirpath);
+	if(dirp==NULL)return errno;
+
+	*namelist = malloc(sizeof(struct dirent *) * (*total_entries));
+	if(*namelist == NULL)
+	{
+		closedir(dirp);
+		return -2;
+	}
+
+	ret = 0;
+
+	while((direntry = readdir(dirp)) && pos < *total_entries)
+	{
+		if(imagedisplay_dirfilter(direntry)==0)continue;
+
+		(*namelist)[pos] = malloc(sizeof(struct dirent));
+		if((*namelist)[pos] == NULL)
+		{
+			ret = -2;
+			break;
+		}
+
+		memcpy((*namelist)[pos], direntry, sizeof(struct dirent));
+
+		pos++;
+	}
+
+	closedir(dirp);
+
+	if(ret!=0)
+	{
+		for(pos=0; pos<(*total_entries); pos++)free((*namelist)[pos]);
+		free(*namelist);
+		*namelist = NULL;
+	}
+
+	return 0;
+}
+
+void imagedisplay_previewimage(u8 *finalimage)
+{
+	u8 *framebuf;
+	u32 size = 240*400*3;
+	u32 i;
+
+	gspWaitForVBlank();
+	gfxSetDoubleBuffering(GFX_TOP, true);
+	gfxSetScreenFormat(GFX_TOP, GSP_BGR8_OES);
+
+	for(i=0; i<2; i++)
+	{
+		framebuf = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+		if(finalimage)memcpy(framebuf, finalimage, size);
+		if(finalimage==NULL)memset(framebuf, 0, size);
+
+		framebuf = gfxGetFramebuffer(GFX_TOP, GFX_RIGHT, NULL, NULL);
+		if(finalimage)memcpy(framebuf, &finalimage[size], size);
+		if(finalimage==NULL)memset(framebuf, 0, size);
+
+		gfxFlushBuffers();
+		gfxSwapBuffersGpu();
+		gspWaitForVBlank();
+	}
+}
+
+Result imagedisplay_selectsdimage(const char *dirpath, u8 **finalimage_out, int *exitflag)
+{
+	struct dirent **namelist = NULL;
+	Result ret=0;
+	int pos=0;
+	size_t total_entries=0;
+
+	u32 redraw = 1;
+	u32 kDown = 0;
+
+	char filepath[256];
+
+	*finalimage_out = NULL;
+	*exitflag = 0;
+
+	ret = imagedisplay_scandir(dirpath, &namelist, &total_entries);
+	if(ret!=0)return ret;
+
+	if(total_entries==0)
+	{
+		log_printf(LOGTAR_ALL, "The custom splash-screen directory doesn't contain any PNGs, aborting...\n");
+		*exitflag = 1;
+		return 0;
+	}
+
+	while(1)
+	{
+		gspWaitForVBlank();
+		hidScanInput();
+
+		kDown = hidKeysDown();
+
+		if(redraw)
+		{
+			redraw = 0;
+
+			consoleClear();
+			log_printf(LOGTAR_ALL, "Select a custom splash-screen image via the D-Pad/Circle-Pad, then press A.\nYou can press B to exit without changing anything.\nThe selected image if successfully loaded is displayed on the top-screen.\n");
+			log_printf(LOGTAR_ALL, "%d of %u:\n", pos+1, total_entries);
+			log_printf(LOGTAR_ALL, "%s\n", namelist[pos]->d_name);
+
+			memset(filepath, 0, sizeof(filepath));
+			snprintf(filepath, sizeof(filepath)-1, "%s/%s", dirpath, namelist[pos]->d_name);
+
+			free(*finalimage_out);//This will free the finalimage buffer if it's already allocated.
+			*finalimage_out = NULL;
+			ret = imagedisplay_loadpng(filepath, finalimage_out);
+			if(ret!=0)
+			{
+				log_printf(LOGTAR_ALL, "N/A since PNG loading failed(details were logged).\n");
+			}
+
+			imagedisplay_previewimage(*finalimage_out);
+		}
+
+		if(kDown & (KEY_RIGHT | KEY_DOWN))
+		{
+			pos++;
+			if(pos>=total_entries)pos = 0;
+			redraw = 1;
+
+			continue;
+		}
+		else if(kDown & (KEY_LEFT | KEY_UP))
+		{
+			pos--;
+			if(pos<0)pos = total_entries-1;
+			redraw = 1;
+
+			continue;
+		}
+
+		if(ret == 0 && (kDown & KEY_A))
+		{
+			break;
+		}
+		else if(kDown & KEY_B)
+		{
+			*exitflag = 1;
+			break;
+		}
+	}
+
+	for(pos=0; pos<total_entries; pos++)free(namelist[pos]);
+	free(namelist);
+
+	return 0;
+}
+
 Result setup_imagedisplay()
 {
 	Result ret=0;
@@ -1537,16 +1730,22 @@ Result setup_imagedisplay()
 	u32 imgdisp_exists = 0;
 	u32 imgid = 0;
 	u32 pos;
+	int exitflag = 0;
 	u8 *finalimages[2];
 
 	struct stat filestats;
 
+	struct dirent **namelist = NULL;
+	size_t total_entries=0;
+
 	char *menu_entries[] = {
 	"Default image.",
-	"Custom image.",
+	"Select a custom image.",
 	"Delete the image-display file."};
 
 	char new_menutext[128];
+	char filepath0[256];
+	char filepath1[256];
 
 	memset(finalimages, 0, sizeof(finalimages));
 
@@ -1558,22 +1757,59 @@ Result setup_imagedisplay()
 	if(imgdisp_exists)
 	{
 		log_printf(LOGTAR_ALL, "The image-display file already exists on SD.\n");
+
+		finalimages[0] = malloc(0x8ca00);
+		if(finalimages[0])
+		{
+			memset(finalimages[0], 0, 0x8ca00);
+
+			ret = archive_readfile(SDArchive, "sdmc:/menuhax/menuhax_imagedisplay.bin", finalimages[0], 0x8ca00);
+			if(ret==0)
+			{
+				imagedisplay_previewimage(finalimages[0]);
+				log_printf(LOGTAR_ALL, "The image now displayed on the top-screen is the current content of the image-display file.\n");
+			}
+
+			free(finalimages[0]);
+			finalimages[0] = NULL;
+		}
 	}
 	else
 	{
 		log_printf(LOGTAR_ALL, "The image-display file doesn't exist on SD.\n");
 	}
 
+	//Create the 'splashscreen' directory, then move each .png file under the menuhax_manager directory, if any, into this directory.
+	mkdir("sdmc:/3ds/menuhax_manager/splashscreen/", 0777);
+
+	ret = imagedisplay_scandir("sdmc:/3ds/menuhax_manager", &namelist, &total_entries);
+	if(ret==0 && total_entries>0)
+	{
+		for(pos=0; pos<total_entries; pos++)
+		{
+			memset(filepath0, 0, sizeof(filepath0));
+			snprintf(filepath0, sizeof(filepath0)-1, "%s/%s", "sdmc:/3ds/menuhax_manager", namelist[pos]->d_name);
+
+			memset(filepath1, 0, sizeof(filepath1));
+			snprintf(filepath1, sizeof(filepath1)-1, "%s/%s", "sdmc:/3ds/menuhax_manager/splashscreen", namelist[pos]->d_name);
+
+			rename(filepath0, filepath1);
+
+			free(namelist[pos]);
+		}
+
+		free(namelist);
+	}
+
 	displaymessage_waitbutton();
 
-	log_printf(LOGTAR_ALL, "Loading PNGs...\n");
+	log_printf(LOGTAR_ALL, "Loading PNG(s)...\n");
 
 	imagedisplay_loadpng("romfs:/default_imagedisplay.png", &finalimages[0]);
-	imagedisplay_loadpng("sdmc:/3ds/menuhax_manager/imagedisplay.png", &finalimages[1]);
 
 	memset(new_menutext, 0, sizeof(new_menutext));
 
-	for(pos=0; pos<2; pos++)
+	for(pos=0; pos<1; pos++)
 	{
 		if(finalimages[pos]==NULL)
 		{
@@ -1582,7 +1818,9 @@ Result setup_imagedisplay()
 		}
 	}
 
-	display_menu(menu_entries, 2 + imgdisp_exists, &menuindex, "Select an option with the below menu. You can press B to exit without changing anything");
+	imagedisplay_previewimage(finalimages[0]);
+
+	display_menu(menu_entries, 2 + imgdisp_exists, &menuindex, "Select an option with the below menu. You can press B to exit without changing anything. The image displayed on the top-screen is what would be used if you select the default-image option below");
 
 	log_printf(LOGTAR_ALL, "\n");
 
@@ -1603,6 +1841,23 @@ Result setup_imagedisplay()
 			unlink("sdmc:/menuhax/menuhax_imagedisplay.bin");
 			for(pos=0; pos<2; pos++)free(finalimages[pos]);
 		return 0;
+	}
+
+	if(imgid==1)
+	{
+		ret = imagedisplay_selectsdimage("sdmc:/3ds/menuhax_manager/splashscreen", &finalimages[imgid], &exitflag);
+		if(ret!=0)
+		{
+			log_printf(LOGTAR_ALL, "Failed to select the custom image: 0x%08x.\n", (unsigned int)ret);
+			for(pos=0; pos<2; pos++)free(finalimages[pos]);
+			return ret;
+		}
+
+		if(exitflag)
+		{
+			for(pos=0; pos<2; pos++)free(finalimages[pos]);
+			return 0;
+		}
 	}
 
 	if(finalimages[imgid]==NULL)
@@ -1766,7 +2021,7 @@ int main(int argc, char **argv)
 			log_printf(LOGTAR_ALL, "Finished opening extdata.\n\n");
 
 			memset(headerstr, 0, sizeof(headerstr));
-			snprintf(headerstr, sizeof(headerstr)-1, "menuhax_manager %s by yellows8.\n\nThis can install Home Menu haxx to the SD card, for booting the *hax payloads. Select an option with the below menu. You can press the B button to exit. You can press the Y button at any time while at a menu like the below one, to toggle the screen being used by this app.\nThe theme menu options are only available when the cfg file exists on SD with an exploit installed which requires seperate theme-data files", VERSION);
+			snprintf(headerstr, sizeof(headerstr)-1, "menuhax_manager %s by yellows8.\n\nThis can install Home Menu haxx to the SD card, for booting the *hax payloads. Select an option with the below menu via the D-Pad/Circle-Pad, then press A. You can press the B button to exit. You can press the Y button at any time while at a menu like the below one, to toggle the screen being used by this app.\nThe theme menu options are only available when the cfg file exists on SD with an exploit installed which requires seperate theme-data files", VERSION);
 
 			ret = load_config();
 			if(ret!=0)
@@ -1828,8 +2083,11 @@ int main(int argc, char **argv)
 					case 3:
 						curscreen = menu_getcurscreen();
 						menu_configscreencontrol(false, 1);
+						gfxSet3D(true);
 
 						ret = setup_imagedisplay();
+						imagedisplay_previewimage(NULL);//Clear the top-screen framebuffer.
+						gfxSet3D(false);
 
 						if(ret==0)
 						{

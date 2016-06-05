@@ -27,6 +27,8 @@ void menu_configscreencontrol(bool flag, int curscreen)
 	menu_curprintscreen = curscreen;
 
 	consoleClear();
+	consoleInit(GFX_TOP, &menu_printscreen[0]);
+	consoleInit(GFX_BOTTOM, &menu_printscreen[1]);
 	consoleSelect(&menu_printscreen[menu_curprintscreen]);
 }
 
@@ -76,7 +78,7 @@ void display_menu(char **menu_entries, int total_entries, int *menuindex, char *
 			return;
 		}
 
-		if(kDown & (KEY_DDOWN | KEY_CPAD_DOWN))
+		if(kDown & (KEY_RIGHT | KEY_DOWN))
 		{
 			(*menuindex)++;
 			if(*menuindex>=total_entries)*menuindex = 0;
@@ -84,7 +86,7 @@ void display_menu(char **menu_entries, int total_entries, int *menuindex, char *
 
 			continue;
 		}
-		else if(kDown & (KEY_DUP | KEY_CPAD_UP))
+		else if(kDown & (KEY_LEFT | KEY_UP))
 		{
 			(*menuindex)--;
 			if(*menuindex<0)*menuindex = total_entries-1;
