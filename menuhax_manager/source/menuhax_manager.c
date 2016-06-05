@@ -1538,6 +1538,8 @@ int imagedisplay_dirfilter(const struct dirent *dirent)//Only return dir-entries
 	len = strlen(dirent->d_name);
 	if(len < 4)return 0;
 
+	if(dirent->d_name[0]=='.')return 0;//Ignore "hidden" dir-entries.
+
 	if(strncmp(&dirent->d_name[len-4], ".png", 4))return 0;
 
 	return 1;
