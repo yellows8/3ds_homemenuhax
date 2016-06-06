@@ -496,6 +496,8 @@ Result delete_menuhax()
 		ret = modules_haxdelete();
 		if(ret)return ret;
 
+		unlink("sdmc:/menuhax/menuhax_installedversion");
+
 		log_printf(LOGTAR_ALL, "The menuhax itself has been deleted successfully.\n");
 
 		if(!themeflag)menuhaxcfg_set_themeflag(true);
@@ -902,6 +904,8 @@ Result install_menuhax(char *ropbin_filepath)
 
 	char payloadurl[0x80];
 
+	char tmpstr[256];
+
 	memset(menuhax_basefn, 0, sizeof(menuhax_basefn));
 
 	memset(payloadinfo, 0, sizeof(payloadinfo));
@@ -1117,6 +1121,15 @@ Result install_menuhax(char *ropbin_filepath)
 		menuhaxcfg_create();
 
 		menuhaxcfg_set_themeflag(module->themeflag);
+	}
+
+	if(ret==0)
+	{
+		memset(tmpstr, 0, sizeof(tmpstr));
+		snprintf(tmpstr, sizeof(tmpstr)-1, "%s:%s", VERSION, module->name);
+
+		unlink("sdmc:/menuhax/menuhax_installedversion");
+		archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_installedversion", (u8*)tmpstr, strlen(tmpstr), strlen(tmpstr));
 	}
 
 	return ret;
@@ -1927,8 +1940,11 @@ int main(int argc, char **argv)
 	int pos, count=0;
 	int menucount;
 	int curscreen = 0;
+	u32 size=0;
 
 	char headerstr[512];
+	char tmpstr[256];
+	char tmpstr2[256];
 
 	char ropbin_filepath[256];
 
@@ -2022,9 +2038,6 @@ int main(int argc, char **argv)
 		{
 			log_printf(LOGTAR_ALL, "Finished opening extdata.\n\n");
 
-			memset(headerstr, 0, sizeof(headerstr));
-			snprintf(headerstr, sizeof(headerstr)-1, "menuhax_manager %s by yellows8.\n\nThis can install Home Menu haxx to the SD card, for booting the *hax payloads. Select an option with the below menu via the D-Pad/Circle-Pad, then press A. You can press the B button to exit. You can press the Y button at any time while at a menu like the below one, to toggle the screen being used by this app.\nThe theme menu options are only available when the cfg file exists on SD with an exploit installed which requires seperate theme-data files", VERSION);
-
 			ret = load_config();
 			if(ret!=0)
 			{
@@ -2035,6 +2048,19 @@ int main(int argc, char **argv)
 			{
 				menucount = 6;
 				if(menuhaxcfg_get_themeflag())menucount-= 2;
+
+				memset(tmpstr, 0, sizeof(tmpstr));
+				memset(tmpstr2, 0, sizeof(tmpstr2));
+				ret = archive_getfilesize(SDArchive, "sdmc:/menuhax/menuhax_installedversion", &size);
+				if(ret==0 && size>0 && size<sizeof(tmpstr)-1)
+				{
+					ret = archive_readfile(SDArchive, "sdmc:/menuhax/menuhax_installedversion", (u8*)tmpstr, size);
+					if(ret==0 && tmpstr[0])snprintf(tmpstr2, sizeof(tmpstr2)-1, "\nInstalled menuhax: '%s'.", tmpstr);
+				}
+				if(ret!=0)ret = 0;
+
+				memset(headerstr, 0, sizeof(headerstr));
+				snprintf(headerstr, sizeof(headerstr)-1, "menuhax_manager %s by yellows8.%s\n\nThis can install Home Menu haxx to the SD card, for booting the *hax payloads. Select an option with the below menu via the D-Pad/Circle-Pad, then press A. You can press the B button to exit. You can press the Y button at any time while at a menu like the below one, to toggle the screen being used by this app.\nThe theme menu options are only available when the cfg file exists on SD with an exploit installed which requires seperate theme-data files", VERSION, tmpstr2);
 
 				display_menu(menu_entries, menucount, &menuindex, headerstr);
 
