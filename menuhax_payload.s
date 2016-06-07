@@ -152,7 +152,7 @@ ROP_SETLR ROP_POPPC
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
-.word HEAPBUF + (newthread_rop_stackpivot_sploadword - _start) @ r0
+.word NEWTHREAD_ROPBUFFER + (newthread_rop_stackpivot_sploadword - newthread_ropstart) @ r0
 
 .word POP_R1PC
 .word \sp @ r1
@@ -160,7 +160,7 @@ ROP_SETLR ROP_POPPC
 .word ROP_STR_R1TOR0 @ Write to the word which will be popped into sp.
 
 .word POP_R0PC
-.word HEAPBUF + (newthread_rop_stackpivot_pcloadword - _start) @ r0
+.word NEWTHREAD_ROPBUFFER + (newthread_rop_stackpivot_pcloadword - newthread_ropstart) @ r0
 
 .word POP_R1PC
 .word \pc @ r1
@@ -168,7 +168,7 @@ ROP_SETLR ROP_POPPC
 .word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
 
 .word POP_R0PC @ Begin the actual stack-pivot ROP.
-.word HEAPBUF + (newthread_rop_object - _start) @ r0
+.word NEWTHREAD_ROPBUFFER + (newthread_rop_object - newthread_ropstart) @ r0
 
 .word ROP_LOADR4_FROMOBJR0
 .endm
@@ -281,7 +281,7 @@ ROP_SETLR ROP_POPPC
 .word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
 
 .word POP_R0PC @ Begin the actual stack-pivot ROP.
-.word NEWTHREAD_ROPBUFFER + (object - newthread_ropstart) @ r0
+.word NEWTHREAD_ROPBUFFER + (newthread_rop_object - newthread_ropstart) @ r0
 
 .word ROP_LOADR4_FROMOBJR0+8 @ When the value at cmpaddr matches cmpword, continue the ROP, otherwise do the above stack-pivot.
 
