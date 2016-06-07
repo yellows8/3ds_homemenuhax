@@ -1214,9 +1214,12 @@ Result setup_sdcfg()
 	int draw;
 	unsigned long long nanosec = 1000000000ULL;
 	unsigned long long delayval;
+	u64 *delayval_ptr;
 	int endpos;
 	int pos, pos2;
 	unsigned long long delay_adjustval, delay_adjustval_tmp;
+
+	u32 *ptr;
 
 	menuhax_cfg sdcfg;
 
@@ -1224,7 +1227,9 @@ Result setup_sdcfg()
 	"Type1: Only trigger the haxx when the PAD state matches the specified value(specified button(s) must be pressed).",
 	"Type2: Only trigger the haxx when the PAD state doesn't match the specified value.",
 	"Type0: Default PAD config is used.",
-	"Configure the delay value used with the delay right before jumping to the *hax payload. This may affect the random *hax payload boot failures."};
+	"Configure the delay value used with the delay right before jumping to the *hax payload. This may affect the random *hax payload boot failures.",
+	"Configure the delay value used with the menuhax thread.",
+	"Configure the PAD value for the menuhax thread."};
 
 	log_printf(LOGTAR_ALL, "Configuring the padcfg file on SD...\n");
 
@@ -1267,6 +1272,21 @@ Result setup_sdcfg()
 		delayval = (unsigned long long)sdcfg.delay_value;
 
 		log_printf(LOGTAR_ALL, "Current delay value: %llu(%f seconds).\n", delayval, ((double)delayval) / nanosec);
+
+		if(sdcfg.thread_padvalue)
+		{
+			delayval = (unsigned long long)sdcfg.thread_delay_value;
+
+			log_printf(LOGTAR_ALL, "Current thread delay value: %llu(%f seconds).\n", delayval, ((double)delayval) / nanosec);
+
+			log_printf(LOGTAR_ALL, "Currently selected PAD value for the menuhax thread: 0x%x ", (unsigned int)sdcfg.thread_padvalue);
+			print_padbuttons(sdcfg.thread_padvalue);
+			log_printf(LOGTAR_ALL, "\n");
+		}
+		else
+		{
+			log_printf(LOGTAR_ALL, "The menuhax thread is currently disabled, use the PAD option for it to enable it.\n");
+		}
 	}
 	else
 	{
@@ -1280,11 +1300,15 @@ Result setup_sdcfg()
 		delayval = (unsigned long long)sdcfg.delay_value;
 	}
 
+	log_printf(LOGTAR_ALL, "When both the menuhax-thread and Home Menu are active, it will essentially check the specified PAD-value every <delayvalue>, on match it will trigger running the *hax payload.\n");
+
 	displaymessage_waitbutton();
 
-	display_menu(menu_entries, 4, &menuindex, "Select a type/option with the below menu. You can press B to exit without changing anything.");
+	display_menu(menu_entries, 6, &menuindex, "Select an option with the below menu. You can press B to exit without changing anything.");
 
 	if(menuindex==-1)return 0;
+
+	log_printf(LOGTAR_ALL, "\n");
 
 	switch(menuindex)
 	{
@@ -1301,11 +1325,12 @@ Result setup_sdcfg()
 		break;
 	}
 
-	if(menuindex!=3)memset(sdcfg.padvalues, 0, sizeof(sdcfg.padvalues));
+	if(menuindex<3)memset(sdcfg.padvalues, 0, sizeof(sdcfg.padvalues));
 
-	if(sdcfg.type && menuindex!=3)
+	if(menuindex==1 || menuindex==2 || menuindex==5)
 	{
 		log_printf(LOGTAR_ALL, "Press the button(s) you want to select for the PAD state value as described above(no New3DS-only buttons). If you want to select <no-buttons>, don't press any buttons. Then, while the buttons are being pressed, if any, touch the bottom-screen.\n");
+		if(menuindex==5)log_printf(LOGTAR_ALL, "Selecting <no-buttons> will disable the menuhax thread. Minus <no-buttons>, you must select more than one button.\n");
 
 		while(1)
 		{
@@ -1320,16 +1345,38 @@ Result setup_sdcfg()
 			}
 		}
 
+		ptr = &sdcfg.padvalues[sdcfg.type-1];
+		if(menuindex==5)ptr = &sdcfg.thread_padvalue;
+
 		log_printf(LOGTAR_ALL, "Selected PAD value: 0x%x ", (unsigned int)padval);
 		print_padbuttons(padval);
-		sdcfg.padvalues[sdcfg.type-1] = padval;
 		log_printf(LOGTAR_ALL, "\n");
+
+		pos2 = 0;
+		for(pos=0; pos<12; pos++)
+		{
+			if(padval & (1<<pos))pos2++;
+		}
+
+		if(menuindex!=5 || (menuindex==5 && pos2!=1))
+		{
+			*ptr = padval;
+		}
+		else
+		{
+			log_printf(LOGTAR_ALL, "Only one button was selected, the PAD config won't be updated.\n");
+		}
 	}
 
-	if(menuindex==3)
+	if(menuindex==3 || menuindex==4)
 	{
 		draw = 1;
 		delay_adjustval = nanosec;
+
+		delayval_ptr = &sdcfg.delay_value;
+		if(menuindex==4)delayval_ptr = &sdcfg.thread_delay_value;
+
+		delayval = (unsigned long long)*delayval_ptr;
 
 		while(1)
 		{
@@ -1342,7 +1389,7 @@ Result setup_sdcfg()
 				draw = 0;
 				consoleClear();
 
-				log_printf(LOGTAR_ALL, "Select the new nano-seconds delay value with the D-Pad/Circle-Pad, then press A to continue, or B to abort.\nThe initial config is exactly 3-seconds, press Y to set the delay to that.\n");
+				log_printf(LOGTAR_ALL, "Select the new nano-seconds delay value with the D-Pad/Circle-Pad, then press A to continue, or B to abort.\nPress Y to set the delay to the initial config.\n");
 				endpos = log_printf(LOGTAR_ALL, "%llu", delayval);
 				log_printf(LOGTAR_ALL, "(%f seconds).\n", ((double)delayval) / nanosec);
 
@@ -1396,11 +1443,12 @@ Result setup_sdcfg()
 			else if(kDown & KEY_Y)
 			{
 				delayval = MENUHAXCFG_DEFAULT_DELAYVAL;
+				if(menuindex==4)delayval = MENUHAXCFG_DEFAULT_THREAD_DELAYVAL;
 				draw = 1;
 			}
 		}
 
-		sdcfg.delay_value = (u64)delayval;
+		*delayval_ptr = (u64)delayval;
 	}
 
 	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&sdcfg, sizeof(sdcfg), 0);
