@@ -39,6 +39,7 @@
 
 #define GSPGPU_Shutdown 0x0011da58
 #define GSPGPU_FlushDataCache 0x0014cec8
+#define GSPGPU_SERVHANDLEADR 0x002fced8
 
 #define APT_SendParameter 0x00204d88
 
