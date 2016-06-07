@@ -186,7 +186,7 @@ ROPMACRO_STACKPIVOT TARGETOVERWRITE_STACKADR, POP_R4FPPC @ Begin the stack-pivot
 .word POP_R1PC
 .word \cmpword @ r1
 
-.word ROP_CMPR0R1 @ Compare current PAD state with USE_PADCHECK value.
+.word ROP_CMPR0R1
 
 .word HEAPBUF + ((object+0x20) - _start) @ r4
 
