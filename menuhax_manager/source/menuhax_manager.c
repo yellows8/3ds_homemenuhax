@@ -43,10 +43,12 @@ typedef struct {
 	u64 delay_value;//Nano-seconds value to use with svcSleepThread() in the menuhax ROP right before jumping to the *hax payload homemenu ROP.
 	u32 flags;
 	u32 thread_padvalue;//When non-zero, this is the PAD-value checked by the created menuhax thread during a normal homemenu boot, which triggers launching the *hax payload.
+	u64 thread_delay_value;//Nano-seconds value to use with svcSleepThread() in the menuhax-new-thread ROP-loop.
 } PACKED menuhax_cfg;
 
 #define MENUHAXCFG_CURVERSION 0x3//0x3 is used since lower values would collide with the PAD type-values at that same offset in the original format version.
 #define MENUHAXCFG_DEFAULT_DELAYVAL 3000000000ULL //3 seconds.
+#define MENUHAXCFG_DEFAULT_THREAD_DELAYVAL 5000000000ULL //3 seconds.
 #define MENUHAXCFG_FLAG_THEME (1<<0) //Disable the menuhax_manager theme menus when set.
 
 void menuhaxcfg_create();
@@ -1099,6 +1101,7 @@ Result install_menuhax(char *ropbin_filepath)
 			memcpy(&new_sdcfg.type, sdcfg, 0xc);
 			new_sdcfg.version = MENUHAXCFG_CURVERSION;
 			new_sdcfg.delay_value = MENUHAXCFG_DEFAULT_DELAYVAL;
+			new_sdcfg.thread_delay_value = MENUHAXCFG_DEFAULT_THREAD_DELAYVAL;
 			new_sdcfg.flags = MENUHAXCFG_FLAG_THEME;
 
 			ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&new_sdcfg, sizeof(new_sdcfg), 0);
@@ -1271,6 +1274,7 @@ Result setup_sdcfg()
 
 		sdcfg.version = MENUHAXCFG_CURVERSION;
 		sdcfg.delay_value = MENUHAXCFG_DEFAULT_DELAYVAL;
+		sdcfg.thread_delay_value = MENUHAXCFG_DEFAULT_THREAD_DELAYVAL;
 		sdcfg.flags = MENUHAXCFG_FLAG_THEME;
 
 		delayval = (unsigned long long)sdcfg.delay_value;
@@ -1418,6 +1422,7 @@ void menuhaxcfg_create()//Create the cfg file when it doesn't already exist.
 
 	sdcfg.version = MENUHAXCFG_CURVERSION;
 	sdcfg.delay_value = MENUHAXCFG_DEFAULT_DELAYVAL;
+	sdcfg.thread_delay_value = MENUHAXCFG_DEFAULT_THREAD_DELAYVAL;
 	sdcfg.flags = MENUHAXCFG_FLAG_THEME;
 
 	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&sdcfg, sizeof(sdcfg), 0);
