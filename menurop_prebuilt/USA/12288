@@ -25,6 +25,7 @@
 #define MEMSET32_OTHER 0x00210db4
 
 #define svcControlMemory 0x00212d88
+#define svcCreateThread 0x0010e630
 #define svcSleepThread 0x0012e64c
 
 #define SRV_GETSERVICEHANDLE 0x00212de0
