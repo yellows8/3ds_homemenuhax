@@ -120,6 +120,8 @@ CALLFUNC GXLOW_CMD4, \srcadr, \dstadr, \cpysize, 0, 0, 0, 0, 0x8
 .endm
 
 .macro ROPMACRO_STACKPIVOT sp, pc
+ROP_SETLR ROP_POPPC
+
 .word POP_R0PC
 .word HEAPBUF + (stackpivot_sploadword - _start) @ r0
 
@@ -597,7 +599,7 @@ rop_cfg_cmpbegin_exectype2: @ Compare u32 filebuf+0x10(exec_type) with 0x2, on m
 ROP_SETLR ROP_POPPC
 ROPMACRO_CMPDATA (HEAPBUF + ((menuhax_cfg+0x10) - _start)), 0x2, (HEAPBUF + (rop_cfg_cmpbegin1 - _start)), 0x0
 
-RET2MENUCODE
+ROPMACRO_STACKPIVOT (HEAPBUF + (ret2menu_rop - _start)), ROP_POPPC
 
 rop_cfg_cmpbegin1: @ Compare u32 filebuf+0x4 with 0x1, on match continue to the ROP following this, otherwise jump to rop_cfg_cmpbegin2.
 ROP_SETLR ROP_POPPC
@@ -686,7 +688,7 @@ rop_r1data_cmphid:
 
 .word POP_R1PC
 padcheck_sp_value:
-.word TARGETOVERWRITE_STACKADR @ r1
+.word (HEAPBUF + (ret2menu_rop - _start)) @ r1
 
 .word ROP_STR_R1TOR0 @ Write to the word which will be popped into sp.
 
@@ -695,7 +697,7 @@ padcheck_sp_value:
 
 .word POP_R1PC
 padcheck_pc_value:
-.word POP_R4FPPC @ r1
+.word ROP_POPPC @ r1
 
 .word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
 
@@ -711,7 +713,7 @@ padcheck_pc_value:
 .word HEAPBUF + (stackpivot_sploadword - _start) @ r0
 
 .word POP_R1PC
-.word TARGETOVERWRITE_STACKADR @ r1
+.word (HEAPBUF + (ret2menu_rop - _start)) @ r1
 
 .word ROP_STR_R1TOR0 @ Write to the word which will be popped into sp.
 
@@ -719,7 +721,7 @@ padcheck_pc_value:
 .word HEAPBUF + (stackpivot_pcloadword - _start) @ r0
 
 .word POP_R1PC
-.word POP_R4FPPC @ r1
+.word ROP_POPPC @ r1
 
 .word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
 
@@ -733,6 +735,13 @@ padcheck_end_stackpivotskip:
 .word ROP_LOADR4_FROMOBJR0
 
 padcheck_finish:
+ROPMACRO_STACKPIVOT (HEAPBUF + (padcheck_finish_jump - _start)), ROP_POPPC
+
+ret2menu_rop:
+
+RET2MENUCODE
+
+padcheck_finish_jump:
 #endif
 
 //Overwrite the top-screen framebuffers. This doesn't affect the framebuffers when returning from an appet to Home Menu. First chunk is 3D-left framebuffer, second one is 3D-right(when that's enabled). These are the primary framebuffers. Color format is byte-swapped RGB8.
