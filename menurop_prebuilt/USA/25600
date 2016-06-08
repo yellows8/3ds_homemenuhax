@@ -40,6 +40,7 @@
 #define GSPGPU_Shutdown 0x0011a000
 #define GSPGPU_FlushDataCache 0x0014b9d0
 #define GSPGPU_SERVHANDLEADR 0x0033afd0
+#define GSP_SHAREDMEM_SETUPFRAMEBUF 0x001459ac
 
 #define APT_SendParameter 0x002277cc
 

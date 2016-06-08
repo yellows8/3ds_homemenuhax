@@ -1327,7 +1327,7 @@ Result setup_sdcfg()
 
 	if(menuindex<3)memset(sdcfg.padvalues, 0, sizeof(sdcfg.padvalues));
 
-	if(menuindex==1 || menuindex==2 || menuindex==5)
+	if(menuindex<=2 || menuindex==5)
 	{
 		log_printf(LOGTAR_ALL, "Press the button(s) you want to select for the PAD state value as described above(no New3DS-only buttons). If you want to select <no-buttons>, don't press any buttons. Then, while the buttons are being pressed, if any, touch the bottom-screen.\n");
 		if(menuindex==5)log_printf(LOGTAR_ALL, "Selecting <no-buttons> will disable the menuhax thread. Minus <no-buttons>, you must select more than one button.\n");

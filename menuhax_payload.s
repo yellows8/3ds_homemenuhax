@@ -840,20 +840,31 @@ RET2MENUCODE
 padcheck_finish_jump:
 #endif
 
-//Overwrite the top-screen framebuffers. This doesn't affect the framebuffers when returning from an appet to Home Menu. First chunk is 3D-left framebuffer, second one is 3D-right(when that's enabled). These are the primary framebuffers. Color format is byte-swapped RGB8.
+//Overwrite the top-screen framebuffers. First chunk is 3D-left framebuffer, second one is 3D-right(when that's enabled). These are the primary framebuffers. Color format is byte-swapped RGB8.
 #ifndef ENABLE_IMAGEDISPLAY
 CALL_GXCMD4 0x1f000000, 0x1f1e6000, 0x46800*2
 #else
+
+@ Initialize the data which will be copied into the framebuffers, for when reading the file fails.
+
 CALLFUNC_NOSP MEMCPY, (HEAPBUF + (_end - _start)), 0x1f000000, (0x46800*2), 0
+
+@ Normally the sub-screen data here will be zeros, but do this anyway just in case.
+CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (_end - _start + 0x46800*2)), 0x38800, 0, 0
 
 #ifdef ENABLE_IMAGEDISPLAY_SD
 CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
 
 CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_imagedisplay_path - _start)), 1, 0
 
+@ Read main-screen 3D-left image.
 CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (_end - _start)), (0x46500)
 
+@ Read main-screen 3D-right image.
 CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (_end - _start + 0x46800)), (0x46500)
+
+@ Read sub-screen image.
+CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (_end - _start + 0x46800*2)), (0x38400)
 
 ROP_SETLR ROP_POPPC
 
@@ -865,8 +876,27 @@ ROP_SETLR ROP_POPPC
 .word IFile_Close
 #endif
 
-CALLFUNC_NOSP GSPGPU_FlushDataCache, (HEAPBUF + (_end - _start)), (0x46800*2), 0, 0
+@ Setup the framebuffers to make sure they're at the intended addrs(like when returning from another title etc).
+@ Setup primary framebuffers for the main-screen.
+CALLFUNC GSP_SHAREDMEM_SETUPFRAMEBUF, 0, 0, 0x1f1e6000, 0x1f1e6000 + 0x46800, 0x2d0, 0x321, 0, 0
+@ Setup secondary framebuffers for the main-screen.
+CALLFUNC GSP_SHAREDMEM_SETUPFRAMEBUF, 0, 1, 0x1f273000, 0x1f273000 + 0x46800, 0x2d0, 0x321, 1, 0
+
+@ Setup primary framebuffers for the sub-screen.
+CALLFUNC GSP_SHAREDMEM_SETUPFRAMEBUF, 1, 0, 0x1f48f000, 0, 0x2d0, 0x301, 0, 0
+@ Setup secondary framebuffers for the sub-screen.
+CALLFUNC GSP_SHAREDMEM_SETUPFRAMEBUF, 1, 1, 0x1f48f000 + 0x38800, 0, 0x2d0, 0x301, 1, 0
+
+@ Flush gfx dcache.
+CALLFUNC_NOSP GSPGPU_FlushDataCache, (HEAPBUF + (_end - _start)), (0x46800*2) + 0x38800, 0, 0
+
+@ Copy the gfx to the primary/secondary main-screen framebuffers.
 CALL_GXCMD4 (HEAPBUF + (_end - _start)), 0x1f1e6000, 0x46800*2
+CALL_GXCMD4 (HEAPBUF + (_end - _start)), 0x1f273000, 0x46800*2
+
+@ Copy the gfx to the primary/secondary sub-screen framebuffers.
+CALL_GXCMD4 (HEAPBUF + (_end - _start)) + (0x46800*2), 0x1f48f000, 0x38800
+CALL_GXCMD4 (HEAPBUF + (_end - _start)) + (0x46800*2), 0x1f48f000 + 0x38800, 0x38800
 #endif
 
 #ifdef ENABLE_RET2MENU
