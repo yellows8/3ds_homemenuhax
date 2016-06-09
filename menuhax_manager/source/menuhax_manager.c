@@ -1511,16 +1511,18 @@ void menuhaxcfg_set_themeflag(bool themeflag)
 	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&sdcfg, sizeof(sdcfg), 0);
 }
 
-Result imagedisplay_loadpng(char *filepath, u8 **finalimage_out)
+Result imagedisplay_loadpng(char *filepath, u8 **finalimage_out, int *type)
 {
 	Result ret=0;
-	unsigned w = 0, h = 0, x, y, pos0, pos1;
+	unsigned w = 0, h = 0, x, y, pos0, pos1, lenval;
+	int j;
 	size_t pngsize = 0;
 	u8 *outbuf = NULL;
 	u8 *pngbuf = NULL;
 	u8 *finalimage = NULL;
 
 	*finalimage_out = NULL;
+	*type = -1;
 
 	log_printf(LOGTAR_LOG, "Loading PNG from FS: %s\n", filepath);
 
@@ -1558,36 +1560,74 @@ Result imagedisplay_loadpng(char *filepath, u8 **finalimage_out)
 
 	log_printf(LOGTAR_LOG, "Decoding finished.\n");
 
-	if(!(w==800 && h==240) && !(w==240 && h==800))
+	if(w!=240 && h!=240)
 	{
-		log_printf(LOGTAR_LOG, "PNG width and/or height is invalid. 800x240 or 240x800 is required but the PNG is %ux%u.\n", (unsigned int)w, (unsigned int)h);
+		log_printf(LOGTAR_LOG, "The PNG width or height must be 240, but the PNG is %ux%u.\n", (unsigned int)w, (unsigned int)h);
 		free(outbuf);
 		return 2;
 	}
 
-	finalimage = malloc(0x8ca00);
+	lenval = w;
+	if(w==240)lenval = h;
+
+	if(lenval!=400 && lenval!=800 && lenval!=1120)
+	{
+		log_printf(LOGTAR_LOG, "The PNG dimensions are invalid. VAL where VAL is 240xVAL or VALx240 is invalid. VAL must be 400, 800, or 1120. The PNG VAL=%u.\n", (unsigned int)lenval);
+		free(outbuf);
+		return 2;
+	}
+
+	finalimage = malloc(0xc4e00);
 	if(finalimage==NULL)
 	{
 		log_printf(LOGTAR_LOG, "Failed to alloc the finalimage buffer.\n");
 		free(outbuf);
 		return 1;
 	}
+	memset(finalimage, 0, 0xc4e00);
 
 	log_printf(LOGTAR_LOG, "Converting the image to the required format...\n");
+
+	if(lenval==400)
+	{
+		*type = 0;
+	}
+	else if(lenval==800)
+	{
+		*type = 1;
+	}
+	else if(lenval==1120)
+	{
+		*type = 2;
+	}
+
+	if(lenval==400)//Convert a 400-len image into a 800 one.
+	{
+		lenval = 2;
+	}
+	else
+	{
+		lenval = 1;
+	}
 
 	for(x=0; x<w; x++)
 	{
 		for(y=0; y<h; y++)
 		{
-			//Convert the image to 240x800 if it's not already those dimensions.
+			//Convert the image to the required dimensions if needed.
 			pos0 = (x*h + (h-1-y)) * 3;
 			pos1 = (y*w + x) * 3;
 			if(w==240)pos0 = pos1;
 
 			//Copy the pixel data + swap the color components.
-			finalimage[pos0 + 2] = outbuf[pos1 + 0];
-			finalimage[pos0 + 1] = outbuf[pos1 + 1];
-			finalimage[pos0 + 0] = outbuf[pos1 + 2];
+			for(j=0; j<lenval; j++)
+			{
+				finalimage[pos0 + 2] = outbuf[pos1 + 0];
+				finalimage[pos0 + 1] = outbuf[pos1 + 1];
+				finalimage[pos0 + 0] = outbuf[pos1 + 2];
+
+				pos0+= 0x46500;
+			}
 		}
 	}
 
@@ -1677,33 +1717,58 @@ Result imagedisplay_scandir(const char *dirpath, struct dirent ***namelist, size
 	return 0;
 }
 
-void imagedisplay_previewimage(u8 *finalimage)
+void imagedisplay_previewimage(u8 *finalimage, int type)
 {
-	u8 *framebuf;
+	u8 *framebuf = NULL;
 	u32 size = 240*400*3;
-	u32 i;
+	u32 i, j;
 
-	gspWaitForVBlank();
-	gfxSetDoubleBuffering(GFX_TOP, true);
-	gfxSetScreenFormat(GFX_TOP, GSP_BGR8_OES);
+	if(type>=1 && menu_getcurscreen()==1)
+	{
+		gfxSet3D(true);
+	}
+	else
+	{
+		gfxSet3D(false);
+	}
+	gfxSwapBuffersGpu();
 
 	for(i=0; i<2; i++)
 	{
-		framebuf = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
-		if(finalimage)memcpy(framebuf, finalimage, size);
-		if(finalimage==NULL)memset(framebuf, 0, size);
+		if(menu_getcurscreen()==i)continue;
+		if(type!=2 && i==1)break;
 
-		framebuf = gfxGetFramebuffer(GFX_TOP, GFX_RIGHT, NULL, NULL);
-		if(finalimage)memcpy(framebuf, &finalimage[size], size);
-		if(finalimage==NULL)memset(framebuf, 0, size);
-
-		gfxFlushBuffers();
-		gfxSwapBuffersGpu();
 		gspWaitForVBlank();
+		gfxSetDoubleBuffering(i==0?GFX_TOP:GFX_BOTTOM, true);
+		gfxSetScreenFormat(i==0?GFX_TOP:GFX_BOTTOM, GSP_BGR8_OES);
+
+		if(i==1)size = 240*320*3;
+
+		for(j=0; j<2; j++)
+		{
+			framebuf = gfxGetFramebuffer(i==0?GFX_TOP:GFX_BOTTOM, GFX_LEFT, NULL, NULL);
+			if(finalimage)
+			{
+				if(i==0)memcpy(framebuf, finalimage, size);
+				if(i==1)memcpy(framebuf, &finalimage[(240*400*3)*2], size);
+			}
+			if(finalimage==NULL)memset(framebuf, 0, size);
+
+			if(i==0 && type>0)
+			{
+				framebuf = gfxGetFramebuffer(GFX_TOP, GFX_RIGHT, NULL, NULL);
+				if(finalimage)memcpy(framebuf, &finalimage[size], size);
+				if(finalimage==NULL)memset(framebuf, 0, size);
+			}
+
+			gfxFlushBuffers();
+			gfxSwapBuffersGpu();
+			gspWaitForVBlank();
+		}
 	}
 }
 
-Result imagedisplay_selectsdimage(const char *dirpath, u8 **finalimage_out, int *exitflag)
+Result imagedisplay_selectsdimage(const char *dirpath, u8 **finalimage_out, int *type, int *exitflag)
 {
 	struct dirent **namelist = NULL;
 	Result ret=0;
@@ -1740,7 +1805,7 @@ Result imagedisplay_selectsdimage(const char *dirpath, u8 **finalimage_out, int 
 			redraw = 0;
 
 			consoleClear();
-			log_printf(LOGTAR_ALL, "Select a custom splash-screen image via the D-Pad/Circle-Pad, then press A.\nYou can press B to exit without changing anything.\nThe selected image if successfully loaded is displayed on the top-screen.\n");
+			log_printf(LOGTAR_ALL, "Select a custom splash-screen image via the D-Pad/Circle-Pad, then press A.\nYou can press B to exit without changing anything.\nHold the Y button to display the bottom-screen image if available.\nThe selected image if successfully loaded is displayed on the other screen.\n");
 			log_printf(LOGTAR_ALL, "%d of %u:\n", pos+1, total_entries);
 			log_printf(LOGTAR_ALL, "%s\n", namelist[pos]->d_name);
 
@@ -1749,13 +1814,13 @@ Result imagedisplay_selectsdimage(const char *dirpath, u8 **finalimage_out, int 
 
 			free(*finalimage_out);//This will free the finalimage buffer if it's already allocated.
 			*finalimage_out = NULL;
-			ret = imagedisplay_loadpng(filepath, finalimage_out);
+			ret = imagedisplay_loadpng(filepath, finalimage_out, type);
 			if(ret!=0)
 			{
 				log_printf(LOGTAR_ALL, "N/A since PNG loading failed(details were logged).\n");
 			}
 
-			imagedisplay_previewimage(*finalimage_out);
+			imagedisplay_previewimage(*finalimage_out, *type);
 		}
 
 		if(kDown & (KEY_RIGHT | KEY_DOWN))
@@ -1775,6 +1840,17 @@ Result imagedisplay_selectsdimage(const char *dirpath, u8 **finalimage_out, int 
 			continue;
 		}
 
+		if(kDown & KEY_Y)
+		{
+			menu_configscreencontrol(false, 0);
+			redraw = 1;
+		}
+		else if(hidKeysUp() & KEY_Y)
+		{
+			menu_configscreencontrol(false, 1);
+			redraw = 1;
+		}
+
 		if(ret == 0 && (kDown & KEY_A))
 		{
 			break;
@@ -1785,6 +1861,8 @@ Result imagedisplay_selectsdimage(const char *dirpath, u8 **finalimage_out, int 
 			break;
 		}
 	}
+
+	menu_configscreencontrol(false, 1);
 
 	for(pos=0; pos<total_entries; pos++)free(namelist[pos]);
 	free(namelist);
@@ -1801,8 +1879,10 @@ Result setup_imagedisplay()
 	u32 pos;
 	int exitflag = 0;
 	u8 *finalimages[2];
+	int finalimages_type[2];
+	u32 redraw;
 
-	struct stat filestats;
+	u32 imgdisp_size = 0;
 
 	struct dirent **namelist = NULL;
 	size_t total_entries=0;
@@ -1817,30 +1897,34 @@ Result setup_imagedisplay()
 	char filepath1[256];
 
 	memset(finalimages, 0, sizeof(finalimages));
+	for(pos=0; pos<2; pos++)finalimages_type[pos] = -1;
 
 	imgdisp_exists = 1;
-	ret = stat("sdmc:/menuhax/menuhax_imagedisplay.bin", &filestats);
-	if(ret==-1)imgdisp_exists = 0;
+	ret = archive_getfilesize(SDArchive, "sdmc:/menuhax/menuhax_imagedisplay.bin", &imgdisp_size);
+	if(ret!=0)imgdisp_exists = 0;
 
-	log_printf(LOGTAR_ALL, "This will configure the image displayed on the main-screen when menuhax triggers. When the image-display file isn't loaded successfully by menuhax, it will display junk.\nToggling the screen used by this app via the Y button is disabled under this menu.\n\n");
+	if(imgdisp_size>0xc4e00)imgdisp_size = 0xc4e00;
+
+	log_printf(LOGTAR_ALL, "This will configure the image displayed on the main-screen when menuhax triggers. When the image-display file isn't loaded successfully by menuhax, it will display junk.\n\n");
 	if(imgdisp_exists)
 	{
 		log_printf(LOGTAR_ALL, "The image-display file already exists on SD.\n");
 
-		finalimages[0] = malloc(0x8ca00);
+		finalimages[0] = malloc(0xc4e00);
 		if(finalimages[0])
 		{
-			memset(finalimages[0], 0, 0x8ca00);
+			memset(finalimages[0], 0, 0xc4e00);
 
-			ret = archive_readfile(SDArchive, "sdmc:/menuhax/menuhax_imagedisplay.bin", finalimages[0], 0x8ca00);
+			finalimages_type[0] = -1;
+			if(imgdisp_size==400*240*3)finalimages_type[0] = 0;
+			if(imgdisp_size==800*240*3)finalimages_type[0] = 1;
+			if(imgdisp_size==1120*240*3)finalimages_type[0] = 2;
+
+			ret = archive_readfile(SDArchive, "sdmc:/menuhax/menuhax_imagedisplay.bin", finalimages[0], imgdisp_size);
 			if(ret==0)
 			{
-				imagedisplay_previewimage(finalimages[0]);
-				log_printf(LOGTAR_ALL, "The image now displayed on the top-screen is the current content of the image-display file.\n");
+				log_printf(LOGTAR_ALL, "The image now displayed on the screen(s) is the current content of the image-display file.\n");
 			}
-
-			free(finalimages[0]);
-			finalimages[0] = NULL;
 		}
 	}
 	else
@@ -1870,11 +1954,47 @@ Result setup_imagedisplay()
 		free(namelist);
 	}
 
-	displaymessage_waitbutton();
+	redraw = 1;
+	while(1)
+	{
+		gspWaitForVBlank();
+		hidScanInput();
+		if(hidKeysDown() & KEY_A)break;
+
+		if(redraw)
+		{
+			log_printf(LOGTAR_ALL, "\nPress the A button to continue. Hold the Y button to display the bottom-screen image if available.\n");
+			imagedisplay_previewimage(finalimages[0], finalimages_type[0]);
+			redraw = 0;
+		}
+
+		if(finalimages[0])
+		{
+			if(hidKeysDown() & KEY_Y)
+			{
+				menu_configscreencontrol(false, 0);
+				redraw = 1;
+			}
+			else if(hidKeysUp() & KEY_Y)
+			{
+				menu_configscreencontrol(false, 1);
+				redraw = 1;
+			}
+		}
+	}
+
+	menu_configscreencontrol(false, 1);
+
+	if(finalimages[0])
+	{
+		free(finalimages[0]);
+		finalimages[0] = NULL;
+		finalimages_type[0] = -1;
+	}
 
 	log_printf(LOGTAR_ALL, "Loading PNG(s)...\n");
 
-	imagedisplay_loadpng("romfs:/default_imagedisplay.png", &finalimages[0]);
+	imagedisplay_loadpng("romfs:/default_imagedisplay.png", &finalimages[0], &finalimages_type[0]);
 
 	memset(new_menutext, 0, sizeof(new_menutext));
 
@@ -1887,9 +2007,9 @@ Result setup_imagedisplay()
 		}
 	}
 
-	imagedisplay_previewimage(finalimages[0]);
+	imagedisplay_previewimage(finalimages[0], finalimages_type[0]);
 
-	display_menu(menu_entries, 2 + imgdisp_exists, &menuindex, "Select an option with the below menu. You can press B to exit without changing anything. The image displayed on the top-screen is what would be used if you select the default-image option below");
+	display_menu(menu_entries, 2 + imgdisp_exists, &menuindex, "Select an option with the below menu. You can press B to exit without changing anything. Screen toggling is disabled here. The image displayed on the top-screen is what would be used if you select the default-image option below");
 
 	log_printf(LOGTAR_ALL, "\n");
 
@@ -1914,7 +2034,7 @@ Result setup_imagedisplay()
 
 	if(imgid==1)
 	{
-		ret = imagedisplay_selectsdimage("sdmc:/3ds/menuhax_manager/splashscreen", &finalimages[imgid], &exitflag);
+		ret = imagedisplay_selectsdimage("sdmc:/3ds/menuhax_manager/splashscreen", &finalimages[imgid], &finalimages_type[imgid], &exitflag);
 		if(ret!=0)
 		{
 			log_printf(LOGTAR_ALL, "Failed to select the custom image: 0x%08x.\n", (unsigned int)ret);
@@ -1938,7 +2058,7 @@ Result setup_imagedisplay()
 
 	log_printf(LOGTAR_ALL, "Writing the final image to SD...\n");
 
-	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_imagedisplay.bin", finalimages[imgid], 0x8ca00, 0);
+	ret = archive_writefile(SDArchive, "sdmc:/menuhax/menuhax_imagedisplay.bin", finalimages[imgid], 0xc4e00, 0);
 	if(ret!=0)
 	{
 		log_printf(LOGTAR_ALL, "Failed to write the image-display file to SD: 0x%08x.\n", (unsigned int)ret);
@@ -2165,11 +2285,9 @@ int main(int argc, char **argv)
 					case 3:
 						curscreen = menu_getcurscreen();
 						menu_configscreencontrol(false, 1);
-						gfxSet3D(true);
 
 						ret = setup_imagedisplay();
-						imagedisplay_previewimage(NULL);//Clear the top-screen framebuffer.
-						gfxSet3D(false);
+						imagedisplay_previewimage(NULL, -1);//Clear the top-screen framebuffer.
 
 						if(ret==0)
 						{

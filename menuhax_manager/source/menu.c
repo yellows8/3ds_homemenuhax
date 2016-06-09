@@ -26,6 +26,9 @@ void menu_configscreencontrol(bool flag, int curscreen)
 	menu_allowscreencontrol = flag;
 	menu_curprintscreen = curscreen;
 
+	gfxSet3D(false);
+	gfxSwapBuffersGpu();
+
 	consoleClear();
 	consoleInit(GFX_TOP, &menu_printscreen[0]);
 	consoleInit(GFX_BOTTOM, &menu_printscreen[1]);
