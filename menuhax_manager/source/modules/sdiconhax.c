@@ -65,13 +65,17 @@ Result sdiconhax_load_savedatadat(void)
 	return ret;
 }
 
-Result sdiconhax_locatelinearmem(u32 *outaddr)
+Result sdiconhax_locatelinearmem(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, u32 *original_objptrs)
 {
 	u32 *tmpbuf;
 	u32 *linearaddr;
 	u32 linearpos = osGetMemRegionSize(MEMREGION_APPLICATION);
 	u32 chunksize=0x800000;
 	u32 pos;
+	u32 tmpval;
+	u32 iconbuffer_pos;
+
+	//Copy the first 8MB of the SYSTEM memregion into tmpbuf.
 
 	tmpbuf = linearAlloc(chunksize);
 	if(tmpbuf==NULL)
@@ -90,19 +94,70 @@ Result sdiconhax_locatelinearmem(u32 *outaddr)
 
 	for(pos=0; pos<(chunksize-8)>>2; pos++)//Locate the address of the SaveData.dat buffer in the linearmem heap, since it varies per system in some cases.
 	{
-		if(tmpbuf[pos]==0x5544 && tmpbuf[pos+1]==0x2da0)
+		if(tmpbuf[pos]==0x5544 && tmpbuf[pos+1]==0x2da0)//Check the CTRSDK heap memchunkhdr.
 		{
 			break;
 		}
 	}
 
-	linearFree(tmpbuf);
-
-	if(pos==((chunksize-8)>>2))return -2;
+	if(pos==((chunksize-8)>>2))
+	{
+		linearFree(tmpbuf);
+		return -2;
+	}
 
 	pos+= 4;
 
-	*outaddr = (u32)&linearaddr[pos];
+	*outaddr0 = (u32)&linearaddr[pos];//Actual address of the SaveData.dat buffer.
+
+	iconbuffer_pos = pos + (0x2da0>>2);
+
+	if(!(tmpbuf[iconbuffer_pos]==0x5544 && tmpbuf[iconbuffer_pos+1]==0x7bc0))//Check the CTRSDK heap memchunkhdr.
+	{
+		log_printf(LOGTAR_LOG, "The icon buffer was not found at the expected address.\n");
+		return -3;
+	}
+
+	iconbuffer_pos+= 4;
+
+	pos-= 8;
+
+	//Locate the buffer containing the target objects-list.
+
+	while(pos>0)
+	{
+		if(tmpbuf[pos]==0xc005544 && tmpbuf[pos+1]==0x10)break;
+
+		pos--;
+	}
+
+	if(pos==0)
+	{
+		linearFree(tmpbuf);
+		return -2;
+	}
+
+	pos+= 4;
+
+	*outaddr1 = (u32)&linearaddr[pos];//Actual address of the target objects-list buffer.
+
+	original_objptrs[0] = tmpbuf[pos];//Original objptrs before they get overwritten.
+	original_objptrs[1] = tmpbuf[pos+1];
+
+	tmpval = iconbuffer_pos - pos;
+
+	linearFree(tmpbuf);
+
+	if(tmpval & 1)
+	{
+		log_printf(LOGTAR_LOG, "The relative offset for iconbuffer_pos->target_objectslist_buffer is 4-byte aligned, 8-byte alignment is required.\n");
+		return -4;
+	}
+
+	tmpval*= 4;
+	*icon_16val = -(tmpval/8);
+
+	log_printf(LOGTAR_LOG, "outaddr0=0x%08x, outaddr1=0x%08x, iconbuffer_pos=0x%x, pos=0x%x, tmpval=0x%x, icon_16val=0x%x\n", *outaddr0, *outaddr1, iconbuffer_pos, pos, tmpval, *icon_16val);
 
 	return 0;
 }
@@ -110,7 +165,12 @@ Result sdiconhax_locatelinearmem(u32 *outaddr)
 Result sdiconhax_install(char *menuhax_basefn)
 {
 	Result ret=0;
-	u32 linearaddr=0;
+
+	u32 linearaddr_savedatadat=0;
+	u32 linearaddr_target_objectslist_buffer=0;
+	s16 icon_16val=0;
+	u32 original_objptrs[2] = {0};
+
 	u32 *savedatadat = (u32*)filebuffer;
 	u32 *tmpbuf = (u32*)&filebuffer[0x2da0];
 	u32 pos;
@@ -124,8 +184,8 @@ Result sdiconhax_install(char *menuhax_basefn)
 	ret = sdiconhax_load_savedatadat();
 	if(ret!=0)return ret;
 
-	log_printf(LOGTAR_ALL, "Locating linearmem addr...\n");
-	ret = sdiconhax_locatelinearmem(&linearaddr);
+	log_printf(LOGTAR_ALL, "Locating data in Home Menu linearmem heap...\n");
+	ret = sdiconhax_locatelinearmem(&linearaddr_savedatadat, &linearaddr_target_objectslist_buffer, &icon_16val, original_objptrs);
 	if(ret!=0)return ret;
 
 	log_printf(LOGTAR_ALL, "Loading exploit file-data + writing into extdata...\n");
@@ -155,7 +215,14 @@ Result sdiconhax_install(char *menuhax_basefn)
 		if(tidptr_in[pos] != ~0)
 		{
 			tidptr_out[pos] = tidptr_in[pos];
-			ptr16_out[pos] = ptr16_in[pos];
+			if(ptr16_in[pos]!=0x5848)
+			{
+				ptr16_out[pos] = ptr16_in[pos];
+			}
+			else
+			{
+				ptr16_out[pos] = icon_16val;
+			}
 			ptr8_out[pos] = ptr8_in[pos];
 		}
 	}

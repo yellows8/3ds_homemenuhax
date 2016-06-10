@@ -10,7 +10,7 @@ _start:
 
 @ End of the s16 array.
 .space ((_start + 0xcb0 + ((360-1)*2)) - .)
-.hword -0xc0a
+.hword 0x5848 @ Offset value, menuhax_manager detects this special value and uses the required value instead.
 
 @ End of the s8 array.
 .space ((_start + 0xf80 + (360-1)) - .)
