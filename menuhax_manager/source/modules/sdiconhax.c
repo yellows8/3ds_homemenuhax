@@ -173,10 +173,11 @@ Result sdiconhax_install(char *menuhax_basefn)
 
 	u32 *savedatadat = (u32*)filebuffer;
 	u32 *tmpbuf = (u32*)&filebuffer[0x2da0];
-	u32 pos;
+	u32 pos, pos2;
 	u64 *tidptr_in, *tidptr_out;
 	s16 *ptr16_in, *ptr16_out;
 	s8 *ptr8_in, *ptr8_out;
+	u32 *ptr32;
 
 	char filepath[256];
 
@@ -215,6 +216,17 @@ Result sdiconhax_install(char *menuhax_basefn)
 		if(tidptr_in[pos] != ~0)
 		{
 			tidptr_out[pos] = tidptr_in[pos];
+
+			ptr32 = (u32*)&tidptr_out[pos];//Replace the words used as the heap-buffer base addr.
+			for(pos2=0; pos2<2; pos2++)
+			{
+				if((ptr32[pos2] & 0xffff0000) == 0x58480000)
+				{
+					ptr32[pos2]&= ~0xffff0000;
+					ptr32[pos2]+= linearaddr_savedatadat;
+				}
+			}
+
 			if(ptr16_in[pos]!=0x5848)
 			{
 				ptr16_out[pos] = ptr16_in[pos];
@@ -246,9 +258,9 @@ Result sdiconhax_delete()
 	ptr = (s16*)&filebuffer[0xcb0];
 	for(pos=0; pos<360; pos++)
 	{
-		if(ptr[pos] < -1)//The exploit implementation used here only uses negative values for this, so this code only checks for negative values.
+		if(ptr[pos] < -2)//The exploit implementation used here only uses negative values for this, so this code only checks for negative values.
 		{
-			ptr[pos] = -1;
+			ptr[pos] = -1;//-1 is the default, while -2 is a special value.
 			update = 1;
 		}
 	}
