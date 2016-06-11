@@ -4,7 +4,7 @@
 
 #include "menuhax_ropinclude.s"
 
-#define TOTAL_HAX_ICONS 0x9
+#define TOTAL_HAX_ICONS 60 //Use the last 60 available "icons".
 
 _start:
 
@@ -36,6 +36,9 @@ ropstackstart:
 .word 0x40506070
 
 .word 0x0 @ Padding
+
+@ Pad to the start of the s16 array, to make sure the above data doesn't get too large.
+.space ((_start + 0xcb0) - .)
 
 @ End of the s16 array.
 .space ((_start + 0xcb0 + ((360-TOTAL_HAX_ICONS)*2)) - .)
