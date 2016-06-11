@@ -2,9 +2,11 @@
 .section .init
 .global _start
 
-_start:
+#include "menuhax_ropinclude.s"
 
 #define TOTAL_HAX_ICONS 0x9
+
+_start:
 
 @ End of the titleID array.
 .fill (((_start + 0x8 + ((360-TOTAL_HAX_ICONS)*8)) - .) / 4), 4, 0xffffffff
