@@ -550,12 +550,16 @@ padcheck_finish_jump:
 CALL_GXCMD4 0x1f000000, 0x1f1e6000, 0x46800*2
 #else
 
+@ Allocate the buffer containing the gfx data in linearmem, with the bufptr located @ tmp_scratchdata+4, which is then copied to tmp_scratchdata+8.
+CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata+4 - _start)), 0, 0, (((0x46800*2 + 0x38800) + 0xfff) & ~0xfff), 0x10003, 0x3, 0, 0
+ROPMACRO_COPYWORD (HEAPBUF + (tmp_scratchdata+8 - _start)), (HEAPBUF + (tmp_scratchdata+4 - _start))
+
 @ Initialize the data which will be copied into the framebuffers, for when reading the file fails.
 
-CALLFUNC_NOSP MEMCPY, (HEAPBUF + (_end - _start)), 0x1f000000, (0x46800*2), 0
+@ Clear the entire buffer, including the sub-screen data just to make sure it's all-zero initially.
+CALLFUNC_NOSP_LDRR0 MEMSET32_OTHER, (HEAPBUF + (tmp_scratchdata+8 - _start)), ((0x46800*2) + 0x38800), 0, 0
 
-@ Normally the sub-screen data here will be zeros, but do this anyway just in case.
-CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (_end - _start + 0x46800*2)), 0x38800, 0, 0
+CALLFUNC_NOSP_LDRR0 MEMCPY, (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x1f000000, (0x46800*2), 0
 
 #ifdef ENABLE_IMAGEDISPLAY_SD
 CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
@@ -563,13 +567,15 @@ CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
 CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_imagedisplay_path - _start)), 1, 0
 
 @ Read main-screen 3D-left image.
-CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (_end - _start)), (0x46500)
+CALLFUNC_NOSP_LOADR2 IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), (0x46500)
 
 @ Read main-screen 3D-right image.
-CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (_end - _start + 0x46800)), (0x46500)
+ROPMACRO_LDDRR0_ADDR1_STRADDR (HEAPBUF + (tmp_scratchdata+8 - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x46800
+CALLFUNC_NOSP_LOADR2 IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), (0x46500)
 
 @ Read sub-screen image.
-CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (_end - _start + 0x46800*2)), (0x38400)
+ROPMACRO_LDDRR0_ADDR1_STRADDR (HEAPBUF + (tmp_scratchdata+8 - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x46800
+CALLFUNC_NOSP_LOADR2 IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), (0x38400)
 
 ROP_SETLR ROP_POPPC
 
@@ -592,16 +598,27 @@ CALLFUNC GSP_SHAREDMEM_SETUPFRAMEBUF, 1, 0, 0x1f48f000, 0, 0x2d0, 0x301, 0, 0
 @ Setup secondary framebuffers for the sub-screen.
 CALLFUNC GSP_SHAREDMEM_SETUPFRAMEBUF, 1, 1, 0x1f48f000 + 0x38800, 0, 0x2d0, 0x301, 1, 0
 
+
 @ Flush gfx dcache.
-CALLFUNC_NOSP GSPGPU_FlushDataCache, (HEAPBUF + (_end - _start)), (0x46800*2) + 0x38800, 0, 0
+CALLFUNC_NOSP_LDRR0 GSPGPU_FlushDataCache, (HEAPBUF + (tmp_scratchdata+4 - _start)), (0x46800*2) + 0x38800, 0, 0
+
+ROPMACRO_COPYWORD (HEAPBUF + (tmp_scratchdata+8 - _start)), (HEAPBUF + (tmp_scratchdata+4 - _start))
 
 @ Copy the gfx to the primary/secondary main-screen framebuffers.
-CALL_GXCMD4 (HEAPBUF + (_end - _start)), 0x1f1e6000, 0x46800*2
-CALL_GXCMD4 (HEAPBUF + (_end - _start)), 0x1f273000, 0x46800*2
+CALL_GXCMD4_LDRSRC (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x1f1e6000, 0x46800*2
+CALL_GXCMD4_LDRSRC (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x1f273000, 0x46800*2
 
 @ Copy the gfx to the primary/secondary sub-screen framebuffers.
-CALL_GXCMD4 (HEAPBUF + (_end - _start)) + (0x46800*2), 0x1f48f000, 0x38800
-CALL_GXCMD4 (HEAPBUF + (_end - _start)) + (0x46800*2), 0x1f48f000 + 0x38800, 0x38800
+ROPMACRO_LDDRR0_ADDR1_STRADDR (HEAPBUF + (tmp_scratchdata+8 - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x46800*2
+
+CALL_GXCMD4_LDRSRC (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x1f48f000, 0x38800
+CALL_GXCMD4_LDRSRC (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x1f48f000 + 0x38800, 0x38800
+
+@ Wait 0.1s for the above transfers to finish, then free the allocated linearmem buffer.
+
+CALLFUNC_NOSP svcSleepThread, 100000000, 0, 0, 0
+
+CALLFUNC_LDRR1 svcControlMemory, (HEAPBUF + (tmp_scratchdata+12 - _start)), (HEAPBUF + (tmp_scratchdata+4 - _start)), 0, (((0x46800*2 + 0x38800) + 0xfff) & ~0xfff), 0x1, 0x0, 0, 0
 #endif
 
 #ifdef ENABLE_RET2MENU

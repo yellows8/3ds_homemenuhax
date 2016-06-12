@@ -78,8 +78,124 @@ ROP_SETLR POP_R2R6PC
 .word 0 @ r6
 .endm
 
+@ This is basically: CALLFUNC funcadr, *r0, r1, r2, r3, sp0, sp4, sp8, sp12
+.macro CALLFUNC_LOADR0 funcadr, r0, r1, r2, r3, sp0, sp4, sp8, sp12
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word \r0
+
+.word ROP_LDR_R0FROMR0
+
+ROP_SETLR POP_R2R6PC
+
+.word POP_R1PC
+.word \r1
+
+.word POP_R2R6PC
+.word \r2
+.word \r3
+.word 0 @ r4
+.word 0 @ r5
+.word 0 @ r6
+
+.word \funcadr
+
+.word \sp0
+.word \sp4
+.word \sp8
+.word \sp12
+.word 0 @ r6
+.endm
+
+@ This is basically: CALLFUNC funcadr, r0, *r1, r2, r3, sp0, sp4, sp8, sp12
+.macro CALLFUNC_LDRR1 funcadr, r0, r1, r2, r3, sp0, sp4, sp8, sp12
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word HEAPBUF + ((. + 0x1c) - _start)
+
+.word POP_R1PC
+.word \r1
+
+.word ROP_LDRR1R1_STRR1R0
+
+.word POP_R0PC
+.word \r0
+
+.word POP_R1PC
+.word 0 @ Overwritten by the above rop.
+
+ROP_SETLR POP_R2R6PC
+
+.word POP_R2R6PC
+.word \r2
+.word \r3
+.word 0 @ r4
+.word 0 @ r5
+.word 0 @ r6
+
+.word \funcadr
+
+.word \sp0
+.word \sp4
+.word \sp8
+.word \sp12
+.word 0 @ r6
+.endm
+
 .macro CALLFUNC_NOSP funcadr, r0, r1, r2, r3
 ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word \r0
+
+.word POP_R1PC
+.word \r1
+
+.word POP_R2R6PC
+.word \r2
+.word \r3
+.word 0 @ r4
+.word 0 @ r5
+.word 0 @ r6
+
+.word \funcadr
+.endm
+
+@ This is is basically: CALLFUNC_NOSP funcadr, *r0, r1, r2, r3
+.macro CALLFUNC_NOSP_LDRR0 funcadr, r0, r1, r2, r3
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word \r0
+
+.word ROP_LDR_R0FROMR0
+
+.word POP_R1PC
+.word \r1
+
+.word POP_R2R6PC
+.word \r2
+.word \r3
+.word 0 @ r4
+.word 0 @ r5
+.word 0 @ r6
+
+.word \funcadr
+.endm
+
+@ This is is basically: CALLFUNC_NOSP funcadr, r0, r1, *r2, r3
+.macro CALLFUNC_NOSP_LOADR2 funcadr, r0, r1, r2, r3
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word HEAPBUF + ((. + 0x24) - _start)
+
+.word POP_R1PC
+.word \r2
+
+.word ROP_LDRR1R1_STRR1R0
 
 .word POP_R0PC
 .word \r0
@@ -104,6 +220,11 @@ ROP_SETLR ROP_POPPC
 
 .macro CALL_GXCMD4 srcadr, dstadr, cpysize
 CALLFUNC GXLOW_CMD4, \srcadr, \dstadr, \cpysize, 0, 0, 0, 0, 0x8
+.endm
+
+@ This is basically: CALL_GXCMD4 *srcadr, dstadr, cpysize
+.macro CALL_GXCMD4_LDRSRC srcadr, dstadr, cpysize
+CALLFUNC_LOADR0 GXLOW_CMD4, \srcadr, \dstadr, \cpysize, 0, 0, 0, 0, 0x8
 .endm
 
 .macro ROPMACRO_STACKPIVOT sp, pc
@@ -293,5 +414,24 @@ ROP_SETLR ROP_POPPC
 .word \srcaddr @ r1
 
 .word ROP_LDRR1R1_STRR1R0
+.endm
+
+.macro ROPMACRO_LDDRR0_ADDR1_STRADDR dstaddr, srcaddr, value
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word \srcaddr
+
+.word ROP_LDR_R0FROMR0
+
+.word POP_R1PC
+.word \value @ r1
+
+.word ROP_ADDR0_TO_R1 @ r0 = *srcaddr + value
+
+.word POP_R1PC
+.word \dstaddr
+
+.word ROP_STR_R0TOR1 @ Write the above r0 value to *dstaddr.
 .endm
 
