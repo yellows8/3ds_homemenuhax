@@ -964,7 +964,7 @@ Result install_menuhax(char *ropbin_filepath)
 	snprintf(ropbin_filepath, 255, "sdmc:/ropbinpayload_%s.bin", menuhax_basefn);
 	unlink(ropbin_filepath);
 
-	snprintf(ropbin_filepath, 255, "sdmc:/menuhax/ropbinpayload_%s.bin", menuhax_basefn);
+	snprintf(ropbin_filepath, 255, "sdmc:/menuhax/ropbin/ropbinpayload_%s.bin", menuhax_basefn);
 
 	ret = osGetSystemVersionData(&nver_versionbin, &cver_versionbin);
 	if(ret!=0)
@@ -1054,7 +1054,8 @@ Result install_menuhax(char *ropbin_filepath)
 			}
 		}
 
-		log_printf(LOGTAR_ALL, "Writing the menuropbin to SD, to the following path: %s.\n", ropbin_filepath);
+		log_printf(LOGTAR_ALL, "Writing the menuropbin to SD...\n");
+		log_printf(LOGTAR_LOG, "ropbin_filepath = %s\n", ropbin_filepath);
 		unlink("sdmc:/menuhax_ropbinpayload.bin");//Delete the ropbin with the filepath used by the <=v1.2 menuhax.
 		unlink(ropbin_filepath);
 		ret = archive_writefile(SDArchive, ropbin_filepath, filebuffer, 0x10000, 0);
@@ -2099,6 +2100,7 @@ void deleteold_sd_data()
 	log_printf(LOGTAR_ALL, "Deleting SD data from old menuhax_manager versions, etc...\n");
 
 	mkdir("sdmc:/menuhax/", 0777);
+	mkdir("sdmc:/menuhax/ropbin/", 0777);
 
 	unlink("sdmc:/3ds/menuhax_manager/blanktheme.lz");
 
