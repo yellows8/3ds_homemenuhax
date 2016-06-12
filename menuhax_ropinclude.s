@@ -113,20 +113,20 @@ ROP_SETLR POP_R2R6PC
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
-.word HEAPBUF + ((. + 0x1c) - _start)
+.word HEAPBUF + ((. + 0x1c + 0x14) - _start)
 
 .word POP_R1PC
 .word \r1
 
 .word ROP_LDRR1R1_STRR1R0
 
+ROP_SETLR POP_R2R6PC
+
 .word POP_R0PC
 .word \r0
 
 .word POP_R1PC
 .word 0 @ Overwritten by the above rop.
-
-ROP_SETLR POP_R2R6PC
 
 .word POP_R2R6PC
 .word \r2
