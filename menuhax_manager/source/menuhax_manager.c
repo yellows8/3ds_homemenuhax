@@ -321,7 +321,7 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 	}
 	else
 	{
-		log_printf(LOGTAR_ALL, "Using body-filepath: %s\n", body_filepath);
+		log_printf(LOGTAR_LOG, "Using body-filepath: %s\n", body_filepath);
 	}
 
 	if(body_size==0)
@@ -342,7 +342,12 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 		}
 		else
 		{
-			log_printf(LOGTAR_ALL, "Using bgm-filepath: %s\n", bgm_filepath);
+			log_printf(LOGTAR_LOG, "Using bgm-filepath: %s\n", bgm_filepath);
+			if(bgm_size > 0x337000)
+			{
+				log_printf(LOGTAR_ALL, "WARNING: The BGM is too large, it will be truncated from 0x%x-bytes to 0x%x-bytes.\n", bgm_size, 0x337000);
+				bgm_size = 0x337000;
+			}
 		}
 	}
 
@@ -2266,7 +2271,7 @@ int main(int argc, char **argv)
 
 						if(ret==0)
 						{
-							log_printf(LOGTAR_ALL, "Install finished successfully. The following is the filepath which was just now written, you can delete any SD 'ropbinpayload_menuhax_*' file(s) which don't match the following exact filepath: '%s'. Doing so is completely optional. This only applies when menuhax >v1.2 was already installed where it was switched to a different system-version.\n", ropbin_filepath);
+							log_printf(LOGTAR_ALL, "Install finished successfully.\n");
 						}
 						else
 						{

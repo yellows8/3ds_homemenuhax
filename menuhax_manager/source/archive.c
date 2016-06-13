@@ -280,7 +280,9 @@ Result archive_writefile(Archive archive, char *path, u8 *buffer, u32 size, u32 
 	ret = FSUSER_OpenFile(&filehandle, extdata_archives[archive], fsMakePath(PATH_ASCII, path), FS_OPEN_WRITE, 0);
 	if(ret!=0)
 	{
-		if(createsize)
+		log_printf(LOGTAR_LOG, "Failed to open the file: 0x%08x\n", (unsigned int)ret);
+
+		if(createsize && ret!=0xC92044E6)
 		{
 			ret = FSUSER_CreateFile(extdata_archives[archive], fsMakePath(PATH_ASCII, path), 0, createsize);
 			if(ret)
