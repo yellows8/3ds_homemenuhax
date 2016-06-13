@@ -138,6 +138,7 @@ ifneq ($(strip $(PAYLOAD_FOOTER_WORDS)),)
 endif
 
 DEFINES	:=	$(DEFINES) -DROPBINPAYLOAD_PATH=\"sd:/menuhax/ropbin/ropbinpayload_$(BUILDPREFIX).bin\"
+DEFINES	:=	$(DEFINES) -DMENUHAXLOADER_BINPAYLOAD_PATH=\"sd:/menuhax/menurop/$(BUILDPREFIX).bin\"
 
 BUILDMODULES_COMMAND	:=	
 
@@ -149,35 +150,7 @@ defaultbuild:
 all:	
 	@mkdir -p finaloutput
 	@mkdir -p binpayload
-	@mkdir -p build
-	@if [ ! -d "$(MENUROP_PATH)/JPN" ]; then $$(error "The $(MENUROP_PATH)/JPN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-	@if [ ! -d "$(MENUROP_PATH)/USA" ]; then $$(error "The $(MENUROP_PATH)/USA directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-	@if [ ! -d "$(MENUROP_PATH)/EUR" ]; then $$(error "The $(MENUROP_PATH)/EUR directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-	#@if [ ! -d "$(MENUROP_PATH)/CHN" ]; then $$(error "The $(MENUROP_PATH)/CHN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-	@if [ ! -d "$(MENUROP_PATH)/KOR" ]; then $$(error "The $(MENUROP_PATH)/KOR directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-	#@if [ ! -d "$(MENUROP_PATH)/TWN" ]; then $$(error "The $(MENUROP_PATH)/TWN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-	
-	$(BUILDMODULES_COMMAND)
-
-ropbins:	
-	@mkdir -p binpayload
-	@mkdir -p build
-	@if [ ! -d "$(MENUROP_PATH)/JPN" ]; then $$(error "The $(MENUROP_PATH)/JPN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-	@if [ ! -d "$(MENUROP_PATH)/USA" ]; then $$(error "The $(MENUROP_PATH)/USA directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-	@if [ ! -d "$(MENUROP_PATH)/EUR" ]; then $$(error "The $(MENUROP_PATH)/EUR directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-	#@if [ ! -d "$(MENUROP_PATH)/CHN" ]; then $$(error "The $(MENUROP_PATH)/CHN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-	@if [ ! -d "$(MENUROP_PATH)/KOR" ]; then $$(error "The $(MENUROP_PATH)/KOR directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-	#@if [ ! -d "$(MENUROP_PATH)/TWN" ]; then $$(error "The $(MENUROP_PATH)/TWN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
-
-	@for path in $(MENUROP_PATH)/JPN/*; do make -f Makefile buildropbin --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
-	@for path in $(MENUROP_PATH)/USA/*; do make -f Makefile buildropbin --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
-	@for path in $(MENUROP_PATH)/EUR/*; do make -f Makefile buildropbin --no-print-directory REGION=EUR REGIONVAL=2 MENUVERSION=$$(basename "$$path"); done
-	#@for path in $(MENUROP_PATH)/CHN/*; do make -f Makefile buildropbin --no-print-directory REGION=CHN REGIONVAL=3 MENUVERSION=$$(basename "$$path"); done
-	@for path in $(MENUROP_PATH)/KOR/*; do make -f Makefile buildropbin --no-print-directory REGION=KOR REGIONVAL=4 MENUVERSION=$$(basename "$$path"); done
-	#@for path in $(MENUROP_PATH)/TWN/*; do make -f Makefile buildropbin --no-print-directory REGION=TWN REGIONVAL=5 MENUVERSION=$$(basename "$$path"); done
-
-bins:	
-	@mkdir -p binpayload
+	@mkdir -p binpayload/menuhax_payload
 	@mkdir -p build
 	@if [ ! -d "$(MENUROP_PATH)/JPN" ]; then $$(error "The $(MENUROP_PATH)/JPN directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
 	@if [ ! -d "$(MENUROP_PATH)/USA" ]; then $$(error "The $(MENUROP_PATH)/USA directory doesn't exist, please run the generate_menurop_addrs.sh script."); fi
@@ -193,22 +166,28 @@ bins:
 	@for path in $(MENUROP_PATH)/KOR/*; do make -f Makefile buildbin --no-print-directory REGION=KOR REGIONVAL=4 MENUVERSION=$$(basename "$$path"); done
 	#@for path in $(MENUROP_PATH)/TWN/*; do make -f Makefile buildbin --no-print-directory REGION=TWN REGIONVAL=5 MENUVERSION=$$(basename "$$path"); done
 
+	@zip -rj finaloutput/menuhax_payload.zip binpayload/menuhax_payload
+
+	$(BUILDMODULES_COMMAND)
+
 clean:
 	@rm -R -f finaloutput
 	@rm -R -f binpayload
 	@rm -R -f build
 
-buildropbin:
-	@make -f Makefile binpayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_HAX_OLD3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 BUILDROPBIN=1 $(PARAMS)
-	@make -f Makefile binpayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_HAX_NEW3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 BUILDROPBIN=1 $(PARAMS)
-
 buildbin:
-	@make -f Makefile binpayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_HAX_OLD3DS) FIXHEAPBUF=$(FIXHEAPBUF_HAX_OLD3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 $(PARAMS)
-	@make -f Makefile binpayload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=$(HEAPBUF_HAX_NEW3DS) FIXHEAPBUF=$(FIXHEAPBUF_HAX_NEW3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 $(PARAMS)
+	@make -f Makefile binpayload/menuhax_payload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=0x0FFF1000 FIXHEAPBUF=$(HEAPBUF_HAX_OLD3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 $(PARAMS)
+	@make -f Makefile binpayload/menuhax_payload/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=0x0FFF1000 FIXHEAPBUF=$(HEAPBUF_HAX_NEW3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 	$(PARAMS)
 
-binpayload/$(BUILDPREFIX).bin:	build/$(BUILDPREFIX).elf
+binpayload/menuhax_payload/$(BUILDPREFIX).bin:	build/$(BUILDPREFIX).elf
 	$(OBJCOPY) -O binary $< $@
 
 build/$(BUILDPREFIX).elf:	menuhax_payload.s
+	$(CC) -x assembler-with-cpp -nostartfiles -nostdlib -DREGION=$(REGION) -DREGIONVAL=$(REGIONVAL) -DMENUVERSION=$(MENUVERSION) -DHEAPBUF=$(HEAPBUF) -DFIXHEAPBUF=$(FIXHEAPBUF) -DROPBIN_BUFADR=$(ROPBIN_BUFADR) -DTARGETOVERWRITE_MEMCHUNKADR=$(TARGETOVERWRITE_MEMCHUNKADR) -DNEW3DS=$(NEW3DS) $(DEFINES) -include $(MENUROP_PATH)/$(REGION)/$(MENUVERSION) $< -o $@
+
+binpayload/$(BUILDPREFIX)_themedata.bin:	build/$(BUILDPREFIX)_themedata.elf
+	$(OBJCOPY) -O binary $< $@
+
+build/$(BUILDPREFIX)_themedata.elf:	themedata_payload.s
 	$(CC) -x assembler-with-cpp -nostartfiles -nostdlib -DREGION=$(REGION) -DREGIONVAL=$(REGIONVAL) -DMENUVERSION=$(MENUVERSION) -DHEAPBUF=$(HEAPBUF) -DFIXHEAPBUF=$(FIXHEAPBUF) -DROPBIN_BUFADR=$(ROPBIN_BUFADR) -DTARGETOVERWRITE_MEMCHUNKADR=$(TARGETOVERWRITE_MEMCHUNKADR) -DNEW3DS=$(NEW3DS) $(DEFINES) -include $(MENUROP_PATH)/$(REGION)/$(MENUVERSION) $< -o $@
 
