@@ -42,6 +42,12 @@ function process_region
 			cat "menurop/$1/$version"
 			rm "menurop/$1/$version"
 		else
+			printstr=`ropgadget_patternfinder $dir/*exefs/code.bin --baseaddr=0x100000 --patterntype=sha256 --patternsha256size=0x30 --patterndata=458a4883ac20d00cced6f64adb8de336a9bc568793a7c3e1d64fefa2dad70aa8 "--plainout=#define ROP_PUSHR4R8LR_CALLVTABLEFUNCPTR "`
+
+			if [[ $? -eq 0 ]]; then
+				echo "$printstr" >> "menurop/$1/$version"
+			fi
+
 			findthemestr_filepath "$1" "FILEPATHPTR_THEME_SHUFFLE_BODYRD" "810b64901687c68a2685b1e39b9a2660ed745eefcff85623b0303a95bd29a372" "0x30"
 			findthemestr_filepath "$1" "FILEPATHPTR_THEME_REGULAR_THEMEMANAGE" "1bcc1fb0802e1bce26f4a8a9a2492fb85e47f40de6eea2b3380cafe08e1f80ea" "0x2e"
 			findthemestr_filepath "$1" "FILEPATHPTR_THEME_REGULAR_BODYCACHE" "1e677c0cec6485761901d967ed7677cda1b4cf6571de439fad1e9236f975e6a3" "0x2a"
