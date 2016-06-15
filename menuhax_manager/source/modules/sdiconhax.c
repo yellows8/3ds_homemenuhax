@@ -162,6 +162,73 @@ Result sdiconhax_locatelinearmem(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, 
 	return 0;
 }
 
+Result sdiconhax_setupstage1(char *menuhax_basefn, u32 *original_objptrs)
+{
+	Result ret=0;
+	u32 filesize=0;
+	u32 pos;
+	u32 *filebuf;
+
+	char tmpstr[256];
+	char tmpstr2[256];
+
+	memset(tmpstr, 0, sizeof(tmpstr));
+	memset(tmpstr2, 0, sizeof(tmpstr2));
+
+	snprintf(tmpstr, sizeof(tmpstr)-1, "romfs:/finaloutput/stage1_sdiconhax.zip@%s.bin", menuhax_basefn);
+	snprintf(tmpstr2, sizeof(tmpstr2)-1, "sdmc:/menuhax/stage1/%s.bin", menuhax_basefn);
+
+	filebuf = malloc(0x1000);
+	if(filebuf==NULL)
+	{
+		log_printf(LOGTAR_LOG, "Failed to allocate filebuf.\n");
+		return -1;
+	}
+	memset(filebuf, 0, 0x1000);
+
+	ret = archive_getfilesize(SDArchive, tmpstr, &filesize);
+	if(ret!=0)
+	{
+		log_printf(LOGTAR_LOG, "Failed to get filesize for stage1: 0x%08x\n", (unsigned int)ret);
+		free(filebuf);
+		return ret;
+	}
+
+	if(filesize > 0x1000)
+	{
+		log_printf(LOGTAR_LOG, "Stage1 filesize is too large. Filesize = 0x%x, expected <=0x1000.\n", (unsigned int)filesize);
+		free(filebuf);
+		return -2;
+	}
+
+	ret = archive_readfile(SDArchive, tmpstr, (u8*)filebuf, filesize);
+	if(ret!=0)
+	{
+		log_printf(LOGTAR_LOG, "Failed to read stage1: 0x%08x\n", (unsigned int)ret);
+		free(filebuf);
+		return ret;
+	}
+
+	//Patch stage1 as needed.
+	for(pos=0; pos<(filesize>>2); pos++)
+	{
+		if((filebuf[pos] & 0xffffff00) == 0x58414800)
+		{
+			if(filebuf[pos] <= 0x58414801)filebuf[pos] = original_objptrs[filebuf[pos] & 0xff];
+		}
+	}
+
+	ret = archive_writefile(SDArchive, tmpstr2, (u8*)filebuf, 0x1000, 0);
+	free(filebuf);
+	if(ret!=0)
+	{
+		log_printf(LOGTAR_LOG, "Failed to write stage1: 0x%08x\n", (unsigned int)ret);
+		return ret;
+	}
+
+	return 0;
+}
+
 Result sdiconhax_install(char *menuhax_basefn)
 {
 	Result ret=0;
@@ -187,6 +254,10 @@ Result sdiconhax_install(char *menuhax_basefn)
 
 	log_printf(LOGTAR_ALL, "Locating data in Home Menu linearmem heap...\n");
 	ret = sdiconhax_locatelinearmem(&linearaddr_savedatadat, &linearaddr_target_objectslist_buffer, &icon_16val, original_objptrs);
+	if(ret!=0)return ret;
+
+	log_printf(LOGTAR_ALL, "Running SD setup for stage1...\n");
+	ret = sdiconhax_setupstage1(menuhax_basefn, original_objptrs);
 	if(ret!=0)return ret;
 
 	log_printf(LOGTAR_ALL, "Loading exploit file-data + writing into extdata...\n");

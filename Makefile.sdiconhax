@@ -1,5 +1,6 @@
 sdiconhax_build:
 	@mkdir -p finaloutput/sdiconhax
+	@mkdir -p finaloutput/stage1_sdiconhax
 	
 	@for path in sdiconhax_menuversions/JPN/*; do make -f Makefile buildsdiconhax --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
 	@for path in sdiconhax_menuversions/USA/*; do make -f Makefile buildsdiconhax --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
@@ -7,12 +8,25 @@ sdiconhax_build:
 	#@for path in sdiconhax_menuversions/CHN/*; do make -f Makefile buildsdiconhax --no-print-directory REGION=CHN REGIONVAL=3 MENUVERSION=$$(basename "$$path"); done
 	@for path in sdiconhax_menuversions/KOR/*; do make -f Makefile buildsdiconhax --no-print-directory REGION=KOR REGIONVAL=4 MENUVERSION=$$(basename "$$path"); done
 	#@for path in sdiconhax_menuversions/TWN/*; do make -f Makefile buildsdiconhax --no-print-directory REGION=TWN REGIONVAL=5 MENUVERSION=$$(basename "$$path"); done
-
+	
 	@zip -rj finaloutput/sdiconhax.zip finaloutput/sdiconhax
+	
+	@for path in $(MENUROP_PATH)/JPN/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
+	@for path in $(MENUROP_PATH)/USA/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
+	@for path in $(MENUROP_PATH)/EUR/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=EUR REGIONVAL=2 MENUVERSION=$$(basename "$$path"); done
+	#@for path in $(MENUROP_PATH)/CHN/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=CHN REGIONVAL=3 MENUVERSION=$$(basename "$$path"); done
+	@for path in $(MENUROP_PATH)/KOR/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=KOR REGIONVAL=4 MENUVERSION=$$(basename "$$path"); done
+	#@for path in $(MENUROP_PATH)/TWN/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=TWN REGIONVAL=5 MENUVERSION=$$(basename "$$path"); done
+	
+	@zip -rj finaloutput/stage1_sdiconhax.zip finaloutput/stage1_sdiconhax
 
 buildsdiconhax:
 	@make -f Makefile finaloutput/sdiconhax/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds_sdiconhax.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_HAX_OLD3DS) FIXHEAPBUF=$(HEAPBUF_HAX_OLD3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 $(PARAMS)
 	@make -f Makefile finaloutput/sdiconhax/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds_sdiconhax.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_HAX_NEW3DS) HEAPBUF=$(HEAPBUF_HAX_NEW3DS) FIXHEAPBUF=$(HEAPBUF_HAX_NEW3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 $(PARAMS)
+
+build_stage1_sdiconhax:
+	@make -f Makefile finaloutput/stage1_sdiconhax/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=0x0FFF1000 FIXHEAPBUF=$(HEAPBUF_HAX_OLD3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 $(PARAMS)
+	@make -f Makefile finaloutput/stage1_sdiconhax/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=0x0FFF1000 FIXHEAPBUF=$(HEAPBUF_HAX_NEW3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 $(PARAMS)
 
 finaloutput/sdiconhax/$(BUILDPREFIX)_sdiconhax.bin:	binpayload/$(BUILDPREFIX)_sdiconhax.bin
 	cp $< $@
@@ -21,4 +35,11 @@ binpayload/$(BUILDPREFIX)_sdiconhax.bin:	build/$(BUILDPREFIX)_sdiconhax.elf
 	$(OBJCOPY) -O binary $< $@
 
 build/$(BUILDPREFIX)_sdiconhax.elf:	sdiconhax_savedatadat.s
-	$(CC) -x assembler-with-cpp -nostartfiles -nostdlib -DREGION=$(REGION) -DREGIONVAL=$(REGIONVAL) -DMENUVERSION=$(MENUVERSION) -DHEAPBUF=0x58480000 -DFIXHEAPBUF=$(FIXHEAPBUF) -DROPBIN_BUFADR=$(ROPBIN_BUFADR) -DTARGETOVERWRITE_MEMCHUNKADR=$(TARGETOVERWRITE_MEMCHUNKADR) -DNEW3DS=$(NEW3DS) $(DEFINES) -include $(MENUROP_PATH)/$(REGION)/$(MENUVERSION) $< -o $@
+	$(CC) -x assembler-with-cpp -nostartfiles -nostdlib -DREGION=$(REGION) -DREGIONVAL=$(REGIONVAL) -DMENUVERSION=$(MENUVERSION) -DHEAPBUF=0x58480000 -DFIXHEAPBUF=$(FIXHEAPBUF) -DROPBIN_BUFADR=$(ROPBIN_BUFADR) -DTARGETOVERWRITE_MEMCHUNKADR=$(TARGETOVERWRITE_MEMCHUNKADR) -DNEW3DS=$(NEW3DS) -DMENUHAXLOADER_LOAD_BINADDR=0x0FFF1000 -DMENUHAXLOADER_LOAD_SIZE=0xD000 -DMENUHAXLOADER_BINPAYLOAD_PATH=\"sd:/menuhax/stage1/$(BUILDPREFIX).bin\" $(DEFINES) -include $(MENUROP_PATH)/$(REGION)/$(MENUVERSION) $< -o $@
+
+finaloutput/stage1_sdiconhax/$(BUILDPREFIX).bin:	build/$(BUILDPREFIX)_stage1_sdiconhax.elf
+	$(OBJCOPY) -O binary $< $@
+
+build/$(BUILDPREFIX)_stage1_sdiconhax.elf:	stage1_sdiconhax.s
+	$(CC) -x assembler-with-cpp -nostartfiles -nostdlib -DREGION=$(REGION) -DREGIONVAL=$(REGIONVAL) -DMENUVERSION=$(MENUVERSION) -DHEAPBUF=0x0FFF1000 -DFIXHEAPBUF=$(FIXHEAPBUF) -DROPBIN_BUFADR=$(ROPBIN_BUFADR) -DTARGETOVERWRITE_MEMCHUNKADR=$(TARGETOVERWRITE_MEMCHUNKADR) -DNEW3DS=$(NEW3DS) -DMENUHAXLOADER_LOAD_BINADDR=0x0FFF2000 -DMENUHAXLOADER_LOAD_SIZE=0xC000 -DSTAGE1 -DMENUHAXLOADER_BINPAYLOAD_PATH=\"sd:/menuhax/stage2/$(BUILDPREFIX).bin\" $(DEFINES) -include $(MENUROP_PATH)/$(REGION)/$(MENUVERSION) $< -o $@
+

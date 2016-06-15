@@ -15,9 +15,6 @@ _start:
 ropstackstart:
 #include "menuhax_loader.s"
 
-menuhaxloader_exploitreturn_spaddr:
-.word 0x8090a0b0
-
 object:
 .word HEAPBUF + (vtable - _start) @ object+0, vtable ptr.
 .word 0
