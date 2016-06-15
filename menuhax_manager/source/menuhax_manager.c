@@ -1075,15 +1075,16 @@ Result install_menuhax(char *ropbin_filepath)
 	}
 
 	snprintf(tmpstr, sizeof(tmpstr)-1, "romfs:/finaloutput/menuhax_payload.zip@%s.bin", menuhax_basefn);
-	snprintf(tmpstr2, sizeof(tmpstr2)-1, "sdmc:/menuhax/menurop/%s.bin", menuhax_basefn);
+	snprintf(tmpstr2, sizeof(tmpstr2)-1, "sdmc:/menuhax/stage2/%s.bin", menuhax_basefn);
 
-	log_printf(LOGTAR_ALL, "Copying the menuhax_payload to SD...\n");
+	log_printf(LOGTAR_ALL, "Copying stage2 to SD...\n");
 	log_printf(LOGTAR_LOG, "Src path = '%s', dst = '%s'.\n", tmpstr, tmpstr2);
 
-	ret = archive_copyfile(SDArchive, SDArchive, tmpstr, tmpstr2, filebuffer, 0, 0xD000, 0, "menuhax_payload");
+	unlink(tmpstr2);
+	ret = archive_copyfile(SDArchive, SDArchive, tmpstr, tmpstr2, filebuffer, 0, 0xC000, 0, "stage2");
 	if(ret!=0)
 	{
-		log_printf(LOGTAR_ALL, "Failed to write the menuhax_payload to SD: 0x%08x.\n", (unsigned int)ret);
+		log_printf(LOGTAR_ALL, "Failed to copy stage2 to SD: 0x%08x.\n", (unsigned int)ret);
 		return ret;
 	}
 
@@ -2120,7 +2121,8 @@ void deleteold_sd_data()
 
 	mkdir("sdmc:/menuhax/", 0777);
 	mkdir("sdmc:/menuhax/ropbin/", 0777);
-	mkdir("sdmc:/menuhax/menurop/", 0777);
+	mkdir("sdmc:/menuhax/stage1/", 0777);
+	mkdir("sdmc:/menuhax/stage2/", 0777);
 
 	unlink("sdmc:/3ds/menuhax_manager/blanktheme.lz");
 
