@@ -8,7 +8,7 @@
 
 _start:
 .word POP_R0PC
-ret2menu_exploitreturn_spaddr: @ The menuhax_loader writes the sp-addr to jump to for ret2menu here. This value isn't actually used currently.
+ret2menu_exploitreturn_spaddr: @ The menuhax_loader writes the sp-addr to jump to for ret2menu here.
 .word 0
 
 .word POP_R0PC @ Stack-pivot to ropstackstart.
@@ -38,6 +38,7 @@ vtable:
 
 tmpdata:
 
+#ifndef ENABLE_LOADROPBIN
 nss_outprocid:
 .word 0
 
@@ -58,11 +59,14 @@ nsslaunchtitle_programidlow_list:
 
 /*nss_servname:
 .ascii "ns:s"*/
+#endif
 
+#ifdef BOOTGAMECARD
 gamecard_titleinfo:
 .word 0, 0 @ programID
 .word 2 @ mediatype
 .word 0 @ reserved
+#endif
 
 #ifdef LOADSDPAYLOAD
 IFile_ctx:
@@ -101,86 +105,11 @@ menuhax_cfg_new:
 .space 0x2c
 #endif
 
-#ifdef LOADOTHER_THEMEDATA
-filepath_theme_stringblkstart:
-@ Originally these strings used the "sd:/" archive opened by the below ROP, but that's rather pointless since the BGM gets read from the normal extdata path anyway.
-
-#ifdef FILEPATHPTR_THEME_SHUFFLE_BODYRD
-filepath_theme_shuffle_bodyrd:
-.string16 "theme:/yodyCache_rd.bin"
-.align 2
-#endif
-
-#ifdef FILEPATHPTR_THEME_REGULAR_THEMEMANAGE
-filepath_theme_regular_thememanage:
-.string16 "theme:/yhemeManage.bin"
-.align 2
-#endif
-
-#ifdef FILEPATHPTR_THEME_REGULAR_BODYCACHE
-filepath_theme_regular_bodycache:
-.string16 "theme:/yodyCache.bin"
-.align 2
-#endif
-
-/*filepath_theme_regular_bgmcache:
-.string16 "sd:/BgmCache.bin"
-.align 2*/
-
-#ifdef FILEPATHPTR_THEME_SHUFFLE_THEMEMANAGE
-filepath_theme_shuffle_thememanage:
-.string16 "theme:/yhemeManage_%02d.bin"
-.align 2
-#endif
-
-#ifdef FILEPATHPTR_THEME_SHUFFLE_BODYCACHE
-filepath_theme_shuffle_bodycache:
-.string16 "theme:/yodyCache_%02d.bin"
-.align 2
-#endif
-
-/*filepath_theme_shuffle_bgmcache:
-.string16 "sd:/BgmCache_%02d.bin"
-.align 2*/
-
-filepath_theme_stringblkend:
-#endif
-
 tmp_scratchdata:
 .space 0x400
 
 ropstackstart:
 #ifdef USE_PADCHECK
-
-#ifdef LOADOTHER_THEMEDATA
-@ Copy the theme filepath strings to 0x0fff0000.
-CALLFUNC_NOSP MEMCPY, 0x0fff0000, (HEAPBUF + ((filepath_theme_stringblkstart) - _start)), (filepath_theme_stringblkend - filepath_theme_stringblkstart), 0
-
-@ Overwrite the string ptrs in Home Menu .data which are used for the theme extdata filepaths. Don't touch the BGM paths, since those don't get used for reading during theme-load anyway.
-#ifdef FILEPATHPTR_THEME_SHUFFLE_BODYRD
-ROPMACRO_WRITEWORD FILEPATHPTR_THEME_SHUFFLE_BODYRD, (0x0fff0000 + (filepath_theme_shuffle_bodyrd - filepath_theme_stringblkstart))
-#endif
-
-#ifdef FILEPATHPTR_THEME_REGULAR_THEMEMANAGE
-ROPMACRO_WRITEWORD FILEPATHPTR_THEME_REGULAR_THEMEMANAGE, (0x0fff0000 + (filepath_theme_regular_thememanage - filepath_theme_stringblkstart))
-#endif
-
-#ifdef FILEPATHPTR_THEME_REGULAR_BODYCACHE
-ROPMACRO_WRITEWORD FILEPATHPTR_THEME_REGULAR_BODYCACHE, (0x0fff0000 + (filepath_theme_regular_bodycache - filepath_theme_stringblkstart))
-#endif
-
-//ROPMACRO_WRITEWORD (0x32e604+0x10), (0x0fff0000 + (filepath_theme_regular_bgmcache - filepath_theme_stringblkstart))
-
-#ifdef FILEPATHPTR_THEME_SHUFFLE_THEMEMANAGE
-ROPMACRO_WRITEWORD FILEPATHPTR_THEME_SHUFFLE_THEMEMANAGE, (0x0fff0000 + (filepath_theme_shuffle_thememanage - filepath_theme_stringblkstart))
-#endif
-
-#ifdef FILEPATHPTR_THEME_SHUFFLE_BODYCACHE
-ROPMACRO_WRITEWORD FILEPATHPTR_THEME_SHUFFLE_BODYCACHE, (0x0fff0000 + (filepath_theme_shuffle_bodycache - filepath_theme_stringblkstart))
-#endif
-
-//ROPMACRO_WRITEWORD (0x32e604+0x1c), (0x0fff0000 + (filepath_theme_shuffle_bgmcache - filepath_theme_stringblkstart))
-#endif
 
 #ifdef LOADSDCFG
 @ Load the cfg file. Errors are ignored with file-reading.
