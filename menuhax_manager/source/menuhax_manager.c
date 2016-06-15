@@ -321,7 +321,7 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 	}
 	else
 	{
-		log_printf(LOGTAR_ALL, "Using body-filepath: %s\n", body_filepath);
+		log_printf(LOGTAR_LOG, "Using body-filepath: %s\n", body_filepath);
 	}
 
 	if(body_size==0)
@@ -342,7 +342,12 @@ Result sd2themecache(char *body_filepath, char *bgm_filepath, u32 install_type)
 		}
 		else
 		{
-			log_printf(LOGTAR_ALL, "Using bgm-filepath: %s\n", bgm_filepath);
+			log_printf(LOGTAR_LOG, "Using bgm-filepath: %s\n", bgm_filepath);
+			if(bgm_size > 0x337000)
+			{
+				log_printf(LOGTAR_ALL, "WARNING: The BGM is too large, it will be truncated from 0x%x-bytes to 0x%x-bytes.\n", bgm_size, 0x337000);
+				bgm_size = 0x337000;
+			}
 		}
 	}
 
@@ -1070,15 +1075,16 @@ Result install_menuhax(char *ropbin_filepath)
 	}
 
 	snprintf(tmpstr, sizeof(tmpstr)-1, "romfs:/finaloutput/menuhax_payload.zip@%s.bin", menuhax_basefn);
-	snprintf(tmpstr2, sizeof(tmpstr2)-1, "sdmc:/menuhax/menurop/%s.bin", menuhax_basefn);
+	snprintf(tmpstr2, sizeof(tmpstr2)-1, "sdmc:/menuhax/stage2/%s.bin", menuhax_basefn);
 
-	log_printf(LOGTAR_ALL, "Copying the menuhax_payload to SD...\n");
+	log_printf(LOGTAR_ALL, "Copying stage2 to SD...\n");
 	log_printf(LOGTAR_LOG, "Src path = '%s', dst = '%s'.\n", tmpstr, tmpstr2);
 
-	ret = archive_copyfile(SDArchive, SDArchive, tmpstr, tmpstr2, filebuffer, 0, 0xD000, 0, "menuhax_payload");
+	unlink(tmpstr2);
+	ret = archive_copyfile(SDArchive, SDArchive, tmpstr, tmpstr2, filebuffer, 0, 0xC000, 0, "stage2");
 	if(ret!=0)
 	{
-		log_printf(LOGTAR_ALL, "Failed to write the menuhax_payload to SD: 0x%08x.\n", (unsigned int)ret);
+		log_printf(LOGTAR_ALL, "Failed to copy stage2 to SD: 0x%08x.\n", (unsigned int)ret);
 		return ret;
 	}
 
@@ -2115,7 +2121,8 @@ void deleteold_sd_data()
 
 	mkdir("sdmc:/menuhax/", 0777);
 	mkdir("sdmc:/menuhax/ropbin/", 0777);
-	mkdir("sdmc:/menuhax/menurop/", 0777);
+	mkdir("sdmc:/menuhax/stage1/", 0777);
+	mkdir("sdmc:/menuhax/stage2/", 0777);
 
 	unlink("sdmc:/3ds/menuhax_manager/blanktheme.lz");
 
@@ -2266,7 +2273,7 @@ int main(int argc, char **argv)
 
 						if(ret==0)
 						{
-							log_printf(LOGTAR_ALL, "Install finished successfully. The following is the filepath which was just now written, you can delete any SD 'ropbinpayload_menuhax_*' file(s) which don't match the following exact filepath: '%s'. Doing so is completely optional. This only applies when menuhax >v1.2 was already installed where it was switched to a different system-version.\n", ropbin_filepath);
+							log_printf(LOGTAR_ALL, "Install finished successfully.\n");
 						}
 						else
 						{

@@ -277,17 +277,6 @@ ROP_SETLR ROP_POPPC
 .word ROP_LOADR4_FROMOBJR0
 .endm
 
-.macro PREPARE_RET2MENUCODE
-@ Write the original value for r4, to the location used for loading r4 from on stack @ RET2MENU.
-ROPMACRO_COPYWORD TARGETOVERWRITE_STACKADR, (ORIGINALOBJPTR_BASELOADADR+8)
-.endm
-
-.macro RET2MENUCODE
-PREPARE_RET2MENUCODE
-
-ROPMACRO_STACKPIVOT TARGETOVERWRITE_STACKADR, POP_R4FPPC @ Begin the stack-pivot ROP to restart execution from the previously corrupted stackframe.
-.endm
-
 .macro COND_THROWFATALERR
 .word ROP_COND_THROWFATALERR
 
@@ -433,5 +422,16 @@ ROP_SETLR ROP_POPPC
 .word \dstaddr
 
 .word ROP_STR_R0TOR1 @ Write the above r0 value to *dstaddr.
+.endm
+
+.macro ROPMACRO_IFile_Close IFile_ctx
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word \IFile_ctx
+
+.word ROP_LDR_R0FROMR0
+
+.word IFile_Close
 .endm
 

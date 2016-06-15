@@ -29,18 +29,35 @@ Result themehax_install(char *menuhax_basefn)
 {
 	Result ret=0;
 
-	char body_filepath[256];
+	char payload_filepath[256];
+	char tmpstr[256];
 
-	memset(body_filepath, 0, sizeof(body_filepath));
+	memset(payload_filepath, 0, sizeof(payload_filepath));
+	memset(tmpstr, 0, sizeof(tmpstr));
 
-	snprintf(body_filepath, sizeof(body_filepath)-1, "romfs:/finaloutput/themepayload.zip@%s.lz", menuhax_basefn);
+	snprintf(payload_filepath, sizeof(payload_filepath)-1, "romfs:/finaloutput/stage1_themedata.zip@%s.bin", menuhax_basefn);
+	snprintf(tmpstr, sizeof(tmpstr)-1, "sdmc:/menuhax/stage1/%s.bin", menuhax_basefn);
+
+	log_printf(LOGTAR_ALL, "Copying stage1 to SD...\n");
+	log_printf(LOGTAR_LOG, "Src path = '%s', dst = '%s'.\n", payload_filepath, tmpstr);
+
+	unlink(tmpstr);
+	ret = archive_copyfile(SDArchive, SDArchive, payload_filepath, tmpstr, filebuffer, 0, 0x1000, 0, "stage1");
+	if(ret!=0)
+	{
+		log_printf(LOGTAR_ALL, "Failed to copy stage1 to SD: 0x%08x.\n", (unsigned int)ret);
+		return ret;
+	}
+
+	memset(payload_filepath, 0, sizeof(payload_filepath));
+	snprintf(payload_filepath, sizeof(payload_filepath)-1, "romfs:/finaloutput/themepayload.zip@%s.lz", menuhax_basefn);
 
 	log_printf(LOGTAR_ALL, "Enabling persistent themecache...\n");
 	ret = menu_enablethemecache_persistent();
 	if(ret!=0)return ret;
 
 	log_printf(LOGTAR_ALL, "Installing to the SD theme-cache...\n");
-	ret = sd2themecache(body_filepath, "sdmc:/3ds/menuhax_manager/bgm_bundledmenuhax.bcstm", 0);
+	ret = sd2themecache(payload_filepath, "sdmc:/3ds/menuhax_manager/bgm_bundledmenuhax.bcstm", 0);
 	if(ret!=0)return ret;
 
 	log_printf(LOGTAR_ALL, "Initializing the seperate menuhax theme-data files...\n");
