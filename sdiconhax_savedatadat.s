@@ -48,7 +48,7 @@ stackpivot_pcloadword:
 .space ((_start + 0xcb0 + ((360-TOTAL_HAX_ICONS)*2)) - .)
 .hword 0x5848 @ Offset value, menuhax_manager detects this special value and uses the required value instead.
 #if TOTAL_HAX_ICONS > 1
-.fill TOTAL_HAX_ICONS-1, 2, 0xfffe @ Use 0xfffe for the rest of these, so that the titleID doesn't get used.
+.fill TOTAL_HAX_ICONS-1, 2, 0xffff @ Use 0xffff for the rest of these, so that the titleID doesn't get used.
 #endif
 
 @ End of the s8 array.
