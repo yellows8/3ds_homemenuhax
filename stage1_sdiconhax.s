@@ -53,7 +53,7 @@ ROPMACRO_LDDRR0_ADDR1_STRADDR SDICONHAX_SPRETADDR, SDICONHAX_SPRETADDR, 0xffffff
 
 @ The ROP used for RET2MENU starts here.
 
-ROPMACRO_STACKPIVOT SDICONHAX_SPRETADDR, ROP_POPPC @ Return to executing the original homemenu code. TODO: switch ROP_POPPC here to a pop-{r4-r8,pc} instruction.
+ROPMACRO_STACKPIVOT SDICONHAX_SPRETADDR, POP_R4R8PC @ Return to executing the original homemenu code.
 
 object:
 .word HEAPBUF + (vtable - _start) @ object+0, vtable ptr
