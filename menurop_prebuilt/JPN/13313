@@ -33,17 +33,12 @@
 
 #define GXLOW_CMD4 0x0014cfcc
 
-#define NSS_LaunchTitle 0x0020d828
-#define NSS_RebootSystem 0x00139368
-
 #define CFGIPC_SecureInfoGetRegion 0x00139800
 
-#define GSPGPU_Shutdown 0x0011da58
 #define GSPGPU_FlushDataCache 0x0014cec8
 #define GSPGPU_SERVHANDLEADR 0x002fced8
 #define GSP_SHAREDMEM_SETUPFRAMEBUF 0x001468bc
 
-#define APT_SendParameter 0x00204d88
 
 #define FS_MountSdmc 0x0011c9b4
 
@@ -56,5 +51,8 @@
 
 #define ORIGINALOBJPTR_BASELOADADR 0x002ef820
 
+#define NSS_LaunchTitle 0x0020d828
+#define NSS_RebootSystem 0x00139368
+#define GSPGPU_Shutdown 0x0011da58
 #define FILEPATHPTR_THEME_REGULAR_THEMEMANAGE 0x002f0534
 #define FILEPATHPTR_THEME_REGULAR_BODYCACHE 0x002f0538
