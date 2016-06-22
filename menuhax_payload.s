@@ -549,11 +549,12 @@ CALLFUNC_NOSP NSS_RebootSystem, 0x1, (HEAPBUF + (gamecard_titleinfo - _start)), 
 bootgamecard_ropfinish:
 #endif
 
+#ifndef ENABLE_LOADROPBIN
+
 #if NEW3DS==1 //On New3DS the end-address of the GPU-accessible FCRAM area increased, relative to the SYSTEM-memregion end address. Therefore, in order to get the below process to run under memory that's GPU accessible, 0x400000-bytes are allocated here.
 CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata - _start)), 0x0f000000, 0, 0x00400000, 0x3, 0x3, 0, 0
 #endif
 
-#ifndef ENABLE_LOADROPBIN
 #ifdef LOADSDPAYLOAD//When enabled, load the file from SD to codebinpayload_start.
 CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
 

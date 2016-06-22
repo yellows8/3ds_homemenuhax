@@ -48,6 +48,24 @@ function process_region
 				echo "$printstr" >> "menurop/$1/$version"
 			fi
 
+			printstr=`ropgadget_patternfinder $dir/*exefs/code.bin --baseaddr=0x100000 --patterntype=sha256 --patterndata=36ef6f0a979e4486db2bb1bd060b63e69331712df98dda78fb3f122a47683367 --patternsha256size=0x30 "--plainout=#define NSS_LaunchTitle "`
+
+			if [[ $? -eq 0 ]]; then
+				echo "$printstr" >> "menurop/$1/$version"
+			fi
+
+			printstr=`ropgadget_patternfinder $dir/*exefs/code.bin --baseaddr=0x100000 --patterntype=sha256 --patterndata=a65851d28ca7254df126e2e40a5ca17a349b03cca328e6d548eee4a18cff7233 --patternsha256size=0x20 "--plainout=#define NSS_RebootSystem "`
+
+			if [[ $? -eq 0 ]]; then
+				echo "$printstr" >> "menurop/$1/$version"
+			fi
+
+			printstr=`ropgadget_patternfinder $dir/*exefs/code.bin --baseaddr=0x100000 --patterntype=sha256 --patterndata=67593efa79a84116be6ef1302e4472bd91fdb8002f78bfa724a795a05250a260 --patternsha256size=0x18 "--plainout=#define GSPGPU_Shutdown "`
+
+			if [[ $? -eq 0 ]]; then
+				echo "$printstr" >> "menurop/$1/$version"
+			fi
+
 			findthemestr_filepath "$1" "FILEPATHPTR_THEME_SHUFFLE_BODYRD" "810b64901687c68a2685b1e39b9a2660ed745eefcff85623b0303a95bd29a372" "0x30"
 			findthemestr_filepath "$1" "FILEPATHPTR_THEME_REGULAR_THEMEMANAGE" "1bcc1fb0802e1bce26f4a8a9a2492fb85e47f40de6eea2b3380cafe08e1f80ea" "0x2e"
 			findthemestr_filepath "$1" "FILEPATHPTR_THEME_REGULAR_BODYCACHE" "1e677c0cec6485761901d967ed7677cda1b4cf6571de439fad1e9236f975e6a3" "0x2a"
@@ -61,4 +79,6 @@ process_region "JPN"
 process_region "USA"
 process_region "EUR"
 process_region "KOR"
+
+cp -R menurop/* menurop_prebuilt/
 

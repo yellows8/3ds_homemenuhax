@@ -33,17 +33,13 @@
 
 --patterndata=406e130dfe0a99ba64c16ac6ec4a53355cb36f090647b73c5382ea180c88e72c --patternsha256size=0x30 "--plainout=#define GXLOW_CMD4 "
 
---patterndata=36ef6f0a979e4486db2bb1bd060b63e69331712df98dda78fb3f122a47683367 --patternsha256size=0x30 "--plainout=#define NSS_LaunchTitle "
---patterndata=a65851d28ca7254df126e2e40a5ca17a349b03cca328e6d548eee4a18cff7233 --patternsha256size=0x20 "--plainout=#define NSS_RebootSystem "
-
 --patterndata=18f4341ba0caf2c160825b63587aeff7d4e0edec4d4107fecc06127b4cb9726b --patternsha256size=0x2c "--plainout=#define CFGIPC_SecureInfoGetRegion "
 
---patterndata=67593efa79a84116be6ef1302e4472bd91fdb8002f78bfa724a795a05250a260 --patternsha256size=0x18 "--plainout=#define GSPGPU_Shutdown "
 --patterndata=13e4f43b6452910ff7a0dc1804e38c4e5dba166750871a37c7beefd22995a484 --patternsha256size=0x18 "--plainout=#define GSPGPU_FlushDataCache "
 --patterndata=56d7a4a092f431aca4c7091f82482481324df2fd1e27fd86a6d7cd4904ca9af2 --patterndatamask=ffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000ffffffffff --patternsha256size=0x24 --dataload=0x28 "--plainout=#define GSPGPU_SERVHANDLEADR "
 --patterndata=39b7de81819a6efcff6a796bf180f0b76672485a7aebe40113580d73df1d2f44 --patterndatamask=ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff --patternsha256size=0x94 "--plainout=#define GSP_SHAREDMEM_SETUPFRAMEBUF "
 
---patterndata=bf686cf1bbadd44648618925d9d8e83bb54cff8f99cb7285bddaea994ea72d45 --patternsha256size=0x14 "--plainout=#define APT_SendParameter "
+#--patterndata=bf686cf1bbadd44648618925d9d8e83bb54cff8f99cb7285bddaea994ea72d45 --patternsha256size=0x14 "--plainout=#define APT_SendParameter "
 
 --patterndata=e25b7bfb96863f69fcbef8fdad176da9dff3e72502c1f2ca837115b3fc290212 --patternsha256size=0x10 "--plainout=#define FS_MountSdmc "
 
