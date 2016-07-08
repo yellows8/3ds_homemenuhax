@@ -1,0 +1,26 @@
+Just run "make defaultbuild", or even "make clean && make defaultbuild". "defaultbuild" Builds with the default options, see the Makefile for the default options. "{...} make {options}" Can be used to build with your own options if you prefer.
+
+If you don't want to use the prebuilt menurop(using the menurop_prebuilt is recommended), the menurop directories+files must be generated. "./generate_menurop_addrs.sh {path}". See the source of that script for details(this requires the Home Menu code-binaries).
+
+The final built files are located under "finaloutput/", which are then used while building menuhax_manager.
+
+Build options:
+* "CODEBINPAYLOAD=path" Code binary payload to load into the launched process(default is the system web-browser). This will be included in the theme-data itself.
+* "LOADSDPAYLOAD=1" Enable loading a code binary from SD for loading into the launched process("/menuhax_payload.bin"). The total size of the code(including additional code prior to the binary from SD) loaded into the process is 0x4000-bytes. Therefore, the max size of the code binary from SD is a bit less than 0x3000-bytes.
+* "BOOTGAMECARD=1" Reboot the system via NSS:RebootSystem to launch the gamecard(region-free). This is handled right after the ROP for LOADROPBIN, if that's even enabled. If GAMECARD_PADCHECK isn't used, the ROP will always execute this without executing the title-launch + takeover ROP.
+* "USE_PADCHECK=val" When set, at the very start of the menu ROP it will check if the current HID PAD state is set to the specified value. When they match, it continues the ROP, otherwise it returns to the homemenu code. This is done before writing to the framebuffers.
+* "LOADSDCFG=1" When USE_PADCHECK was used, load a config file which overrides the value used for USE_PADCHECK, and can invert PADCHECK too if specified(see source code for details).
+* "GAMECARD_PADCHECK=val" Similar to USE_PADCHECK except for BOOTGAMECARD: the BOOTGAMECARD ROP only gets executed when the specified HID PAD state matches the current one. After writing to framebufs the ROP will delay 3 seconds, then run this PADCHECK ROP.
+* "EXITMENU=1" Terminate homemenu X seconds(see source) after getting code exec under the launched process.
+* "ENABLE_LOADROPBIN=1" Load a homemenu ropbin then stack-pivot to it, see the Makefile HEAPBUF_ROPBIN_\* values for the load-address. When LOADSDPAYLOAD isn't used, the binary is the one specified by CODEBINPAYLOAD, otherwise it's loaded from a filepath which is different for each build, see the Makefile for that. The binary size should be <=0x10000-bytes.
+* "ENABLE_HBLAUNCHER=1" When used with ENABLE_LOADROPBIN, setup the additional data needed by the hblauncher payload.
+* "MENUROP_PATH={path}" Use the specified path for the "menurop" directory, instead of the default one which requires running generate_menurop_addrs.sh. To use the prebuilt menurop headers included with this repo, the following can be used: "MENUROP_PATH=menurop_prebuilt".
+* "THEMEDATA_PATH={*decompressed* regular theme body_LZ filepath}" Build hax with the specified theme, instead of using the "default theme" one. Also note that compression during building takes a *lot* longer with this. This option is *not* recommended, use the LOADOTHER_THEMEDATA option instead.
+* "LOADOTHER_THEMEDATA=1" When doing RET2MENU, re-run the theme-loading Home Menu code with different extdata file-paths(BGM file-paths are not changed). This allows loading actual themes while menuhax is installed.
+* "ENABLE_IMAGEDISPLAY=1" Instead of doing a DMA-copy to the top-screen framebuffers from other data in VRAM resulting in junk being displayed, DMA from data in this payload. Framebuffer format is the same as usual: 240x400 byte-swapped RGB8(http://3dbrew.org/wiki/GPU/External_Registers#Framebuffer_color_formats). If 3D stereoscopy isn't used by the image, the 3D-right image should be the same as the 3D-left. The original "data in this payload" is just the end of the payload, with the data copied from VRAM+0(which is where the framebuf data comes from when ENABLE_IMAGEDISPLAY isn't used).
+* "ENABLE_IMAGEDISPLAY_SD=1" Only used if ENABLE_IMAGEDISPLAY was specified. Overwrite the raw image-display data in the payload, with the data from SD "/menuhax_imagedisplay.bin", if the data from SD is loaded successfully. The format is the same described above. The first 0x46500-bytes are for the 3D-left, the 0x46500-bytes after that are for the 3D-right. The size of this file on SD should be 0x8ca00-bytes(0x46500\*2), but if it's smaller only part of the image-data in this payload will be overwritten. Note that the manager app includes functionality for handling this file.
+
+Building the menuhax_manager app requires zlib(https://github.com/devkitPro/3ds_portlibs). Lodepng(https://github.com/lvandeve/lodepng) is also required: you must manually create a "menuhax_manager/lodepng/" directory, which contains the following(these can be symlinks for example): "lodepng.c" and "lodepng.h". This also requires Minizip(for unzipping), this is also available under the zlib contribs directory.
+
+Before building menuhax(_manager), you must run setup_modules.sh at least once. You won't need to run the script again unless the contents of the "modules" directory changes, or if the "setup_modules.sh" script changes.
+
