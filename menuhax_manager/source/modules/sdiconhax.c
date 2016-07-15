@@ -103,6 +103,7 @@ Result sdiconhax_locatelinearmem(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, 
 	if(pos==((chunksize-8)>>2))
 	{
 		linearFree(tmpbuf);
+		log_printf(LOGTAR_LOG, "Failed to find the target CTRSDK heap memchunkhdr.\n");
 		return -2;
 	}
 
@@ -134,7 +135,8 @@ Result sdiconhax_locatelinearmem(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, 
 	if(pos==0)
 	{
 		linearFree(tmpbuf);
-		return -2;
+		log_printf(LOGTAR_LOG, "Failed to find the buffer for the target objects-list.\n");
+		return -4;
 	}
 
 	pos+= 4;
@@ -151,7 +153,7 @@ Result sdiconhax_locatelinearmem(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, 
 	if(tmpval & 1)
 	{
 		log_printf(LOGTAR_LOG, "The relative offset for iconbuffer_pos->target_objectslist_buffer is 4-byte aligned, 8-byte alignment is required.\n");
-		return -4;
+		return -5;
 	}
 
 	tmpval*= 4;
@@ -318,7 +320,9 @@ Result sdiconhax_install(char *menuhax_basefn)
 Result sdiconhax_delete()
 {
 	Result ret=0;
+	u64 *tidarray;
 	s16 *ptr;
+	s8 *array8;
 	u32 pos;
 	u32 update = 0;
 
@@ -326,13 +330,28 @@ Result sdiconhax_delete()
 	ret = sdiconhax_load_savedatadat();
 	if(ret!=0)return ret;
 
+	tidarray = (u64*)&filebuffer[0x8];
 	ptr = (s16*)&filebuffer[0xcb0];
+	array8 = (s8*)&filebuffer[0xf80];
+
 	for(pos=0; pos<360; pos++)
 	{
 		if(ptr[pos] < -2)//The exploit implementation used here only uses negative values for this, so this code only checks for negative values.
 		{
 			ptr[pos] = -1;//-1 is the default, while -2 is a special value.
 			update = 1;
+		}
+	}
+
+	//If sdiconhax was detected, reset the TID-data for the last 60 icons to the default value if the s8/s16 values match what sdiconhax uses.
+	if(update)
+	{
+		for(pos=300; pos<360; pos++)
+		{
+			if(ptr[pos] == -1 && array8[pos] == -1)//These are the default values for these two arrays.
+			{
+				tidarray[pos] = ~0;
+			}
 		}
 	}
 
