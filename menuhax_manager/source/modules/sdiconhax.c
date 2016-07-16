@@ -159,7 +159,7 @@ Result sdiconhax_locatelinearmem(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, 
 	tmpval*= 4;
 	*icon_16val = -(tmpval/8);
 
-	log_printf(LOGTAR_LOG, "outaddr0=0x%08x, outaddr1=0x%08x, iconbuffer_pos=0x%x, pos=0x%x, tmpval=0x%x, icon_16val=0x%x\n", *outaddr0, *outaddr1, iconbuffer_pos, pos, tmpval, *icon_16val);
+	log_printf(LOGTAR_LOG, "linearaddr_savedatadat=0x%08x, linearaddr_target_objectslist_buffer=0x%08x, original_objptrs[0]=0x%x, original_objptrs[1]=0x%x, iconbuffer_pos=0x%x, pos=0x%x, tmpval=0x%x, icon_16val=0x%x\n", *outaddr0, *outaddr1, original_objptrs[0], original_objptrs[1], iconbuffer_pos, pos, tmpval, *icon_16val);
 
 	return 0;
 }
