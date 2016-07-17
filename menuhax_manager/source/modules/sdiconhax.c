@@ -127,7 +127,7 @@ Result sdiconhax_locatelinearmem(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, 
 
 	while(pos>0)
 	{
-		if(tmpbuf[pos]==0xc005544 && tmpbuf[pos+1]==0x10)break;
+		if((tmpbuf[pos] & 0xffff) == 0x5544 && tmpbuf[pos+1]==0x10)break;
 
 		pos--;
 	}
