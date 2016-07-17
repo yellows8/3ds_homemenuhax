@@ -141,20 +141,21 @@ Result sdiconhax_locatelinearmem(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, 
 
 	pos+= 4;
 
+	tmpval = iconbuffer_pos - pos;
+
+	if(tmpval & 1)
+	{
+		pos++;
+		tmpval = iconbuffer_pos - pos;
+		log_printf(LOGTAR_LOG, "The relative offset for iconbuffer_pos->target_objectslist_buffer is 4-byte aligned, increasing it for 8-byte alignment.\n");
+	}
+
 	*outaddr1 = (u32)&linearaddr[pos];//Actual address of the target objects-list buffer.
 
 	original_objptrs[0] = tmpbuf[pos];//Original objptrs before they get overwritten.
 	original_objptrs[1] = tmpbuf[pos+1];
 
-	tmpval = iconbuffer_pos - pos;
-
 	linearFree(tmpbuf);
-
-	if(tmpval & 1)
-	{
-		log_printf(LOGTAR_LOG, "The relative offset for iconbuffer_pos->target_objectslist_buffer is 4-byte aligned, 8-byte alignment is required.\n");
-		return -5;
-	}
 
 	tmpval*= 4;
 	*icon_16val = -(tmpval/8);
