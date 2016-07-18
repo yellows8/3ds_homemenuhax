@@ -10,8 +10,31 @@
 
 #include "modules_common.h"
 
+#define LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(addr) (addr-0x37c00000)
+
 Result sdiconhax_install(char *menuhax_basefn);
 Result sdiconhax_delete();
+
+typedef struct {
+	u8 region;
+	u8 language;
+
+	u32 linearaddr_savedatadat;
+	u32 linearaddr_target_objectslist_buffer;
+	s16 icon_16val;
+	u32 original_objptrs[2];
+} sdiconhax_addrset;
+
+sdiconhax_addrset sdiconhax_addrset_builtinlist[] = {
+	{
+		.region = CFG_REGION_EUR,
+		.language = CFG_LANGUAGE_DE,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382cbb60),
+		.linearaddr_target_objectslist_buffer = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c88c0),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c317c), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c6a38)}
+	}
+};
 
 void register_module_sdiconhax()
 {
@@ -92,6 +115,10 @@ Result sdiconhax_locatelinearmem(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, 
 	GX_TextureCopy(linearaddr, 0, tmpbuf, 0, chunksize, 0x8);
 	gspWaitForPPF();
 
+	#ifndef RELEASE
+	archive_writefile(SDArchive, "sdmc:/3ds/menuhax_manager/sdiconhax_locatelinearmem_x400000.bin", (u8*)&tmpbuf[0x400000>>2], 0x400000, 0);
+	#endif
+
 	for(pos=0; pos<(chunksize-8)>>2; pos++)//Locate the address of the SaveData.dat buffer in the linearmem heap, since it varies per system in some cases.
 	{
 		if(tmpbuf[pos]==0x5544 && tmpbuf[pos+1]==0x2da0)//Check the CTRSDK heap memchunkhdr.
@@ -125,12 +152,16 @@ Result sdiconhax_locatelinearmem(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, 
 
 	//Locate the buffer containing the target objects-list.
 
-	while(pos>0)
+	pos = iconbuffer_pos - (0x6050/4)-4;//This is done because the below code fails to find the right buffer otherwise, with certain EUR systems at least.
+
+	/*while(pos>0)
 	{
 		if((tmpbuf[pos] & 0xffff) == 0x5544 && tmpbuf[pos+1]==0x10)break;
 
 		pos--;
-	}
+	}*/
+
+	if(!((tmpbuf[pos] & 0xffff) == 0x5544 && tmpbuf[pos+1]==0x10))pos = 0;
 
 	if(pos==0)
 	{
@@ -161,6 +192,64 @@ Result sdiconhax_locatelinearmem(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, 
 	*icon_16val = -(tmpval/8);
 
 	log_printf(LOGTAR_LOG, "linearaddr_savedatadat=0x%08x, linearaddr_target_objectslist_buffer=0x%08x, original_objptrs[0]=0x%x, original_objptrs[1]=0x%x, iconbuffer_pos=0x%x, pos=0x%x, tmpval=0x%x, icon_16val=0x%x\n", *outaddr0, *outaddr1, original_objptrs[0], original_objptrs[1], iconbuffer_pos, pos, tmpval, *icon_16val);
+
+	return 0;
+}
+
+Result sdiconhax_getaddrs_builtin(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, u32 *original_objptrs)
+{
+	Result ret=0;
+	u8 region=0, language=0;
+	sdiconhax_addrset *curset;
+	u32 pos, len;
+
+	u32 sysbase = osGetMemRegionSize(MEMREGION_APPLICATION) + 0x30000000;
+
+	ret = cfguInit();
+	if(R_FAILED(ret))
+	{
+		log_printf(LOGTAR_ALL, "Failed to init cfg: 0x%08x.\n", (unsigned int)ret);
+		return ret;
+	}
+	ret = CFGU_SecureInfoGetRegion(&region);
+	if(R_FAILED(ret))
+	{
+		log_printf(LOGTAR_ALL, "Failed to get region from cfg: 0x%08x.\n", (unsigned int)ret);
+		return ret;
+	}
+	if(region>=7)
+	{
+		log_printf(LOGTAR_ALL, "Region value from cfg is invalid: 0x%02x.\n", (unsigned int)region);
+		ret = -9;
+		return ret;
+	}
+
+	ret = CFGU_GetSystemLanguage(&language);
+	if(R_FAILED(ret))
+	{
+		log_printf(LOGTAR_ALL, "Failed to get language from cfg: 0x%08x.\n", (unsigned int)ret);
+	}
+
+	cfguExit();
+
+	len = sizeof(sdiconhax_addrset_builtinlist) / sizeof(sdiconhax_addrset);
+
+	for(pos=0; pos<len; pos++)
+	{
+		curset = &sdiconhax_addrset_builtinlist[pos];
+
+		if(curset->region == region && curset->language == language)break;
+	}
+
+	if(pos==len)return -1;
+
+	*outaddr0 = curset->linearaddr_savedatadat + sysbase;
+	*outaddr1 = curset->linearaddr_target_objectslist_buffer + sysbase;
+	*icon_16val = curset->icon_16val;
+	original_objptrs[0] = curset->original_objptrs[0] + sysbase;
+	original_objptrs[1] = curset->original_objptrs[1] + sysbase;
+
+	if(*icon_16val == 0)*icon_16val = 0xf3f6;
 
 	return 0;
 }
@@ -257,7 +346,20 @@ Result sdiconhax_install(char *menuhax_basefn)
 
 	log_printf(LOGTAR_ALL, "Locating data in Home Menu linearmem heap...\n");
 	ret = sdiconhax_locatelinearmem(&linearaddr_savedatadat, &linearaddr_target_objectslist_buffer, &icon_16val, original_objptrs);
-	if(ret!=0)return ret;
+	if(ret!=0)
+	{
+		log_printf(LOGTAR_LOG, "Error from sdiconhax_locatelinearmem(): 0x%08x\n", (unsigned int)ret);
+		log_printf(LOGTAR_ALL, "Trying to load addrs from the built-in list since auto-locate failed...\n");
+
+		ret = sdiconhax_getaddrs_builtin(&linearaddr_savedatadat, &linearaddr_target_objectslist_buffer, &icon_16val, original_objptrs);
+
+		if(ret!=0)
+		{
+			log_printf(LOGTAR_LOG, "Error from sdiconhax_getaddrs_builtin(): 0x%08x\n", (unsigned int)ret);
+			log_printf(LOGTAR_ALL, "Failed to load from the built-in list.\n\n");
+			return ret;
+		}
+	}
 
 	log_printf(LOGTAR_ALL, "Running SD setup for stage1...\n");
 	ret = sdiconhax_setupstage1(menuhax_basefn, original_objptrs);

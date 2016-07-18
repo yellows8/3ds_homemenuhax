@@ -34,10 +34,14 @@ DATA		:=	data
 INCLUDES	:=	include lodepng source source/modules
 ROMFS		:=	romfs
 
+DEFINES	:=	-DLODEPNG_NO_COMPILE_ENCODER -DLODEPNG_NO_COMPILE_DISK -DLODEPNG_NO_COMPILE_CPP
+
 VERSION	:=	$(shell cat $(TOPDIR)/../release_version)
 
 ifeq ($(RELEASE),)
 	VERSION	:=	$(VERSION)-$(shell git describe --abbrev=7 --dirty --always)
+else
+	DEFINES	:=	$(DEFINES) -DRELEASE
 endif
 
 APP_TITLE	:=	menuhax_manager $(VERSION)
@@ -47,8 +51,6 @@ APP_AUTHOR	:=	yellows8
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-DEFINES	:=	-DLODEPNG_NO_COMPILE_ENCODER -DLODEPNG_NO_COMPILE_DISK -DLODEPNG_NO_COMPILE_CPP
-
 ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard
 
 CFLAGS	:=	-g -Wall -O2 -mword-relocations \
