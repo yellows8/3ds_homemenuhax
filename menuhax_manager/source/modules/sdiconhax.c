@@ -28,6 +28,15 @@ typedef struct {
 
 sdiconhax_addrset sdiconhax_addrset_builtinlist[] = {
 	{
+		.region = CFG_REGION_JPN,
+		.language = CFG_LANGUAGE_JP,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c0fe0),
+		.linearaddr_target_objectslist_buffer = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382bdd40),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b85fc), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x38f7cb94)}
+	},
+
+	{
 		.region = CFG_REGION_USA,
 		.language = CFG_LANGUAGE_EN,
 
