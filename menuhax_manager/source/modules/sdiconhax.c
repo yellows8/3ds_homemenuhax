@@ -10,6 +10,7 @@
 
 #include "modules_common.h"
 
+#define LINEARMEMSYS_BASE_RELOFFSET_OLD3DS(addr) (addr-0x34000000)
 #define LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(addr) (addr-0x37c00000)
 
 Result sdiconhax_install(char *menuhax_basefn);
@@ -26,6 +27,15 @@ typedef struct {
 } sdiconhax_addrset;
 
 sdiconhax_addrset sdiconhax_addrset_builtinlist[] = {
+	{
+		.region = CFG_REGION_USA,
+		.language = CFG_LANGUAGE_EN,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_OLD3DS(0x346c8260),
+		.linearaddr_target_objectslist_buffer = LINEARMEMSYS_BASE_RELOFFSET_OLD3DS(0x346c4fc0),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_OLD3DS(0x346bf8fc), LINEARMEMSYS_BASE_RELOFFSET_OLD3DS(0x346c3138)}
+	},
+
 	{
 		.region = CFG_REGION_EUR,
 		.language = CFG_LANGUAGE_DE,
