@@ -894,7 +894,7 @@ Result install_menuhax(char *ropbin_filepath)
 {
 	Result ret = 0, tmpret;
 	u8 region=0;
-	u8 new3dsflag = 0;
+	bool new3dsflag = 0;
 	u64 menu_programid = 0;
 	AM_TitleEntry menu_title_entry;
 	u32 payloadinfo[4];
@@ -948,9 +948,7 @@ Result install_menuhax(char *ropbin_filepath)
 
 	APT_CheckNew3DS(&new3dsflag);
 
-	aptOpenSession();
 	ret = APT_GetAppletInfo(APPID_HOMEMENU, &menu_programid, NULL, NULL, NULL, NULL);
-	aptCloseSession();
 
 	if(ret!=0)
 	{
