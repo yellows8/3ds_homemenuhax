@@ -26,6 +26,7 @@ typedef struct {
 	u32 original_objptrs[2];
 } sdiconhax_addrset;
 
+//These are for the v10.6..v11.0 Home Menu.
 sdiconhax_addrset sdiconhax_addrset_builtinlist[] = {
 	{
 		.region = CFG_REGION_JPN,
@@ -66,6 +67,13 @@ sdiconhax_addrset sdiconhax_addrset_builtinlist[] = {
 		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c017c), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c3a38)}
 	},
 
+	{
+		.region = CFG_REGION_EUR,
+		.language = CFG_LANGUAGE_EN,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c8ce0),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c037c), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c3bb8)}
+	},
 	{
 		.region = CFG_REGION_EUR,
 		.language = CFG_LANGUAGE_DE,
