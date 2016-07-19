@@ -76,11 +76,53 @@ sdiconhax_addrset sdiconhax_addrset_builtinlist[] = {
 	},
 	{
 		.region = CFG_REGION_EUR,
+		.language = CFG_LANGUAGE_FR,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382ca8e0),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c1efc), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c57b8)}
+	},
+	{
+		.region = CFG_REGION_EUR,
 		.language = CFG_LANGUAGE_DE,
 
 		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382cbb60),
 		//.linearaddr_target_objectslist_buffer = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c88c0),
 		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c317c), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c6a38)}
+	},
+	{
+		.region = CFG_REGION_EUR,
+		.language = CFG_LANGUAGE_IT,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382ca560),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c1b7c), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c5438)}
+	},
+	{
+		.region = CFG_REGION_EUR,
+		.language = CFG_LANGUAGE_ES,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382cb160),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c277c), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c6038)}
+	},
+	{
+		.region = CFG_REGION_EUR,
+		.language = CFG_LANGUAGE_NL,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382cad60),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c237c), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c5c38)}
+	},
+	{
+		.region = CFG_REGION_EUR,
+		.language = CFG_LANGUAGE_PT,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382ca260),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c187c), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c5138)}
+	},
+	{
+		.region = CFG_REGION_EUR,
+		.language = CFG_LANGUAGE_RU,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c98e0),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c0efc), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c47b8)}
 	}
 };
 
