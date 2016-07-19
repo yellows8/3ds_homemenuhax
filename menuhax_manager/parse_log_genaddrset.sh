@@ -14,7 +14,7 @@ echo -e "\t\t.region = CFG_REGION_TODO,"
 echo -e "\t\t.language = CFG_LANGUAGE_TODO,"
 echo ""
 echo -n -e "\t\t.linearaddr_savedatadat = $systext" && echo -n "$textline" | cut "-d=" -f2 | cut "-d," -f1 | tr -d '\n' && echo "),"
-echo -n -e "\t\t.linearaddr_target_objectslist_buffer = $systext" && echo -n "$textline" | cut "-d=" -f3 | cut "-d," -f1 | tr -d '\n' && echo "),"
+#echo -n -e "\t\t.linearaddr_target_objectslist_buffer = $systext" && echo -n "$textline" | cut "-d=" -f3 | cut "-d," -f1 | tr -d '\n' && echo "),"
 echo -n -e "\t\t.original_objptrs = {$systext" && echo -n "$textline" | cut "-d=" -f4 | cut "-d," -f1 | tr -d '\n'
 echo -n -e "), $systext" && echo -n "$textline" | cut "-d=" -f5 | cut "-d," -f1 | tr -d '\n' && echo ")}"
 echo -e "\t}"

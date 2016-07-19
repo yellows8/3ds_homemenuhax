@@ -32,7 +32,7 @@ sdiconhax_addrset sdiconhax_addrset_builtinlist[] = {
 		.language = CFG_LANGUAGE_JP,
 
 		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c0fe0),
-		.linearaddr_target_objectslist_buffer = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382bdd40),
+		//.linearaddr_target_objectslist_buffer = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382bdd40),
 		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b85fc), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x38f7cb94)}
 	},
 
@@ -41,8 +41,29 @@ sdiconhax_addrset sdiconhax_addrset_builtinlist[] = {
 		.language = CFG_LANGUAGE_EN,
 
 		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_OLD3DS(0x346c8260),
-		.linearaddr_target_objectslist_buffer = LINEARMEMSYS_BASE_RELOFFSET_OLD3DS(0x346c4fc0),
+		//.linearaddr_target_objectslist_buffer = LINEARMEMSYS_BASE_RELOFFSET_OLD3DS(0x346c4fc0),
 		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_OLD3DS(0x346bf8fc), LINEARMEMSYS_BASE_RELOFFSET_OLD3DS(0x346c3138)}
+	},
+	{
+		.region = CFG_REGION_USA,
+		.language = CFG_LANGUAGE_FR,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382ca3e0),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c19fc), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c52b8)}
+	},
+	{
+		.region = CFG_REGION_USA,
+		.language = CFG_LANGUAGE_ES,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382ca460),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c1a7c), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c5338)}
+	},
+	{
+		.region = CFG_REGION_USA,
+		.language = CFG_LANGUAGE_PT,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c8b60),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c017c), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c3a38)}
 	},
 
 	{
@@ -50,7 +71,7 @@ sdiconhax_addrset sdiconhax_addrset_builtinlist[] = {
 		.language = CFG_LANGUAGE_DE,
 
 		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382cbb60),
-		.linearaddr_target_objectslist_buffer = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c88c0),
+		//.linearaddr_target_objectslist_buffer = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c88c0),
 		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c317c), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c6a38)}
 	}
 };
@@ -268,6 +289,7 @@ Result sdiconhax_getaddrs_builtin(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val,
 	original_objptrs[0] = curset->original_objptrs[0] + sysbase;
 	original_objptrs[1] = curset->original_objptrs[1] + sysbase;
 
+	if(curset->linearaddr_target_objectslist_buffer==0)*outaddr1 = (curset->linearaddr_savedatadat + sysbase + 0x2db0) - 0x6050;
 	if(*icon_16val == 0)*icon_16val = 0xf3f6;
 
 	return 0;
