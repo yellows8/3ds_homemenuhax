@@ -19,7 +19,7 @@ Result open_extdata()
 {
 	Result ret=0;
 	u32 pos;
-	u32 extdataID_homemenu, extdataID_theme;
+	u32 extdataID_homemenu = 0, extdataID_theme = 0;
 	u8 region=0;
 
 	FS_Path archpath;
@@ -40,20 +40,34 @@ Result open_extdata()
 
 	cfguExit();
 
-	if(region==1)//USA
+	//Home Menu uses extdataID value 0x0 for the theme-extdata with non-<JPN/USA/EUR>.
+
+	if(region==CFG_REGION_JPN)
+	{
+		extdataID_homemenu = 0x00000082;
+		extdataID_theme = 0x000002cc;
+	}
+	else if(region==CFG_REGION_USA)
 	{
 		extdataID_homemenu = 0x0000008f;
 		extdataID_theme = 0x000002cd;
 	}
-	else if(region==2)//EUR
+	else if(region==CFG_REGION_EUR)
 	{
 		extdataID_homemenu = 0x00000098;
 		extdataID_theme = 0x000002ce;
 	}
-	else//JPN/elsewhere
+	else if(region==CFG_REGION_CHN)
 	{
-		extdataID_homemenu = 0x00000082;
-		extdataID_theme = 0x000002cc;
+		extdataID_homemenu = 0x000000a1;
+	}
+	else if(region==CFG_REGION_KOR)
+	{
+		extdataID_homemenu = 0x000000a9;
+	}
+	else if(region==CFG_REGION_TWN)
+	{
+		extdataID_homemenu = 0x000000b1;
 	}
 
 	memset(&archpath, 0, sizeof(FS_Path));
