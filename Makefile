@@ -163,12 +163,9 @@ all:
 
 	@zip -rj finaloutput/menuhax_payload.zip binpayload/menuhax_payload
 
-	@for path in $(MENUROP_PATH)/JPN/*; do make -f Makefile build_stage1_themedata --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
-	@for path in $(MENUROP_PATH)/USA/*; do make -f Makefile build_stage1_themedata --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
-	@for path in $(MENUROP_PATH)/EUR/*; do make -f Makefile build_stage1_themedata --no-print-directory REGION=EUR REGIONVAL=2 MENUVERSION=$$(basename "$$path"); done
-	#@for path in $(MENUROP_PATH)/CHN/*; do make -f Makefile build_stage1_themedata --no-print-directory REGION=CHN REGIONVAL=3 MENUVERSION=$$(basename "$$path"); done
-	@for path in $(MENUROP_PATH)/KOR/*; do make -f Makefile build_stage1_themedata --no-print-directory REGION=KOR REGIONVAL=4 MENUVERSION=$$(basename "$$path"); done
-	#@for path in $(MENUROP_PATH)/TWN/*; do make -f Makefile build_stage1_themedata --no-print-directory REGION=TWN REGIONVAL=5 MENUVERSION=$$(basename "$$path"); done
+	@for path in themehax_menuversions/JPN/* shufflehax_menuversions/JPN/*; do make -f Makefile build_stage1_themedata --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
+	@for path in themehax_menuversions/USA/* shufflehax_menuversions/USA/*; do make -f Makefile build_stage1_themedata --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
+	@for path in themehax_menuversions/EUR/* shufflehax_menuversions/EUR/*; do make -f Makefile build_stage1_themedata --no-print-directory REGION=EUR REGIONVAL=2 MENUVERSION=$$(basename "$$path"); done
 
 	@zip -rj finaloutput/stage1_themedata.zip finaloutput/stage1_themedata
 

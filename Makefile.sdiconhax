@@ -11,12 +11,12 @@ sdiconhax_build:
 	
 	@zip -rj finaloutput/sdiconhax.zip finaloutput/sdiconhax
 	
-	@for path in $(MENUROP_PATH)/JPN/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
-	@for path in $(MENUROP_PATH)/USA/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
-	@for path in $(MENUROP_PATH)/EUR/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=EUR REGIONVAL=2 MENUVERSION=$$(basename "$$path"); done
-	#@for path in $(MENUROP_PATH)/CHN/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=CHN REGIONVAL=3 MENUVERSION=$$(basename "$$path"); done
-	@for path in $(MENUROP_PATH)/KOR/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=KOR REGIONVAL=4 MENUVERSION=$$(basename "$$path"); done
-	#@for path in $(MENUROP_PATH)/TWN/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=TWN REGIONVAL=5 MENUVERSION=$$(basename "$$path"); done
+	@for path in sdiconhax_menuversions/JPN/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
+	@for path in sdiconhax_menuversions/USA/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
+	@for path in sdiconhax_menuversions/EUR/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=EUR REGIONVAL=2 MENUVERSION=$$(basename "$$path"); done
+	#@for path in sdiconhax_menuversions/CHN/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=CHN REGIONVAL=3 MENUVERSION=$$(basename "$$path"); done
+	@for path in sdiconhax_menuversions/KOR/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=KOR REGIONVAL=4 MENUVERSION=$$(basename "$$path"); done
+	#@for path in sdiconhax_menuversions/TWN/*; do make -f Makefile build_stage1_sdiconhax --no-print-directory REGION=TWN REGIONVAL=5 MENUVERSION=$$(basename "$$path"); done
 	
 	@zip -rj finaloutput/stage1_sdiconhax.zip finaloutput/stage1_sdiconhax
 
