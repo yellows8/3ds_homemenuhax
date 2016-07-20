@@ -125,7 +125,7 @@ sdiconhax_addrset sdiconhax_addrset_builtinlist[] = {
 		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c0efc), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c47b8)}
 	},
 
-	{
+	{//This is valid for: v11266 v12288
 		.region = CFG_REGION_KOR,
 		.language = CFG_LANGUAGE_KO,
 
