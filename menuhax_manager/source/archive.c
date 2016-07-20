@@ -13,6 +13,7 @@
 
 u32 extdata_archives_lowpathdata[TotalExtdataArchives][3];
 FS_Archive extdata_archives[TotalExtdataArchives];
+bool extdata_archives_available[TotalExtdataArchives];
 u32 extdata_initialized = 0;
 
 Result open_extdata()
@@ -42,6 +43,9 @@ Result open_extdata()
 
 	//Home Menu uses extdataID value 0x0 for the theme-extdata with non-<JPN/USA/EUR>.
 
+	extdata_archives_available[HomeMenu_Extdata] = true;
+	extdata_archives_available[Theme_Extdata] = true;
+
 	if(region==CFG_REGION_JPN)
 	{
 		extdataID_homemenu = 0x00000082;
@@ -60,14 +64,17 @@ Result open_extdata()
 	else if(region==CFG_REGION_CHN)
 	{
 		extdataID_homemenu = 0x000000a1;
+		extdata_archives_available[Theme_Extdata] = false;
 	}
 	else if(region==CFG_REGION_KOR)
 	{
 		extdataID_homemenu = 0x000000a9;
+		extdata_archives_available[Theme_Extdata] = false;
 	}
 	else if(region==CFG_REGION_TWN)
 	{
 		extdataID_homemenu = 0x000000b1;
+		extdata_archives_available[Theme_Extdata] = false;
 	}
 
 	memset(&archpath, 0, sizeof(FS_Path));
@@ -93,16 +100,19 @@ Result open_extdata()
 	}
 	extdata_initialized |= 0x1;
 
-	archpath.data = (u8*)extdata_archives_lowpathdata[Theme_Extdata];
-
-	ret = FSUSER_OpenArchive(&extdata_archives[Theme_Extdata], ARCHIVE_EXTDATA, archpath);
-	if(ret!=0)
+	if(extdata_archives_available[Theme_Extdata])
 	{
-		log_printf(LOGTAR_ALL, "Failed to open theme extdata with extdataID=0x%08x, retval: 0x%08x\n", (unsigned int)extdataID_theme, (unsigned int)ret);
-		log_printf(LOGTAR_ALL, "Exit this app, then goto Home Menu theme-settings so that Home Menu can create the theme extdata.\n");
-		return ret;
+		archpath.data = (u8*)extdata_archives_lowpathdata[Theme_Extdata];
+
+		ret = FSUSER_OpenArchive(&extdata_archives[Theme_Extdata], ARCHIVE_EXTDATA, archpath);
+		if(ret!=0)
+		{
+			log_printf(LOGTAR_ALL, "Failed to open theme extdata with extdataID=0x%08x, retval: 0x%08x\n", (unsigned int)extdataID_theme, (unsigned int)ret);
+			log_printf(LOGTAR_ALL, "Exit this app, then goto Home Menu theme-settings so that Home Menu can create the theme extdata.\n");
+			return ret;
+		}
+		extdata_initialized |= 0x2;
 	}
-	extdata_initialized |= 0x2;
 
 	return 0;
 }
@@ -115,6 +125,11 @@ void close_extdata()
 	{
 		if(extdata_initialized & (1<<pos))FSUSER_CloseArchive(extdata_archives[pos]);
 	}
+}
+
+bool archive_getavailable(Archive archive)
+{
+	return extdata_archives_available[archive];
 }
 
 Result archive_deletefile(Archive archive, char *path)

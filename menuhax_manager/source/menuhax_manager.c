@@ -92,10 +92,9 @@ Result modules_getcompatible_entry(OS_VersionBin *cver_versionbin, module_entry 
 		ent = &modules_list[pos];
 		if(!ent->initialized)continue;
 
-		if(ent->unsupported_cver && cver>=ent->unsupported_cver)
-		{
-			continue;
-		}
+		if(ent->unsupported_cver && cver>=ent->unsupported_cver)continue;
+
+		if(!ent->themeflag && !archive_getavailable(Theme_Extdata))continue;//Ignore modules which require using the theme-extdata if that extdata isn't available for this region.
 
 		*module = ent;
 
@@ -137,6 +136,8 @@ Result modules_haxdelete()
 	{
 		ent = &modules_list[pos];
 		if(!ent->initialized)continue;
+
+		if(!ent->themeflag && !archive_getavailable(Theme_Extdata))continue;//Ignore modules which require using the theme-extdata if that extdata isn't available for this region.
 
 		if(!ent->manual_name_display)log_printf(LOGTAR_ALL, "Deleting %s...\n", ent->name);
 
@@ -1500,6 +1501,8 @@ bool menuhaxcfg_get_themeflag()
 	Result ret=0;
 	menuhax_cfg sdcfg;
 	u32 old_sdcfg[0x10>>2];
+
+	if(!archive_getavailable(Theme_Extdata))return true;//If the theme-extdata isn't available for this region, return true for disabled user-themes.
 
 	ret = archive_readfile(SDArchive, "sdmc:/menuhax/menuhax_cfg.bin", (u8*)&sdcfg, sizeof(sdcfg));
 	if(ret!=0)//When the old/new cfg files don't exist, return true for disabled user-themes.
