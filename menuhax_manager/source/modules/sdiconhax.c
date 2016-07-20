@@ -123,6 +123,14 @@ sdiconhax_addrset sdiconhax_addrset_builtinlist[] = {
 
 		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c98e0),
 		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c0efc), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c47b8)}
+	},
+
+	{
+		.region = CFG_REGION_KOR,
+		.language = CFG_LANGUAGE_KO,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382bc260),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b387c), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b7138)}
 	}
 };
 

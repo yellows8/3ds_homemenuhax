@@ -4,7 +4,11 @@
 
 #include "menuhax_ropinclude.s"
 
+#if REGIONVAL!=4//non-KOR
 #define SDICONHAX_SPRETADDR (0x0ffffe20 - (6*4)) //SP address right before the original stack-pivot was done.
+#else//KOR
+#define SDICONHAX_SPRETADDR (0x0ffffe18 - (6*4))
+#endif
 
 _start:
 
