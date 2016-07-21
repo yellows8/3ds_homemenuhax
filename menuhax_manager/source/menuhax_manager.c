@@ -1091,7 +1091,7 @@ Result install_menuhax(char *ropbin_filepath)
 	{
 		if(!module->manual_name_display)log_printf(LOGTAR_ALL, "Installing %s...\n", module->name);
 
-		ret = module->haxinstall(menuhax_basefn);
+		ret = module->haxinstall(menuhax_basefn, menu_title_entry.version);
 		if(ret==0)break;
 
 		if(module->index+1 < MAX_MODULES)

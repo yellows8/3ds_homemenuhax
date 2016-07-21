@@ -1,6 +1,6 @@
 #pragma once
 
-typedef Result (*menuhaxcb_install)(char *menuhax_basefn);
+typedef Result (*menuhaxcb_install)(char *menuhax_basefn, s16 menuversion);
 typedef Result (*menuhaxcb_delete)(void);
 
 #define MODULE_MAKE_CVER(major, minor, build) ((major<<16) | (minor<<8) | build)

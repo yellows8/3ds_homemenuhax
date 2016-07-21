@@ -13,12 +13,14 @@
 #define LINEARMEMSYS_BASE_RELOFFSET_OLD3DS(addr) (addr-0x34000000)
 #define LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(addr) (addr-0x37c00000)
 
-Result sdiconhax_install(char *menuhax_basefn);
+Result sdiconhax_install(char *menuhax_basefn, s16 menuversion);
 Result sdiconhax_delete();
 
 typedef struct {
 	u8 region;
 	u8 language;
+	bool menuversion_rangeset;//When true the below menuversion fields are used.
+	s16 menuversion_min, menuversion_max;
 
 	u32 linearaddr_savedatadat;
 	u32 linearaddr_target_objectslist_buffer;
@@ -26,7 +28,7 @@ typedef struct {
 	u32 original_objptrs[2];
 } sdiconhax_addrset;
 
-//These are for the v10.6..v11.0 Home Menu. TODO: Implement handling different menu versions for this.
+//These are for the v10.6..v11.0 Home Menu, unless mentioned otherwise.
 sdiconhax_addrset sdiconhax_addrset_builtinlist[] = {
 	{
 		.region = CFG_REGION_JPN,
@@ -125,27 +127,36 @@ sdiconhax_addrset sdiconhax_addrset_builtinlist[] = {
 		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c0efc), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382c47b8)}
 	},
 
-	{//This is valid for: v11266 v12288
+	{//This is valid for: v6166
 		.region = CFG_REGION_KOR,
 		.language = CFG_LANGUAGE_KO,
+		.menuversion_rangeset = true,
+		.menuversion_min = 6166,
+		.menuversion_max = 6166,
 
-		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382bc260),
-		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b387c), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b7138)}
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382bc160),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b37ec), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b7038)}
 	},
-	/*{//This is valid for: v7175 v8192 v9216 v10240
+	{//This is valid for: v7175 v8192 v9216 v10240
 		.region = CFG_REGION_KOR,
 		.language = CFG_LANGUAGE_KO,
+		.menuversion_rangeset = true,
+		.menuversion_min = 7175,
+		.menuversion_max = 10240,
 
 		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382bc1e0),
 		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b37fc), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b70b8)}
 	},
-	{//This is valid for: v6166
+	{//This is valid for: v11266 v12288
 		.region = CFG_REGION_KOR,
 		.language = CFG_LANGUAGE_KO,
+		.menuversion_rangeset = true,
+		.menuversion_min = 11266,
+		.menuversion_max = 12288,
 
-		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382bc160),
-		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b37ec), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b7038)}
-	}*/
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382bc260),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b387c), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b7138)}
+	}
 };
 
 void register_module_sdiconhax()
@@ -308,7 +319,7 @@ Result sdiconhax_locatelinearmem(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, 
 	return 0;
 }
 
-Result sdiconhax_getaddrs_builtin(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, u32 *original_objptrs)
+Result sdiconhax_getaddrs_builtin(s16 menuversion, u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, u32 *original_objptrs)
 {
 	Result ret=0;
 	u8 region=0, language=0;
@@ -350,7 +361,12 @@ Result sdiconhax_getaddrs_builtin(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val,
 	{
 		curset = &sdiconhax_addrset_builtinlist[pos];
 
-		if(curset->region == region && curset->language == language)break;
+		if(curset->region == region && curset->language == language)
+		{
+			if(curset->menuversion_rangeset && !(menuversion>=curset->menuversion_min && menuversion<=curset->menuversion_max))continue;
+
+			break;
+		}
 	}
 
 	if(pos==len)return -1;
@@ -434,7 +450,7 @@ Result sdiconhax_setupstage1(char *menuhax_basefn, u32 *original_objptrs)
 	return 0;
 }
 
-Result sdiconhax_install(char *menuhax_basefn)
+Result sdiconhax_install(char *menuhax_basefn, s16 menuversion)
 {
 	Result ret=0;
 
@@ -464,7 +480,7 @@ Result sdiconhax_install(char *menuhax_basefn)
 		log_printf(LOGTAR_LOG, "Error from sdiconhax_locatelinearmem(): 0x%08x\n", (unsigned int)ret);
 		log_printf(LOGTAR_ALL, "Trying to load addrs from the built-in list since auto-locate failed...\n");
 
-		ret = sdiconhax_getaddrs_builtin(&linearaddr_savedatadat, &linearaddr_target_objectslist_buffer, &icon_16val, original_objptrs);
+		ret = sdiconhax_getaddrs_builtin(menuversion, &linearaddr_savedatadat, &linearaddr_target_objectslist_buffer, &icon_16val, original_objptrs);
 
 		if(ret!=0)
 		{

@@ -10,7 +10,7 @@
 
 #include "modules_common.h"
 
-Result shufflehax_install(char *menuhax_basefn);
+Result shufflehax_install(char *menuhax_basefn, s16 menuversion);
 Result shufflehax_delete();
 
 void register_module_shufflehax()
@@ -25,7 +25,7 @@ void register_module_shufflehax()
 	register_module(&module);
 }
 
-Result shufflehax_install(char *menuhax_basefn)
+Result shufflehax_install(char *menuhax_basefn, s16 menuversion)
 {
 	Result ret=0;
 

@@ -10,7 +10,7 @@
 
 #include "modules_common.h"
 
-Result themehax_install(char *menuhax_basefn);
+Result themehax_install(char *menuhax_basefn, s16 menuversion);
 Result themehax_delete();
 
 void register_module_themehax()
@@ -25,7 +25,7 @@ void register_module_themehax()
 	register_module(&module);
 }
 
-Result themehax_install(char *menuhax_basefn)
+Result themehax_install(char *menuhax_basefn, s16 menuversion)
 {
 	Result ret=0;
 
