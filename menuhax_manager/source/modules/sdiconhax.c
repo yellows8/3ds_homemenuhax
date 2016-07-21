@@ -26,7 +26,7 @@ typedef struct {
 	u32 original_objptrs[2];
 } sdiconhax_addrset;
 
-//These are for the v10.6..v11.0 Home Menu.
+//These are for the v10.6..v11.0 Home Menu. TODO: Implement handling different menu versions for this.
 sdiconhax_addrset sdiconhax_addrset_builtinlist[] = {
 	{
 		.region = CFG_REGION_JPN,
@@ -131,7 +131,21 @@ sdiconhax_addrset sdiconhax_addrset_builtinlist[] = {
 
 		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382bc260),
 		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b387c), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b7138)}
-	}
+	},
+	/*{//This is valid for: v7175 v8192 v9216 v10240
+		.region = CFG_REGION_KOR,
+		.language = CFG_LANGUAGE_KO,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382bc1e0),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b37fc), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b70b8)}
+	},
+	{//This is valid for: v6166
+		.region = CFG_REGION_KOR,
+		.language = CFG_LANGUAGE_KO,
+
+		.linearaddr_savedatadat = LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382bc160),
+		.original_objptrs = {LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b37ec), LINEARMEMSYS_BASE_RELOFFSET_NEW3DS(0x382b7038)}
+	}*/
 };
 
 void register_module_sdiconhax()
