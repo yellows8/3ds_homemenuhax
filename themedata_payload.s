@@ -31,8 +31,8 @@ themeheader:
 .incbin PAYLOAD_HEADERFILE
 #endif
 
-.word POP_R0PC @ Stack-pivot to ropstackstart.
-.word ROPBUFLOC(object) @ r0
+@ Stack-pivot to ropstackstart.
+ROP_SETR0 ROPBUFLOC(object)
 
 .word ROP_LOADR4_FROMOBJR0
 #endif
