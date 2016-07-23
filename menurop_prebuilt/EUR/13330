@@ -1,56 +1,50 @@
 #define STACKPIVOT_ADR 0x00100fdc
-#define ROP_LOADR4_FROMOBJR0 0x0010b574
-#define ROP_POPPC 0x0010203c
-#define POP_R0PC 0x00154f0c
+
+#define ROP_POPPC 0x0010e7b4
 #define POP_R1PC 0x002262bc
-#define POP_R3PC 0x00102a40
+#define POP_R3PC 0x0010f86c
 #define POP_R2R6PC 0x001512c4
 #define POP_R4LR_BXR1 0x0011df68
 #define POP_R4R8LR_BXR2 0x00133f8c
-#define POP_R4R5R6PC 0x00101b94
-#define POP_R4FPPC 0x001034f8
-#define POP_R4R8PC 0x00101ed0
+#define POP_R4R5R6PC 0x0010d504
+#define POP_R4FPPC 0x0010ef70
+#define POP_R4R8PC 0x0010d638
 
-#define ROP_STR_R1TOR0 0x00103f58
-#define ROP_STR_R0TOR1 0x0010297c
+#define ROP_STR_R1TOR0 0x0011df20
+#define ROP_STR_R0TOR1 0x001123a8
 #define ROP_LDR_R0FROMR0 0x0010f01c
-#define ROP_LDRR1R1_STRR1R0 0x002003bc
-#define ROP_MOVR1R3_BXIP 0x001c2e24
 #define ROP_ADDR0_TO_R1 0x0012b64c
-#define ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX 0x001037fc
-#define ROP_CMPR0R1 0x002946ac
 
-#define ROP_INITOBJARRAY 0x002190c5
-
-#define MEMCPY 0x00150940
+#define MEMCPY 0x002267d8
 #define MEMSET32_OTHER 0x00222784
 
 #define svcControlMemory 0x002246d4
-#define svcCreateThread 0x0010e618
 #define svcSleepThread 0x0012b590
-
-#define SRV_GETSERVICEHANDLE 0x0022472c
-
-#define GXLOW_CMD4 0x0014ac9c
-
-#define CFGIPC_SecureInfoGetRegion 0x00136ea4
 
 #define GSPGPU_FlushDataCache 0x0014ab98
 #define GSPGPU_SERVHANDLEADR 0x00320f70
-#define GSP_SHAREDMEM_SETUPFRAMEBUF 0x00143ce4
 
-
-#define FS_MountSdmc 0x0011cacc
-
-#define IFile_Open 0x00218c3c
-#define IFile_Close 0x0021dcdc
 #define IFile_Read 0x00218b3c
 #define IFile_Write 0x0020d098
 
+#define POP_R0PC 0x00154f0c
+#define ROP_LDRR1R1_STRR1R0 0x002003bc
+#define ROP_CMPR0R1 0x002946ac
+#define ROP_INITOBJARRAY 0x002190c5
+#define svcCreateThread 0x0010e618
+#define svcConnectToPort 0x0011c65c
+#define svcGetProcessId 0x0012b574
+#define SRV_GETSERVICEHANDLE 0x0022472c
+#define CFGIPC_SecureInfoGetRegion 0x00136ea4
 #define ROP_COND_THROWFATALERR 0x001028f8
-
+#define GXLOW_CMD4 0x0014ac9c
+#define GSP_SHAREDMEM_SETUPFRAMEBUF 0x00143ce4
+#define FS_MountSdmc 0x0011cacc
+#define IFile_Open 0x00218c3c
+#define IFile_Close 0x0021dcdc
+#define ROP_LOADR4_FROMOBJR0 0x0010b574
+#define ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX 0x001037fc
 #define ORIGINALOBJPTR_BASELOADADR 0x0031382c
-
 #define ROP_PUSHR4R8LR_CALLVTABLEFUNCPTR 0x0024fd0c
 #define NSS_LaunchTitle 0x0022024c
 #define NSS_RebootSystem 0x00136a0c
