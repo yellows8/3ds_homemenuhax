@@ -45,7 +45,7 @@ else
 endif
 
 APP_TITLE	:=	menuhax_manager $(VERSION)
-APP_DESCRIPTION	:=	Tool for managing Home Menu haxx.
+APP_DESCRIPTION	:=	Tool for managing Home Menu haxx.                       https://github.com/yellows8/3ds_homemenuhax
 APP_AUTHOR	:=	yellows8
 
 #---------------------------------------------------------------------------------

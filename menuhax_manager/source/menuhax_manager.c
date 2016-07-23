@@ -789,8 +789,12 @@ Result parse_config(char *config, u32 configsize)
 					{
 						if(strncmp(strptr, VERSION, strlen(strptr)))
 						{
+							#ifdef RELEASE
 							log_printf(LOGTAR_ALL, "This menuhax_manager build's version doesn't match the version from config.\nYou likely aren't using the latest release version, outdated versions are not supported.\n");
 							return -2;
+							#else
+							log_printf(LOGTAR_ALL, "This menuhax_manager build's version doesn't match the version from config, ignoring this since this isn't a release-build.\n");
+							#endif
 						}
 					}
 				}
