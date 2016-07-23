@@ -48,8 +48,8 @@ stackpivot_pcloadword:
 
 vtable:
 .word 0, 0 @ vtable+0
-.word ROP_LOADR4_FROMOBJR0 @ vtable funcptr +8
-.word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
+.word 0//ROP_LOADR4_FROMOBJR0 @ vtable funcptr +8
+.word 0//STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
 
 savedatadat_filectx:
 .space 0x20

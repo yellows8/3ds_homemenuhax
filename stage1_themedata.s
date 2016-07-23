@@ -108,9 +108,9 @@ stackpivot_pcloadword:
 
 vtable:
 .word 0, 0 @ vtable+0
-.word ROP_LOADR4_FROMOBJR0 @ vtable funcptr +8
-.word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
-.word ROP_POPPC, ROP_POPPC @ vtable funcptr +16/+20
+.word 0//ROP_LOADR4_FROMOBJR0 @ vtable funcptr +8
+.word 0//STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
+.word 0, 0//ROP_POPPC, ROP_POPPC @ vtable funcptr +16/+20
 
 #ifdef LOADOTHER_THEMEDATA
 filepath_theme_stringblkstart:
