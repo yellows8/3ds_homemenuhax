@@ -496,9 +496,10 @@ Result delete_menuhax()
 	Result ret=0;
 	bool themeflag;
 
-	ret = displaymessage_prompt("Do you want to skip deleting menuhax itself, so that only the menuhax-specific theme-data if any is deleted?", NULL);
-
 	themeflag = menuhaxcfg_get_themeflag();
+
+	ret = 1;
+	if(!themeflag)ret = displaymessage_prompt("Do you want to skip deleting menuhax itself, so that only the menuhax-specific theme-data if any is deleted?", NULL);
 
 	if(ret==0)
 	{
@@ -824,7 +825,7 @@ Result parse_config(char *config, u32 configsize)
 					ret = modules_findentryname(strptr, &module);
 					if(ret!=0)
 					{
-						log_printf(LOGTAR_ALL, "This menuhax_manager build doesn't include a module with the name specified by the config: %s. Ignoring this.\n", strptr);
+						log_printf(LOGTAR_LOG, "This menuhax_manager build doesn't include a module with the name specified by the config: %s. Ignoring this.\n", strptr);
 					}
 
 					module->unsupported_cver = MODULE_MAKE_CVER(version[0], version[1], version[2]);
@@ -2264,7 +2265,7 @@ int main(int argc, char **argv)
 				if(ret==0 && size>0 && size<sizeof(tmpstr)-1)
 				{
 					ret = archive_readfile(SDArchive, "sdmc:/menuhax/menuhax_installedversion", (u8*)tmpstr, size);
-					if(ret==0 && tmpstr[0])snprintf(tmpstr2, sizeof(tmpstr2)-1, "\nInstalled menuhax: '%s'.", tmpstr);
+					if(ret==0 && tmpstr[0])snprintf(tmpstr2, sizeof(tmpstr2)-1, "\nInstalled menuhax from the last installation run:\n'%s'", tmpstr);
 				}
 				if(ret!=0)ret = 0;
 
