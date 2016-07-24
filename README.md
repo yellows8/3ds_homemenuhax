@@ -3,7 +3,7 @@ This is menuhax, exploits for the Nintendo 3DS Home Menu.
 # Summary
 These exploits trigger during Home Menu startup.
 
-Although this triggers during Home Menu boot, this can't cause any true bricks: just remove the \*SD card if any booting issues ever occur(or delete/rename the main Home Menu extdata directory: https://www.3dbrew.org/wiki/Extdata). Note that this also applies when the ROP causes a crash(the installed exploit itself), like when the ROP is for a different version of Home Menu(this can also happen if you boot into a nandimage which has a different Home Menu version, but still uses the exact same SD data). In some(?) cases Home Menu crashes with this just result in Home Menu displaying the usual error dialog for system-applet crashes.
+Although this triggers during Home Menu boot, this can't cause any true bricks: just remove the \*SD card if any booting issues ever occur(or delete/rename the main Home Menu [extdata](https://www.3dbrew.org/wiki/Extdata) directory). Note that this also applies when the ROP causes a crash(the installed exploit itself), like when the ROP is for a different version of Home Menu(this can also happen if you boot into a nandimage which has a different Home Menu version, but still uses the exact same SD data). In some(?) cases Home Menu crashes with this just result in Home Menu displaying the usual error dialog for system-applet crashes.
 
 # Old3DS return-to-menu
 On Old3DS with applications which trigger a firmlaunch due to requiring more memory for the APPLICATION memregion, pressing the HOME button will result in a hang due to Home Menu crashing with menuhax installed. This includes Super Smash Bros and Monster Hunter.
@@ -28,9 +28,9 @@ Hence the name, this is a vuln with theme-data loading for theme-shuffling. Home
 * The 10.6.0-X sysupdate [fixed](https://www.3dbrew.org/wiki/10.6.0-31) shufflehax.
 
 # Supported System Versions
-Every version starting with v9.0 is supported unless mentioned otherwise. The release-archive builds for shufflehax are only built for 10.2.0-X, 10.3.0-X, and 10.4.0-X(same builds for 10.5.0-X). The release-archive builds for sdiconhax only support 10.6.0-X(same builds for 10.6.0-X..11.0.0-X).
+As of July 24, 2016, system-versions 9.0.0-X..11.0.0-X are all supported. See also the above section.
 
-The initial release archive only supported USA, EUR, and JPN. KOR builds are included in the release-archive starting with v2.0. TWN and CHN aren't supported currently.
+The initial release archive only supported USA, EUR, and JPN. TWN and CHN aren't supported currently. KOR builds which are *actually* usable are included starting with v3.0, via sdiconhax for 9.6.0-X..11.0.0-X(the theme-data exploit KOR builds were removed since themes aren't actually usable with KOR).
 
 # Building
 See Building.md.
@@ -43,7 +43,7 @@ With the release archive the default PAD-trigger configuration is that you have 
 Right before it jumps to executing the loaded ropbin, this delays with a default of 3-seconds. This helps with \*hax payload booting not failing as much with this. This can be adjusted in the menuhax_manager configuration menu.
 
 ## menuhax thread
-If the menuhax-thread options are setup via the menuhax_manager configuration menu, during a normal boot to Home Menu menuhax will start a new thread which runs with just ROP.
+If the menuhax-thread options are setup via the menuhax_manager configuration menu(specifically the PAD config), during a normal boot to Home Menu menuhax will start a new thread which runs with just ROP.
 
 This thread executes a loop. First it runs svcSleepThread, delaying with the user-specified value. Then it verifies that Home Menu is active by comparing the GSPGPU service session handle with 0x0. Then it checks if the pressed PAD buttons match the value specified in config. If so, the config file is updated so that menuhax automatically boots \*hax payload on next boot, then svcExitProcess is executed so that Home Menu restarts.
 
@@ -51,15 +51,15 @@ This thread executes a loop. First it runs svcSleepThread, delaying with the use
 To install menuhax you must use the menuhax_manager app. You must already have a way to boot into the *\hax payload for running this app(which can include menuhax if it's already setup):
 https://www.3dbrew.org/wiki/Homebrew_Exploits    
 
-Before using HTTP, the app will first try to load the input payload(https://smealum.github.io/3ds/) from SD "/menuhax/menuhaxmanager_input_payload.bin", then continue to use HTTP if loading from SD isn't successful. Actually using this SD payload is not recommended for end-users when HTTP download works fine. The input payload from SD is basically just copied to the ropbin file used by menuhax, where only the first 0x10000-bytes are written(only the first 0x10000-bytes get loaded by menuhax, anything after that doesn't matter). Hence, the input payload must be a ropbin file, not otherapp(https://smealum.github.io/3ds/). Hence, you can't use \*hax payload pre-v2.5 starting with menuhax_manager v2.0 unless you already have the ropbin file for it(which would have to be located at the SD input-payload filepath).  
+Before using HTTP, the app will first try to load the input [payload](https://smealum.github.io/3ds/) from SD "/menuhax/menuhaxmanager_input_payload.bin", then continue to use HTTP if loading from SD isn't successful. Actually using this SD payload is not recommended for end-users when HTTP download works fine. The input payload from SD is basically just copied to the ropbin file used by menuhax, where only the first 0x10000-bytes are written(only the first 0x10000-bytes get loaded by menuhax, anything after that doesn't matter). Hence, the input payload must be a ropbin file, not [otherapp](https://smealum.github.io/3ds/). Hence, you can't use \*hax payload pre-v2.5 starting with menuhax_manager v2.0 unless you already have the ropbin file for it(which would have to be located at the SD input-payload filepath).  
 
-If you haven't already done so before, you may have to enter the Home Menu theme-settings so that Home Menu can create the theme extdata, prior to running menuhax_manager.
+If you haven't already done so before, you may have to enter the Home Menu theme-settings so that Home Menu can create the theme extdata, prior to running menuhax_manager(for USA/EUR/JPN regions).
 
 Versions >v1.2 uses a seperate menuropbin path for each menuhax build. <=v1.2 used the same filepath for all builds, rendering menuhax unusable for multiple system-versions/etc with the same SD card without changing that file(like with booting into SD-nandimages, for example). The app versions >v1.2 delete the old menuropbin file used by <=v1.2.
 
 During installation there's an option for skipping \*hax payload setup. Normally this isn't needed. Doing this would result in only menuhax itself being setup.
 
-Whenever the Home Menu version installed on your system changes where the installed exploit is for a different version, or when you want to update the \*hax payload, you must run the installation again. For this you can do the following: you can remove the SD card before booting the system, then once booted insert the SD card then boot into the \*hax payload via a different method(https://www.3dbrew.org/wiki/Homebrew_Exploits).
+Whenever the Home Menu version installed on your system changes where the installed exploit is for a different version, or when you want to update the \*hax payload, you must run the installation again. For the former you can do the following: you can remove the SD card before booting the system, then once booted insert the SD card then boot into the \*hax payload via a different method(https://www.3dbrew.org/wiki/Homebrew_Exploits).
 
 ## Splash-screen
 This app can setup an image for displaying on the screens when menuhax triggers, if you use the app option for that. Using this is highly recommended(in some cases \*hax payload booting may be more successful with this than without it). When the file for this isn't setup, junk will be displayed on the top-screen(from elsewhere in VRAM). The input image can be either be the default one, or from SD.  
@@ -69,7 +69,7 @@ The input PNGs for this are located at SD directory "/3ds/menuhax_manager/splash
 ## Deletion
 The hax can be deleted by menuhax_manager with the app option for that.  
 
-If you have menuhax installed on <=10.5.0-30, another way to only "remove" menuhax(this shouldn't be used unless you can't boot the menuhax_manager), is to just select the "no-theme" option in the Home Menu theme settings. Then restart Home Menu / reboot your system. Then, you can select any theme you want under Home Menu theme-settings if want to do so.
+If you have menuhax installed on USA/EUR/JPN <=10.5.0-30, another way to only "remove" menuhax(this shouldn't be used unless you can't boot the menuhax_manager), is to just select the "no-theme" option in the Home Menu theme settings. Then restart Home Menu / reboot your system. Then, you can select any theme you want under Home Menu theme-settings if want to do so.
 
 See the "Summary" section if you have issues with Home Menu failing to boot, or if you want to manually remove menuhax.
 
@@ -77,7 +77,7 @@ See the "Summary" section if you have issues with Home Menu failing to boot, or 
 Due to AM access / etc being required with >v1.2, this app is not usable with regular ninjhax v1.x without additional hax. Use \*hax >=v2.x instead.
 
 # Themes
-The below only applies for <=10.5.0-30, with >=10.6.0-31 menuhax doesn't affect themes since the exploit isn't theme-data related. The theme-install menus are disabled in menuhax_manager if menuhax was last installed for >=10.6.0-31.
+The below only applies for USA/EUR/JPN <=10.5.0-X, with >=10.6.0-X menuhax doesn't affect themes since the exploit isn't theme-data related. The theme-install menus are disabled in menuhax_manager if menuhax was last installed with a non-theme-data exploit.
 
 Starting with v2.0, you can now use menuhax with an actual theme you want. After installing v2.0(nothing higher), you have to enter the Home Menu theme-settings menu first, so that it can create the seperate extdata files. Under the menuhax_manager, there are menu options for installing custom-themes with menuhax already setup, and for setting up one of the Home Menu built-in "Basic: {color}" themes as a "custom-theme".
 
@@ -88,7 +88,7 @@ The only theme-change you can do without menuhax being disabled, is selecting a 
 * themehax: Any theme you select must be a DLC-theme as a regular theme. Theme shuffling isn't usable.
 * shufflehax: You must select exactly two DLC-themes via theme-shuffling, no regular-theme. You can't successfully select the same DLC-theme twice. Normally Home Menu won't allow you to select only one theme for theme-shuffling, but in this case it does, do not try this because Home Menu will just reset the theme-data settings in this case.
 
-When you're selecting a "Basic: {color}" theme with the menuhax_manager option mentioned above, you can keep the X button pressed while selecting the theme to dump the theme-data to '/3ds/menuhax_manager/'. This isn't needed unless you want to use that theme-data with other tools/etc. Note that this menu in menuhax_manager is only usable when the app is running via \*hax payload >=v2.0.
+When you're selecting a "Basic: {color}" theme with the menuhax_manager option mentioned above, there's an option to dump the theme-data to '/3ds/menuhax_manager/'. This isn't needed unless you want to use that theme-data with other tools/etc. Note that this menu in menuhax_manager is only usable when the app is running via \*hax payload >=v2.0.
 
 If you want to revert the theme to "no-theme" with menuhax still installed, you can select the menuhax_manager "Delete" menu option, then select the option for this. After doing so, you have to enter the Home Menu theme-settings menu again if you want to setup more themes later.
 
@@ -99,7 +99,7 @@ For custom-theme installation, the theme-data must be located at SD "/3ds/menuha
 If Home Menu is already using a theme with BGM, before installing a custom theme using BGM, you must first switch to a non-BGM theme and run menuhax_manager again. If this theme switch wasn't done via Home Menu itself, the Home Menu process must be restarted(like with a system-reboot for example). This applies to all custom theme installation tools, not just menuhax_manager.
 
 # Credits
-* This app uses code based on code from the following repos: https://github.com/yellows8/3ds_homemenu_extdatatool https://github.com/yellows8/3ds_browserhax_common  
+* This app uses code based on code from the following repos: https://github.com/yellows8/3ds_homemenu_extdatatool  
 * The original vuln for themehax was, as said on this page(https://smealum.github.io/3ds/), "exploited jointly by yellows8 and smea". The payload.py script was originally written by smea, this is where the actual generation for the compressed data which triggers the buf-overflow is done.
 * menuhax_manager uses lodepng: https://github.com/lvandeve/lodepng
 * Graphics(#26): @NaxiD for the menuhax_manager icon and @LouchDaishiteru for the default haxx boot splash-screen.
