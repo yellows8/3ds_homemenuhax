@@ -96,10 +96,16 @@ Result modules_getcompatible_entry(OS_VersionBin *cver_versionbin, module_entry 
 
 		if(!ent->themeflag && !archive_getavailable(Theme_Extdata))continue;//Ignore modules which require using the theme-extdata if that extdata isn't available for this region.
 
-		*module = ent;
+		if(*module)
+		{
+			if(ent->unsupported_cver==0)continue;
+			if((*module)->unsupported_cver!=0 && (*module)->unsupported_cver < ent->unsupported_cver)continue;
+		}
 
-		return 0;
+		*module = ent;
 	}
+
+	if(*module)return 0;
 
 	return -7;
 }
