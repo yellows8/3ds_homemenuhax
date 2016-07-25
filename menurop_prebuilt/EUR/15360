@@ -42,6 +42,7 @@
 #define FS_MountSdmc 0x0011cac0
 #define IFile_Open 0x00218ba8
 #define IFile_Close 0x0021dc48
+#define IFile_Seek 0x0020d7d0
 #define ROP_LOADR4_FROMOBJR0 0x0010b574
 #define ROP_LDRR1_FROMR5ARRAY_R4WORDINDEX 0x001037fc
 #define ORIGINALOBJPTR_BASELOADADR 0x0031382c
