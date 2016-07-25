@@ -27,8 +27,13 @@ Hence the name, this is a vuln with theme-data loading for theme-shuffling. Home
 * The 10.2.0-X sysupdate [fixed](https://3dbrew.org/wiki/10.2.0-28) the vuln with theme decompression(themehax).
 * The 10.6.0-X sysupdate [fixed](https://www.3dbrew.org/wiki/10.6.0-31) shufflehax.
 
+# Usage notes for sdiconhax
+With sdiconhax installed, when Home Menu does a normal boot all writes to extdata SaveData.dat are blocked. This is only for normal boots, not when \*hax payload was booted *from* menuhax. Hence, any theme-settings changes done with Home Menu *itself*, or any SD-title icon layout / present status etc, will not be saved. This *had* to be blocked because the haxx data was getting reset every time Home Menu wrote to this file.
+
+Also note that you can't do/use any of the following without Home Menu entering a crash-boot-loop: exit from hbmenu for returning to Home Menu, menuhax-thread hax-payload boot(due to restarting homemenu), or returning from any system-applets on Old3DS(web-browser etc). Basically, anything that causes the Home Menu process to restart.
+
 # Supported System Versions
-As of July 24, 2016, system-versions 9.0.0-X..11.0.0-X are all supported. See also the above section.
+As of menuhax v3.0, system-versions 9.0.0-X..11.0.0-X are all supported. During installation it automatically detects which exploit to install. See also the above section.
 
 The initial release archive only supported USA, EUR, and JPN. TWN and CHN aren't supported currently. KOR builds which are *actually* usable are included starting with v3.0, via sdiconhax for 9.6.0-X..11.0.0-X(the theme-data exploit KOR builds were removed since themes aren't actually usable with KOR).
 
