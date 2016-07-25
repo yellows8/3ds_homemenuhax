@@ -34,6 +34,9 @@ menuhaxloader_bootrop:
 #ifdef STAGE1
 @ Write the sp return-addr(menuhaxloader_returnaddr) used during ret2menu to buffer+4.
 ROPMACRO_WRITEWORD (MENUHAXLOADER_LOAD_BINADDR+4), ROPBUFLOC(menuhaxloader_returnaddr)
+
+@ Write the sp jump-addr(menuhaxloader_beforethreadexit) used right before the menuhax-thread exits, to buffer+8.
+ROPMACRO_WRITEWORD (MENUHAXLOADER_LOAD_BINADDR+8), ROPBUFLOC(menuhaxloader_beforethreadexit)
 #endif
 
 @ Jump to the buffer.

