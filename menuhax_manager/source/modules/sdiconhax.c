@@ -383,7 +383,7 @@ Result sdiconhax_getaddrs_builtin(s16 menuversion, u32 *outaddr0, u32 *outaddr1,
 	return 0;
 }
 
-Result sdiconhax_setupstage1(char *menuhax_basefn, u32 *original_objptrs)
+Result sdiconhax_setupstage1(char *menuhax_basefn, u32 *original_objptrs, u32 linearaddr_savedatadat)
 {
 	Result ret=0;
 	u32 filesize=0;
@@ -436,6 +436,11 @@ Result sdiconhax_setupstage1(char *menuhax_basefn, u32 *original_objptrs)
 		if((filebuf[pos] & 0xffffff00) == 0x58414800)
 		{
 			if(filebuf[pos] <= 0x58414801)filebuf[pos] = original_objptrs[filebuf[pos] & 0xff];
+		}
+		else if((filebuf[pos] & 0xffff0000) == 0x58480000)
+		{
+			filebuf[pos]&= ~0xffff0000;
+			filebuf[pos]+= linearaddr_savedatadat;
 		}
 	}
 
@@ -491,7 +496,7 @@ Result sdiconhax_install(char *menuhax_basefn, s16 menuversion)
 	}
 
 	log_printf(LOGTAR_ALL, "Running SD setup for stage1...\n");
-	ret = sdiconhax_setupstage1(menuhax_basefn, original_objptrs);
+	ret = sdiconhax_setupstage1(menuhax_basefn, original_objptrs, linearaddr_savedatadat);
 	if(ret!=0)return ret;
 
 	log_printf(LOGTAR_ALL, "Loading exploit file-data + writing into extdata...\n");
