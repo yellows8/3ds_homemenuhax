@@ -34,18 +34,21 @@ ROPMACRO_STACKPIVOT SDICONHAX_SPRETADDR, POP_R4R8PC @ Return to executing the or
 
 menuhaxloader_beforethreadexit:
 @ Write to FS savedatadat+0, stopping where the haxx TID-data is.
-CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000), 0xb48 - (60*8), 1, 0, 0, 0
+CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000), 300*8 + 0x8, 1, 0, 0, 0
 
-@ Seek to the start of the s16 array, then only write the data prior to the haxx-data.
+@ Seek to the start of <some icon(?) array>, then write the whole array since no haxx-data is stored here.
 CALLFUNC IFile_Seek, ROPBUFLOC(savedatadat_filectx), 0, 0xb48, 0, 0, 0, 0, 0
-CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000  + 0xb48), 0xf80 - 0xb48 - (60*2), 1, 0, 0, 0
+CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000  + 0xb48), 360, 1, 0, 0, 0
 
-@ Seek to the start of the icon flag(?) array, then write the whole array since no haxx-data is stored here.
+@ Write the data prior to the haxx-data for the s16 array.
+CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000  + 0xcb0), 300*2, 1, 0, 0, 0
+
+@ Seek to the start of <some icon(?) array>, then write the whole array since no haxx-data is stored here.
 CALLFUNC IFile_Seek, ROPBUFLOC(savedatadat_filectx), 0, 0xe18, 0, 0, 0, 0, 0
 CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000 + 0xe18), 360, 1, 0, 0, 0
 
 @ Write the data prior to the haxx-data, for the s8 array.
-CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000 + 0xf80), 0x10e8 - 0xf80 - 60, 1, 0, 0, 0
+CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000 + 0xf80), 300, 1, 0, 0, 0
 
 @ Write the rest of the data to FS.
 CALLFUNC IFile_Seek, ROPBUFLOC(savedatadat_filectx), 0, 0x10e8, 0, 0, 0, 0, 0
