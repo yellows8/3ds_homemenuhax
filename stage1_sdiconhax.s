@@ -33,7 +33,8 @@ CALLFUNC_NOSP IFile_Open, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(savedatadat_
 ROPMACRO_STACKPIVOT SDICONHAX_SPRETADDR, POP_R4R8PC @ Return to executing the original homemenu code.
 
 menuhaxloader_beforethreadexit:
-@ Write to FS savedatadat+0, stopping where the haxx TID-data is.
+//Don't write icon-related data, because: 1) It's all reset to the default data anyway, when the icon data was actually updated. 2) The haxx doesn't trigger at next process boot, and as a result the haxx ends up getting wiped too.
+/*@ Write to FS savedatadat+0, stopping where the haxx TID-data is.
 CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000), 300*8 + 0x8, 1, 0, 0, 0
 
 @ Seek to the start of <some icon(?) array>, then write the whole array since no haxx-data is stored here.
@@ -48,7 +49,7 @@ CALLFUNC IFile_Seek, ROPBUFLOC(savedatadat_filectx), 0, 0xe18, 0, 0, 0, 0, 0
 CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000 + 0xe18), 360, 1, 0, 0, 0
 
 @ Write the data prior to the haxx-data, for the s8 array.
-CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000 + 0xf80), 300, 1, 0, 0, 0
+CALLFUNC IFile_Write, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(tmp_scratchdata), (0x58480000 + 0xf80), 300, 1, 0, 0, 0*/
 
 @ Write the rest of the data to FS.
 CALLFUNC IFile_Seek, ROPBUFLOC(savedatadat_filectx), 0, 0x10e8, 0, 0, 0, 0, 0
