@@ -35,7 +35,7 @@ Also note that you can't do/use any of the following without Home Menu entering 
 If you use the menuhax-thread keycombo, the non-icon-data areas of SaveData.dat will be written to FS prior to terminating the process, however see above regarding this thread. This is mostly useful for when you changed theme-settings. Icon-related data is not saved because it's reset anyway, and the haxx didn't trigger properly.
 
 # Supported System Versions
-As of menuhax v3.0, system-versions 9.0.0-X..11.0.0-X are all supported. During installation it automatically detects which exploit to install. See also the above section.
+As of menuhax v3.0, system-versions 9.0.0-X..11.0.0-X are all supported. During installation it automatically detects which exploit to install. See also the above sections.
 
 The initial release archive only supported USA, EUR, and JPN. TWN and CHN aren't supported currently. KOR builds which are *actually* usable are included starting with v3.0, via sdiconhax for 9.6.0-X..11.0.0-X(the theme-data exploit KOR builds were removed since themes aren't actually usable with KOR).
 
@@ -84,7 +84,7 @@ See the "Summary" section if you have issues with Home Menu failing to boot, or 
 Due to AM access / etc being required with >v1.2, this app is not usable with regular ninjhax v1.x without additional hax. Use \*hax >=v2.x instead.
 
 # Themes
-The below only applies for USA/EUR/JPN <=10.5.0-X, with >=10.6.0-X menuhax doesn't affect themes since the exploit isn't theme-data related. The theme-install menus are disabled in menuhax_manager if menuhax was last installed with a non-theme-data exploit.
+The below only applies for USA/EUR/JPN <=10.5.0-X. The theme-install menus are disabled in menuhax_manager if menuhax was last installed with a non-theme-data exploit.
 
 Starting with v2.0, you can now use menuhax with an actual theme you want. After installing v2.0(nothing higher), you have to enter the Home Menu theme-settings menu first, so that it can create the seperate extdata files. Under the menuhax_manager, there are menu options for installing custom-themes with menuhax already setup, and for setting up one of the Home Menu built-in "Basic: {color}" themes as a "custom-theme".
 
