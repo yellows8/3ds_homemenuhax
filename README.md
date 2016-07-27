@@ -28,9 +28,11 @@ Hence the name, this is a vuln with theme-data loading for theme-shuffling. Home
 * The 10.6.0-X sysupdate [fixed](https://www.3dbrew.org/wiki/10.6.0-31) shufflehax.
 
 # Usage notes for sdiconhax
-With sdiconhax installed, when Home Menu does a normal boot all writes to extdata SaveData.dat are blocked. This is only for normal boots, not when \*hax payload was booted *from* menuhax. Hence, any theme-settings changes done with Home Menu *itself*, or any SD-title icon layout / present status etc, will not be saved. This *had* to be blocked because the haxx data was getting reset every time Home Menu wrote to this file.
+With sdiconhax installed, when Home Menu does a normal boot all writes to extdata SaveData.dat are blocked. This is only for normal boots, not when \*hax payload was booted *from* menuhax. This *had* to be blocked because the haxx data was getting reset every time Home Menu wrote to this file.
 
 Also note that you can't do/use any of the following without Home Menu entering a crash-boot-loop: exit from hbmenu for returning to Home Menu, menuhax-thread hax-payload boot(due to restarting homemenu), or returning from any system-applets on Old3DS(web-browser etc). Basically, anything that causes the Home Menu process to restart.
+
+If you use the menuhax-thread keycombo, the non-icon-data areas of SaveData.dat will be written to FS prior to terminating the process, however see above regarding this thread. This is mostly useful for when you changed theme-settings. Icon-related data is not saved because it's reset anyway, and the haxx didn't trigger properly.
 
 # Supported System Versions
 As of menuhax v3.0, system-versions 9.0.0-X..11.0.0-X are all supported. During installation it automatically detects which exploit to install. See also the above section.
