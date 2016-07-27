@@ -44,7 +44,7 @@ ifeq ($(RELEASE),)
 	VERSION	:=	$(VERSION)-$(shell git describe --abbrev=7 --dirty --always)
 else
 	DEFINES	:=	$(DEFINES) -DRELEASE
-	RELEASE_ZIPCMD	:=	@cp menuhax_$(VERSION).zip $(TOPDIR)/dist/
+	RELEASE_ZIPCMD	:=	@cp $(TOPDIR)/$(BUILD)/menuhax_$(VERSION).zip $(TOPDIR)/dist/
 endif
 
 APP_TITLE	:=	menuhax_manager $(VERSION)
@@ -166,7 +166,7 @@ DEPENDS	:=	$(OFILES:.o=.d)
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
-menuhax_$(VERSION).zip	:	$(OUTPUT).3dsx
+$(BUILD)/menuhax_$(VERSION).zip	:	$(OUTPUT).3dsx
 	@echo "Building $(notdir $@)..."
 	@rm -R -f $(TOPDIR)/3ds
 	@rm -f $@
@@ -174,7 +174,7 @@ menuhax_$(VERSION).zip	:	$(OUTPUT).3dsx
 	@mkdir -p $(TOPDIR)/dist
 	@cp $(OUTPUT).3dsx $(TOPDIR)/3ds/menuhax_manager/menuhax_manager.3dsx
 	@cp $(OUTPUT).xml $(TOPDIR)/3ds/menuhax_manager/menuhax_manager.xml
-	@zip -r $@ $(TOPDIR)/3ds
+	@cd .. && zip -r $@ 3ds
 	$(RELEASE_ZIPCMD)
 
 ifeq ($(strip $(NO_SMDH)),)
