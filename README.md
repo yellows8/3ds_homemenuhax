@@ -32,7 +32,11 @@ With sdiconhax installed, when Home Menu does a normal boot all writes to extdat
 
 Also note that you can't do/use any of the following without Home Menu entering a crash-boot-loop: exit from hbmenu for returning to Home Menu, menuhax-thread hax-payload boot(due to restarting homemenu), or returning from any system-applets on Old3DS(web-browser etc). Basically, anything that causes the Home Menu process to restart.
 
-If you use the menuhax-thread keycombo, the non-icon-data areas of SaveData.dat will be written to FS prior to terminating the process, however see above regarding this thread. This is mostly useful for when you changed theme-settings. Icon-related data is not saved because it's reset anyway, and the haxx didn't trigger properly.
+If you use the menuhax-thread keycombo, the non-icon-data areas of SaveData.dat will be written to FS prior to terminating the process, however see above regarding this thread. This is mostly useful for when you changed theme-settings. Icon-related data is not saved because the written data would be reset anyway, and the haxx didn't trigger properly.
+
+If you enter the power-off screen then return to Home Menu, the icon layout will be reset with presents however this will not be saved to FS.
+
+Do not change the system language with System Settings with menuhax installed. If you do so, you will have to delete the Home Menu extdata as mentioned in the Summary section above.
 
 # Supported System Versions
 As of menuhax v3.0, system-versions 9.0.0-X..11.0.0-X are all supported. During installation it automatically detects which exploit to install. See also the above sections.
