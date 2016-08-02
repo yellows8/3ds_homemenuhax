@@ -355,6 +355,8 @@ Result sdiconhax_getaddrs_builtin(s16 menuversion, u32 *outaddr0, u32 *outaddr1,
 
 	cfguExit();
 
+	log_printf(LOGTAR_LOG, "Region = 0x%x, language = 0x%x.\n", (unsigned int)region, (unsigned int)language);
+
 	len = sizeof(sdiconhax_addrset_builtinlist) / sizeof(sdiconhax_addrset);
 
 	for(pos=0; pos<len; pos++)
