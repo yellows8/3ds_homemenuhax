@@ -2237,7 +2237,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if(R_SUCCEEDED(ret))
+	if(ret==0)
 	{
 		deleteold_sd_data();
 
