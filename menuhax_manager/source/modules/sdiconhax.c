@@ -171,40 +171,39 @@ void register_module_sdiconhax()
 	register_module(&module);
 }
 
-Result sdiconhax_load_savedatadat(void)
+Result sdiconhax_load_savedatadat(u32 *filesize)
 {
 	Result ret=0;
-	u32 filesize=0;
 
 	memset(filebuffer, 0, filebuffer_maxsize);
 
-	ret = archive_getfilesize(HomeMenu_Extdata, "/SaveData.dat", &filesize);
+	ret = archive_getfilesize(HomeMenu_Extdata, "/SaveData.dat", filesize);
 	if(ret!=0)
 	{
 		log_printf(LOGTAR_LOG, "Failed to get filesize for extdata SaveData.dat: 0x%08x\n", (unsigned int)ret);
 		return ret;
 	}
 
-	if(filesize > filebuffer_maxsize)filesize = filebuffer_maxsize;
+	if(*filesize > filebuffer_maxsize)*filesize = filebuffer_maxsize;
 
-	if(filesize != 0x2da0)
+	if(*filesize > 0x2da0)
 	{
 		log_printf(LOGTAR_ALL, "The SaveData.dat filesize is invalid. This may mean you're running menuhax_manager on an unsupported system-version.\n");
-		log_printf(LOGTAR_LOG, "Filesize = 0x%x, expected 0x2da0.\n", (unsigned int)filesize);
+		log_printf(LOGTAR_LOG, "Filesize = 0x%x, expected <=0x2da0.\n", (unsigned int)*filesize);
 		return -2;
 	}
 
-	ret = archive_readfile(HomeMenu_Extdata, "/SaveData.dat", filebuffer, filesize);
+	ret = archive_readfile(HomeMenu_Extdata, "/SaveData.dat", filebuffer, *filesize);
 	if(ret!=0)
 	{
 		log_printf(LOGTAR_LOG, "Failed to read SaveData.dat: 0x%08x\n", (unsigned int)ret);
 		return ret;
 	}
 
-	if(filebuffer[0]<2 || filebuffer[0]>4)
+	if(filebuffer[0]!=4)
 	{
 		log_printf(LOGTAR_ALL, "The SaveData.dat format is unsupported. This may mean you're running menuhax_manager on an unsupported system-version.\n");
-		log_printf(LOGTAR_LOG, "Format = 0x%x, expected 2..4.\n", (unsigned int)filebuffer[0]);
+		log_printf(LOGTAR_LOG, "Format = 0x%x, expected 4.\n", (unsigned int)filebuffer[0]);
 		return -2;
 	}
 
@@ -275,7 +274,7 @@ Result sdiconhax_locatelinearmem(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, 
 
 	//Locate the buffer containing the target objects-list.
 
-	pos = iconbuffer_pos - (0x6050/4)-4;//This is done because the below code fails to find the right buffer otherwise, with certain EUR systems at least.
+	pos = iconbuffer_pos - (0x6050/4)-4;//This is done because the below code fails to find the right buffer otherwise in some cases.
 
 	/*while(pos>0)
 	{
@@ -461,6 +460,8 @@ Result sdiconhax_install(char *menuhax_basefn, s16 menuversion)
 {
 	Result ret=0;
 
+	u32 filesize=0;
+
 	u32 linearaddr_savedatadat=0;
 	u32 linearaddr_target_objectslist_buffer=0;
 	s16 icon_16val=0;
@@ -477,7 +478,7 @@ Result sdiconhax_install(char *menuhax_basefn, s16 menuversion)
 	char filepath[256];
 
 	log_printf(LOGTAR_ALL, "Loading SaveData.dat...\n");
-	ret = sdiconhax_load_savedatadat();
+	ret = sdiconhax_load_savedatadat(&filesize);
 	if(ret!=0)return ret;
 
 	log_printf(LOGTAR_ALL, "Locating data in Home Menu linearmem heap...\n");
@@ -551,7 +552,7 @@ Result sdiconhax_install(char *menuhax_basefn, s16 menuversion)
 		}
 	}
 
-	ret = archive_writefile(HomeMenu_Extdata, "/SaveData.dat", (u8*)savedatadat, 0x2da0, 0);
+	ret = archive_writefile(HomeMenu_Extdata, "/SaveData.dat", (u8*)savedatadat, filesize, 0);
 
 	return ret;
 }
@@ -565,8 +566,10 @@ Result sdiconhax_delete()
 	u32 pos;
 	u32 update = 0;
 
+	u32 filesize=0;
+
 	log_printf(LOGTAR_ALL, "Loading SaveData.dat...\n");
-	ret = sdiconhax_load_savedatadat();
+	ret = sdiconhax_load_savedatadat(&filesize);
 	if(ret!=0)return ret;
 
 	tidarray = (u64*)&filebuffer[0x8];
@@ -597,7 +600,7 @@ Result sdiconhax_delete()
 	if(update)
 	{
 		log_printf(LOGTAR_ALL, "Writing the updated SaveData.dat...\n");
-		ret = archive_writefile(HomeMenu_Extdata, "/SaveData.dat", filebuffer, 0x2da0, 0);
+		ret = archive_writefile(HomeMenu_Extdata, "/SaveData.dat", filebuffer, filesize, 0);
 	}
 	else
 	{
