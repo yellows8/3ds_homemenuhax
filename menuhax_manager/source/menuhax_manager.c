@@ -711,7 +711,7 @@ Result http_download_content(char *url, u32 *contentsize)
 		return ret;
 	}
 
-	ret = httpcGetResponseStatusCode(&context, &statuscode, 0);
+	ret = httpcGetResponseStatusCode(&context, &statuscode);
 	if(ret!=0)
 	{
 		httpcCloseContext(&context);
@@ -1003,15 +1003,18 @@ Result install_menuhax(char *ropbin_filepath)
 	memset(filebuffer, 0, filebuffer_maxsize);
 
 	log_printf(LOGTAR_ALL, "\n");
-	ret = displaymessage_prompt("Skip ropbin-payload setup? Normally you should just press B.", NULL);
+
+	payloadsize = 0;
+	ret = archive_getfilesize(SDArchive, ropbin_filepath, &payloadsize);
+	if(ret==0)ret = displaymessage_prompt("Skip updating the *hax payload? Normally you should just press B.", NULL);
 
 	if(ret==0)
 	{
-		log_printf(LOGTAR_ALL, "Skipping ropbin payload setup. If this was not intended, re-run the install again after this.\n");
+		log_printf(LOGTAR_ALL, "Skipping *hax payload setup. If this was not intended, re-run the install again after this.\n");
 	}
 	else
 	{
-		log_printf(LOGTAR_ALL, "Setting up ropbin payload...\n");
+		log_printf(LOGTAR_ALL, "Setting up *hax payload...\n");
 
 		ret = archive_getfilesize(SDArchive, "sdmc:/menuhax/menuhaxmanager_input_payload.bin", &payloadsize);
 		if(ret==0)
