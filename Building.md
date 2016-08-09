@@ -1,4 +1,4 @@
-Just run "make defaultbuild", or even "make clean && make defaultbuild". "defaultbuild" Builds with the default options, see the Makefile for the default options. "{...} make {options}" Can be used to build with your own options if you prefer.
+Just run "make defaultbuild ROPKIT_PATH={path to yellows8github/3ds_ropkit repo}", or even "make clean ROPKIT_PATH={path to yellows8github/3ds_ropkit repo} && make defaultbuild ROPKIT_PATH={path to yellows8github/3ds_ropkit repo}". "defaultbuild" Builds with the default options, see the Makefile for the default options. "{...} make ROPKIT_PATH={path to yellows8github/3ds_ropkit repo} {options}" Can be used to build with your own options if you prefer.
 
 If you don't want to use the prebuilt menurop(using the menurop_prebuilt is recommended), the menurop directories+files must be generated. "./generate_menurop_addrs.sh {path}". See the source of that script for details(this requires the Home Menu code-binaries).
 

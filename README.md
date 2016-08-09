@@ -36,7 +36,7 @@ If you use the menuhax-thread keycombo, the non-icon-data areas of SaveData.dat 
 
 If you enter the power-off screen then return to Home Menu, the icon layout will be reset with presents however this will not be saved to FS.
 
-Do not change the system language with System Settings with menuhax installed. If you do so, you will have to delete the Home Menu extdata as mentioned in the Summary section above.
+Do not change the system language with System Settings with sdiconhax installed. If you do so, you will have to delete the Home Menu extdata as mentioned in the Summary section above.
 
 # Supported System Versions
 As of menuhax v3.0, system-versions 9.0.0-X..11.0.0-X are all supported. During installation it automatically detects which exploit to install. See also the above sections.

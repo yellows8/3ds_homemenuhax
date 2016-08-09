@@ -27,8 +27,8 @@ ROPMACRO_LDDRR0_ADDR1_STRADDR SDICONHAX_SPRETADDR, SDICONHAX_SPRETADDR, 0xffffff
 
 @ The ROP used for RET2MENU starts here.
 
-@ Open the SaveData.dat extdata for reading without doing anything with it besides opening it. This blocks the actual Home Menu code from writing to SaveData.dat, since fsuser doesn't allow writing to files which are currently open for reading.
-CALLFUNC_NOSP IFile_Open, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(savedatadat_filepath), 0x3, 0
+@ Open the SaveData.dat file for writing. This blocks the actual Home Menu code from reading/writing SaveData.dat, since fsuser doesn't allow accessing files which are currently open for writing.
+CALLFUNC_NOSP IFile_Open, ROPBUFLOC(savedatadat_filectx), ROPBUFLOC(savedatadat_filepath), 0x2, 0
 
 ROPMACRO_STACKPIVOT SDICONHAX_SPRETADDR, POP_R4R8PC @ Return to executing the original homemenu code.
 
