@@ -936,6 +936,13 @@ Result install_menuhax(char *ropbin_filepath)
 
 	memset(payloadurl, 0, sizeof(payloadurl));
 
+	ret = displaymessage_prompt("Have you fully read the latest README?\nhttps://github.com/yellows8/3ds_homemenuhax", NULL);
+	if(ret!=0)
+	{
+		log_printf(LOGTAR_ALL, "Aborting since 'No' was selected.\n");
+		return ret;
+	}
+
 	log_printf(LOGTAR_ALL, "Getting system info...\n");
 
 	ret = cfguInit();
