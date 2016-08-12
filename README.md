@@ -114,6 +114,7 @@ If Home Menu is already using a theme with BGM, before installing a custom theme
 # Credits
 * This app uses code based on code from the following repos: https://github.com/yellows8/3ds_homemenu_extdatatool  
 * The original vuln for themehax was, as said on this page(https://smealum.github.io/3ds/), "exploited jointly by yellows8 and smea". The payload.py script was originally written by smea, this is where the actual generation for the compressed data which triggers the buf-overflow is done.
+* The system-version override menu code is based on the code from [sploit_installer](https://github.com/smealum/sploit_installer).
 * menuhax_manager uses lodepng: https://github.com/lvandeve/lodepng
 * menuhax_manager uses minizip for handling .zip.
 * Graphics(#26): @NaxiD for the menuhax_manager icon and @LouchDaishiteru for the default haxx boot splash-screen.

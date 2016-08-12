@@ -945,6 +945,103 @@ Result load_config()
 	return parse_config((char*)filebuffer, configsize);
 }
 
+//Based on code from sploit_installer. Changing system model and region was disabled.
+Result select_sysinfo_menu(bool *new3dsflag, u8 *region, OS_VersionBin *cver_versionbin, OS_VersionBin *nver_versionbin)
+{
+	u32 redraw = 1;
+	u32 kDown=0;
+
+	int firmware_version[6];
+	int firmware_selected_value = 1;
+	int firmware_maxnum;
+
+	int pos;
+
+	memset(firmware_version, 0, sizeof(firmware_version));
+
+	firmware_version[0] = *new3dsflag;
+	firmware_version[5] = *region;
+
+	firmware_version[1] = cver_versionbin->mainver;
+	firmware_version[2] = cver_versionbin->minor;
+	firmware_version[3] = cver_versionbin->build;
+	firmware_version[4] = nver_versionbin->mainver;
+
+	while(1)
+	{
+		gspWaitForVBlank();
+		hidScanInput();
+
+		kDown = hidKeysDown();
+
+		if(redraw)
+		{
+			redraw = 0;
+
+			consoleClear();
+
+			int offset = 26;
+			if(firmware_selected_value)
+			{
+				offset+= 7;
+
+				for(pos=1; pos<firmware_selected_value; pos++)
+				{
+					offset+=2;
+					if(firmware_version[pos] >= 10)offset++;
+				}
+			}
+
+			printf("Select your firmware with the D-Pad.\nPress A to continue, or B if you don't want to override the firmware.\n");
+			printf((firmware_version[firmware_selected_value] < firmware_maxnum - 1) ? "%*s^%*s" : "%*s-%*s", offset, " ", 50 - offset - 1, " ");
+			printf("      Selected firmware : %s %d-%d-%d-%d %s  \n", firmware_version[0]?"New3DS":"Old3DS", firmware_version[1], firmware_version[2], firmware_version[3], firmware_version[4], regionids_table[firmware_version[5]]);
+			printf((firmware_version[firmware_selected_value] > 0) ? "%*sv%*s" : "%*s-%*s", offset, " ", 50 - offset - 1, " ");
+		}
+
+		if(kDown & KEY_LEFT)
+		{
+			firmware_selected_value--;
+			redraw = 1;
+		}
+		if(kDown & KEY_RIGHT)
+		{
+			firmware_selected_value++;
+			redraw = 1;
+		}
+
+		if(firmware_selected_value < 1) firmware_selected_value = 1;
+		if(firmware_selected_value > 4) firmware_selected_value = 4;
+
+		if(kDown & KEY_UP)
+		{
+			firmware_version[firmware_selected_value]++;
+			redraw = 1;
+		}
+		if(kDown & KEY_DOWN)
+		{
+			firmware_version[firmware_selected_value]--;
+			redraw = 1;
+		}
+
+		firmware_maxnum = 256;
+		if(firmware_selected_value==0)firmware_maxnum = 2;
+		if(firmware_selected_value==5)firmware_maxnum = 7;
+
+		if(firmware_version[firmware_selected_value] < 0) firmware_version[firmware_selected_value] = 0;
+		if(firmware_version[firmware_selected_value] >= firmware_maxnum) firmware_version[firmware_selected_value] = firmware_maxnum - 1;
+
+		if(kDown & KEY_A)break;
+		if(kDown & KEY_B)return 1;
+	}
+
+	cver_versionbin->mainver = firmware_version[1];
+	cver_versionbin->minor = firmware_version[2];
+	cver_versionbin->build = firmware_version[3];
+	nver_versionbin->mainver = firmware_version[4];
+
+	return 0;
+}
+
 Result install_menuhax(char *ropbin_filepath)
 {
 	Result ret = 0, tmpret;
@@ -1025,13 +1122,6 @@ Result install_menuhax(char *ropbin_filepath)
 		return ret;
 	}
 
-	snprintf(menuhax_basefn, sizeof(menuhax_basefn)-1, "menuhax_%s%u_%s", regionids_table[region], menu_title_entry.version, new3dsflag?"new3ds":"old3ds");
-
-	snprintf(ropbin_filepath, 255, "sdmc:/ropbinpayload_%s.bin", menuhax_basefn);
-	unlink(ropbin_filepath);
-
-	snprintf(ropbin_filepath, 255, "sdmc:/menuhax/ropbin/ropbinpayload_%s.bin", menuhax_basefn);
-
 	ret = osGetSystemVersionData(&nver_versionbin, &cver_versionbin);
 	if(ret!=0)
 	{
@@ -1039,9 +1129,26 @@ Result install_menuhax(char *ropbin_filepath)
 		return ret;
 	}
 
-	snprintf(payloadurl, sizeof(payloadurl)-1, "https://smea.mtheall.com/get_ropbin_payload.php?version=%s-%d-%d-%d-%d-%s", new3dsflag?"NEW":"OLD", cver_versionbin.mainver, cver_versionbin.minor, cver_versionbin.build, nver_versionbin.mainver, regionids_table[region]);
-
 	log_printf(LOGTAR_ALL, "Detected system-version: %s %d.%d.%d-%d %s\n", new3dsflag?"New3DS":"Old3DS", cver_versionbin.mainver, cver_versionbin.minor, cver_versionbin.build, nver_versionbin.mainver, regionids_table[region]);
+
+	ret = displaymessage_prompt("Do you want to override the detected system-version?", NULL);
+	if(ret==0)
+	{
+		ret = select_sysinfo_menu(&new3dsflag, &region, &cver_versionbin, &nver_versionbin);
+		if(ret==0)
+		{
+			log_printf(LOGTAR_ALL, "Using the selected system-version: %s %d.%d.%d-%d %s\n", new3dsflag?"New3DS":"Old3DS", cver_versionbin.mainver, cver_versionbin.minor, cver_versionbin.build, nver_versionbin.mainver, regionids_table[region]);
+		}
+	}
+
+	snprintf(menuhax_basefn, sizeof(menuhax_basefn)-1, "menuhax_%s%u_%s", regionids_table[region], menu_title_entry.version, new3dsflag?"new3ds":"old3ds");
+
+	snprintf(ropbin_filepath, 255, "sdmc:/ropbinpayload_%s.bin", menuhax_basefn);
+	unlink(ropbin_filepath);
+
+	snprintf(ropbin_filepath, 255, "sdmc:/menuhax/ropbin/ropbinpayload_%s.bin", menuhax_basefn);
+
+	snprintf(payloadurl, sizeof(payloadurl)-1, "https://smea.mtheall.com/get_ropbin_payload.php?version=%s-%d-%d-%d-%d-%s", new3dsflag?"NEW":"OLD", cver_versionbin.mainver, cver_versionbin.minor, cver_versionbin.build, nver_versionbin.mainver, regionids_table[region]);
 
 	ret = modules_getcompatible_entry(&cver_versionbin, menu_title_entry.version, region, &module, 0);
 	if(ret)
