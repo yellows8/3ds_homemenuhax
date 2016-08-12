@@ -77,7 +77,7 @@ void register_module(module_entry *module)
 	}
 }
 
-Result modules_getcompatible_entry(OS_VersionBin *cver_versionbin, module_entry **module, u32 index)
+Result modules_getcompatible_entry(OS_VersionBin *cver_versionbin, u16 menuver, u8 region, module_entry **module, u32 index)
 {
 	module_entry *ent;
 	u32 pos;
@@ -92,14 +92,28 @@ Result modules_getcompatible_entry(OS_VersionBin *cver_versionbin, module_entry 
 		ent = &modules_list[pos];
 		if(!ent->initialized)continue;
 
-		if(ent->unsupported_cver && cver>=ent->unsupported_cver)continue;
+		if(ent->unsupported_menuversion[region])
+		{
+			if(menuver>=ent->unsupported_menuversion[region])continue;
+		}
+		else
+		{
+			if(ent->unsupported_cver && cver>=ent->unsupported_cver)continue;
+		}
 
 		if(!ent->themeflag && !archive_getavailable(Theme_Extdata))continue;//Ignore modules which require using the theme-extdata if that extdata isn't available for this region.
 
 		if(*module)
 		{
-			if(ent->unsupported_cver==0)continue;
-			if((*module)->unsupported_cver!=0 && (*module)->unsupported_cver < ent->unsupported_cver)continue;
+			if(ent->unsupported_menuversion[region])
+			{
+				if((*module)->unsupported_menuversion[region]!=0 && (*module)->unsupported_menuversion[region] < ent->unsupported_menuversion[region])continue;
+			}
+			else
+			{
+				if(ent->unsupported_cver==0)continue;
+				if((*module)->unsupported_cver!=0 && (*module)->unsupported_cver < ent->unsupported_cver)continue;
+			}
 		}
 
 		*module = ent;
@@ -760,6 +774,9 @@ Result parse_config(char *config, u32 configsize)
 	u32 line_endpos;
 	u32 line_len;
 	u32 linenum=0;
+	int i;
+	
+	unsigned int tmpval;
 	unsigned char version[3];
 
 	char *linestr;
@@ -829,6 +846,32 @@ Result parse_config(char *config, u32 configsize)
 					}
 
 					module->unsupported_cver = MODULE_MAKE_CVER(version[0], version[1], version[2]);
+
+					while((strptr2 = strtok(NULL, " ")))
+					{
+						if(strncmp(strptr2, "unsupported_menuversion:", 24)==0)
+						{
+							strptr2 = &strptr2[24];
+
+							while(strptr2)
+							{
+								for(i=0; i<7; i++)
+								{
+									if(strncmp(strptr2, regionids_table[i], 3)==0)
+									{
+										tmpval = 0;
+										sscanf(&strptr2[3], "=v%u", &tmpval);
+										module->unsupported_menuversion[i] = tmpval;
+
+										break;
+									}
+								}
+
+								strptr2 = strchr(strptr2, ',');
+								if(strptr2)strptr2++;
+							}
+						}
+					}
 				}
 			}
 		}
@@ -1000,7 +1043,7 @@ Result install_menuhax(char *ropbin_filepath)
 
 	log_printf(LOGTAR_ALL, "Detected system-version: %s %d.%d.%d-%d %s\n", new3dsflag?"New3DS":"Old3DS", cver_versionbin.mainver, cver_versionbin.minor, cver_versionbin.build, nver_versionbin.mainver, regionids_table[region]);
 
-	ret = modules_getcompatible_entry(&cver_versionbin, &module, 0);
+	ret = modules_getcompatible_entry(&cver_versionbin, menu_title_entry.version, region, &module, 0);
 	if(ret)
 	{
 		if(ret == -7)log_printf(LOGTAR_ALL, "All of the exploit(s) included with this menuhax_manager app are not supported with your system-version due to the exploit(s) being fixed.\n");
@@ -1117,7 +1160,7 @@ Result install_menuhax(char *ropbin_filepath)
 
 		if(module->index+1 < MAX_MODULES)
 		{
-			tmpret = modules_getcompatible_entry(&cver_versionbin, &module, module->index+1);
+			tmpret = modules_getcompatible_entry(&cver_versionbin, menu_title_entry.version, region, &module, module->index+1);
 			if(tmpret)
 			{
 				break;

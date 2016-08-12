@@ -11,9 +11,13 @@ typedef struct {
 
 	char name[16];
 	bool manual_name_display;//When true the module itself should print the name instead of letting that being handled automatically.
+
 	u32 unsupported_cver;
+	u16 unsupported_menuversion[7];//Unsupported menu-version for each region, used instead of unsupported_cver when set.
+
 	menuhaxcb_install haxinstall;
 	menuhaxcb_delete haxdelete;
+
 	bool themeflag;//The SD-cfg themeflag will be set to this once installation was successful.
 } module_entry;
 
