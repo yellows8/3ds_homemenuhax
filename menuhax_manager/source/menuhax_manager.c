@@ -1060,6 +1060,7 @@ Result install_menuhax(char *ropbin_filepath)
 	u32 sdcfg[0x10>>2];
 	menuhax_cfg new_sdcfg;
 
+	u32 sysver_overridden = 0;
 	u32 payloadsize = 0;
 
 	char payloadurl[0x80];
@@ -1138,6 +1139,7 @@ Result install_menuhax(char *ropbin_filepath)
 		if(ret==0)
 		{
 			log_printf(LOGTAR_ALL, "Using the selected system-version: %s %d.%d.%d-%d %s\n", new3dsflag?"New3DS":"Old3DS", cver_versionbin.mainver, cver_versionbin.minor, cver_versionbin.build, nver_versionbin.mainver, regionids_table[region]);
+			sysver_overridden = 1;
 		}
 	}
 
@@ -1149,6 +1151,12 @@ Result install_menuhax(char *ropbin_filepath)
 	snprintf(ropbin_filepath, 255, "sdmc:/menuhax/ropbin/ropbinpayload_%s.bin", menuhax_basefn);
 
 	snprintf(payloadurl, sizeof(payloadurl)-1, "https://smea.mtheall.com/get_ropbin_payload.php?version=%s-%d-%d-%d-%d-%s", new3dsflag?"NEW":"OLD", cver_versionbin.mainver, cver_versionbin.minor, cver_versionbin.build, nver_versionbin.mainver, regionids_table[region]);
+
+	if(!sysver_overridden)//Send the actual Home Menu title-version in the request URL, when the user didn't override the system-version. This is needed for when the title-version is different from what it should be with the current CVer. With this the server script will determine the Home Menu portion of the output URL using the input menuver instead of the system-version.
+	{
+		snprintf(tmpstr, sizeof(tmpstr)-1, "&menuver=%u", menu_title_entry.version);
+		strncat(payloadurl, tmpstr, sizeof(payloadurl)-1);
+	}
 
 	ret = modules_getcompatible_entry(&cver_versionbin, menu_title_entry.version, region, &module, 0);
 	if(ret)
