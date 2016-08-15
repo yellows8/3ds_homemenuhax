@@ -238,7 +238,7 @@ Result sdiconhax_locatelinearmem(u32 *outaddr0, u32 *outaddr1, s16 *icon_16val, 
 	gspWaitForPPF();
 
 	#ifndef RELEASE
-	archive_writefile(SDArchive, "sdmc:/3ds/menuhax_manager/sdiconhax_locatelinearmem_x400000.bin", (u8*)&tmpbuf[0x400000>>2], 0x400000, 0);
+	archive_writefile(SDArchive, "sdiconhax_locatelinearmem_x400000.bin", (u8*)&tmpbuf[0x400000>>2], 0x400000, 0);
 	#endif
 
 	for(pos=0; pos<(chunksize-8)>>2; pos++)//Locate the address of the SaveData.dat buffer in the linearmem heap, since it varies per system in some cases.

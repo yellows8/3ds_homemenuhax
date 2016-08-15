@@ -621,7 +621,7 @@ Result setup_builtin_theme()
 	if(ret==0)
 	{
 		memset(str2, 0, sizeof(str2));
-		snprintf(str2, sizeof(str2)-1, "sdmc:/3ds/menuhax_manager/%s_LZ.bin", menu_entries[menuindex]);
+		snprintf(str2, sizeof(str2)-1, "%s_LZ.bin", menu_entries[menuindex]);
 
 		log_printf(LOGTAR_ALL, "Copying the built-in theme to '%s'...\n", str2);
 
@@ -887,7 +887,7 @@ Result load_config()
 {
 	Result ret=0;
 	u32 configsize=0;
-	char *sd_cfgpath = "sdmc:/3ds/menuhax_manager/config";
+	char *sd_cfgpath = "config";
 
 	memset(filebuffer, 0, filebuffer_maxsize);
 
@@ -2134,18 +2134,18 @@ Result setup_imagedisplay()
 	}
 
 	//Create the 'splashscreen' directory, then move each .png file under the menuhax_manager directory, if any, into this directory.
-	mkdir("sdmc:/3ds/menuhax_manager/splashscreen/", 0777);
+	mkdir("splashscreen/", 0777);
 
-	ret = imagedisplay_scandir("sdmc:/3ds/menuhax_manager", &namelist, &total_entries);
+	ret = imagedisplay_scandir(".", &namelist, &total_entries);
 	if(ret==0 && total_entries>0)
 	{
 		for(pos=0; pos<total_entries; pos++)
 		{
 			memset(filepath0, 0, sizeof(filepath0));
-			snprintf(filepath0, sizeof(filepath0)-1, "%s/%s", "sdmc:/3ds/menuhax_manager", namelist[pos]->d_name);
+			snprintf(filepath0, sizeof(filepath0)-1, "%s", namelist[pos]->d_name);
 
 			memset(filepath1, 0, sizeof(filepath1));
-			snprintf(filepath1, sizeof(filepath1)-1, "%s/%s", "sdmc:/3ds/menuhax_manager/splashscreen", namelist[pos]->d_name);
+			snprintf(filepath1, sizeof(filepath1)-1, "%s/%s", "splashscreen", namelist[pos]->d_name);
 
 			rename(filepath0, filepath1);
 
@@ -2235,7 +2235,7 @@ Result setup_imagedisplay()
 
 	if(imgid==1)
 	{
-		ret = imagedisplay_selectsdimage("sdmc:/3ds/menuhax_manager/splashscreen", &finalimages[imgid], &finalimages_type[imgid], &exitflag);
+		ret = imagedisplay_selectsdimage("splashscreen", &finalimages[imgid], &finalimages_type[imgid], &exitflag);
 		if(ret!=0)
 		{
 			log_printf(LOGTAR_ALL, "Failed to select the custom image: 0x%08x.\n", (unsigned int)ret);
@@ -2343,7 +2343,7 @@ int main(int argc, char **argv)
 
 	memset(modules_list, 0, sizeof(modules_list));
 
-	ret = log_init("sdmc:/3ds/menuhax_manager/menuhax_manager.log");
+	ret = log_init("menuhax_manager.log");
 	if(ret!=0)
 	{
 		printf("Failed to initialize logging: 0x%08x.\n", (unsigned int)ret);
@@ -2505,7 +2505,7 @@ int main(int argc, char **argv)
 
 					case 4:
 						log_printf(LOGTAR_ALL, "Installing custom-theme...\n");
-						ret = sd2themecache("sdmc:/3ds/menuhax_manager/body_LZ.bin", "sdmc:/3ds/menuhax_manager/bgm.bcstm", 1);
+						ret = sd2themecache("body_LZ.bin", "bgm.bcstm", 1);
 
 						if(ret==0)
 						{
@@ -2548,7 +2548,7 @@ int main(int argc, char **argv)
 
 	log_printf(LOGTAR_ALL, "\n");
 
-	if(ret!=0)log_printf(LOGTAR_ALL, "An error occured. If this is an actual issue not related to user failure, please report this to here if it persists(or comment on an already existing issue if needed), with the file from SD '/3ds/menuhax_manager/menuhax_manager.log': https://github.com/yellows8/3ds_homemenuhax/issues\n");
+	if(ret!=0)log_printf(LOGTAR_ALL, "An error occured. If this is an actual issue not related to user failure, please report this to here if it persists(or comment on an already existing issue if needed), with the file from SD 'menuhax_manager.log'(normally located at '/3ds/menuhax_manager/' unless the app is running from elsewhere): https://github.com/yellows8/3ds_homemenuhax/issues\n");
 
 	log_printf(LOGTAR_ALL, "Press the START button to exit.\n");
 

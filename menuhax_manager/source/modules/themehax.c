@@ -57,7 +57,7 @@ Result themehax_install(char *menuhax_basefn, s16 menuversion)
 	if(ret!=0)return ret;
 
 	log_printf(LOGTAR_ALL, "Installing to the SD theme-cache...\n");
-	ret = sd2themecache(payload_filepath, "sdmc:/3ds/menuhax_manager/bgm_bundledmenuhax.bcstm", 0);
+	ret = sd2themecache(payload_filepath, "bgm_bundledmenuhax.bcstm", 0);
 	if(ret!=0)return ret;
 
 	log_printf(LOGTAR_ALL, "Initializing the seperate menuhax theme-data files...\n");
