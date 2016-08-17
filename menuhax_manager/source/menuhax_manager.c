@@ -1042,6 +1042,38 @@ Result select_sysinfo_menu(bool *new3dsflag, u8 *region, OS_VersionBin *cver_ver
 	return 0;
 }
 
+Result parse_csv(char *filebuf, u16 *titleversion)
+{
+	char *strptr;
+	int i;
+	unsigned int tmpval = 0;
+
+	if(strncmp(filebuf, "TitleID,Region,Title versions", 29)!=0)return -1;//Normally there's more in the CSV than this, but fields after the title-versions aren't used here anyway.
+
+	strptr = strchr(filebuf, '\n');
+	if(strptr==NULL)return -2;
+	strptr++;
+
+	strptr = strtok(strptr, ",");
+	if(strptr==NULL)return -3;
+
+	for(i=0; i<2; i++)
+	{
+		strptr = strtok(NULL, ",");
+		if(strptr==NULL)return -3;
+	}
+
+	strptr = strrchr(strptr, ' ');
+	if(strptr==NULL)return -4;
+	strptr++;
+
+	if(sscanf(strptr, "v%u", &tmpval)!=1)return -5;
+
+	*titleversion = tmpval;
+
+	return 0;
+}
+
 Result install_menuhax(char *ropbin_filepath)
 {
 	Result ret = 0, tmpret;
@@ -1062,6 +1094,8 @@ Result install_menuhax(char *ropbin_filepath)
 
 	u32 sysver_overridden = 0;
 	u32 payloadsize = 0;
+
+	char *strptr;
 
 	char payloadurl[0x80];
 
@@ -1132,7 +1166,7 @@ Result install_menuhax(char *ropbin_filepath)
 
 	log_printf(LOGTAR_ALL, "Detected system-version: %s %d.%d.%d-%d %s\n", new3dsflag?"New3DS":"Old3DS", cver_versionbin.mainver, cver_versionbin.minor, cver_versionbin.build, nver_versionbin.mainver, regionids_table[region]);
 
-	ret = displaymessage_prompt("Do you want to override the detected system-version?", NULL);
+	ret = displaymessage_prompt("Do you want to override the detected system-version? Normally using this will cause Home Menu to fail to boot until the intended Home Menu version is installed(unless an older exploit is used).", NULL);
 	if(ret==0)
 	{
 		ret = select_sysinfo_menu(&new3dsflag, &region, &cver_versionbin, &nver_versionbin);
@@ -1140,6 +1174,76 @@ Result install_menuhax(char *ropbin_filepath)
 		{
 			log_printf(LOGTAR_ALL, "Using the selected system-version: %s %d.%d.%d-%d %s\n", new3dsflag?"New3DS":"Old3DS", cver_versionbin.mainver, cver_versionbin.minor, cver_versionbin.build, nver_versionbin.mainver, regionids_table[region]);
 			sysver_overridden = 1;
+
+			log_printf(LOGTAR_ALL, "Sending network requests...\n");
+
+			ret = httpcInit(0);
+			if(R_FAILED(ret))
+			{
+				log_printf(LOGTAR_ALL, "Failed to initialize HTTPC: 0x%08x.\n", (unsigned int)ret);
+				if(ret==0xd8e06406)
+				{
+					log_printf(LOGTAR_ALL, "The HTTPC service is inaccessible. With the *hax-payload this may happen if the process this app is running under doesn't have access to that service. Please try rebooting the system, boot *hax-payload, then directly launch the app.\n");
+				}
+
+				return ret;
+			}
+
+			//NVer isn't used here since that can differ from the CDN-sysupdate one.
+			//Get the ninupdates reportdate for the specified system-version.
+			payloadsize = 0;
+			memset(filebuffer, 0, filebuffer_maxsize);
+			snprintf(payloadurl, sizeof(payloadurl)-1, "https://yls8.mtheall.com/ninupdates/get_reportinfo.php?sys=%s&updateversion=%d.%d.%d&format=raw&info=reportdate", new3dsflag?"ktr":"ctr", cver_versionbin.mainver, cver_versionbin.minor, cver_versionbin.build);
+			log_printf(LOGTAR_LOG, "First URL: %s\n", payloadurl);
+			ret = http_download_content(payloadurl, &payloadsize);
+			if(ret!=0)
+			{
+				log_printf(LOGTAR_ALL, "Initial HTTPC request failed: 0x%08x.\n", (unsigned int)ret);
+				httpcExit();
+				return ret;
+			}
+
+			if(payloadsize == 0 || payloadsize > 0x400)
+			{
+				log_printf(LOGTAR_ALL, "The HTTP content-size is invalid: 0x%08x.\n", (unsigned int)payloadsize);
+				httpcExit();
+				return -1;
+			}
+
+			log_printf(LOGTAR_LOG, "Content from the server:\n%s\n", filebuffer);
+
+			if(strncmp((char*)filebuffer, "ERROR", 5)==0)
+			{
+				log_printf(LOGTAR_ALL, "The server returned an error, this normally means the specified system-version is unrecognized.\n");
+				httpcExit();
+				return -2;
+			}
+
+			strptr = strchr((char*)filebuffer, '\n');
+			if(strptr)*strptr = 0;
+
+			payloadsize = 0;
+			snprintf(payloadurl, sizeof(payloadurl)-1, "https://yls8.mtheall.com/ninupdates/titlelist.php?date=%s&sys=%s&tid=%016llX&soap=1&csv=1", filebuffer, new3dsflag?"ktr":"ctr", menu_programid);
+			log_printf(LOGTAR_LOG, "Second URL: %s\n", payloadurl);
+			memset(filebuffer, 0, filebuffer_maxsize);
+			ret = http_download_content(payloadurl, &payloadsize);
+			httpcExit();
+			if(ret!=0)
+			{
+				log_printf(LOGTAR_ALL, "Second HTTPC request failed: 0x%08x.\n", (unsigned int)ret);
+				return ret;
+			}
+
+			log_printf(LOGTAR_LOG, "Content from the server:\n%s\n", (char*)filebuffer);
+
+			ret = parse_csv((char*)filebuffer, &menu_title_entry.version);
+			if(ret!=0)
+			{
+				log_printf(LOGTAR_ALL, "Content parsing failed: 0x%08x.\n", (unsigned int)ret);
+				return ret;
+			}
+
+			log_printf(LOGTAR_LOG, "Using Home Menu title-version: v%u.\n", (unsigned int)menu_title_entry.version);
 		}
 	}
 
@@ -1227,6 +1331,7 @@ Result install_menuhax(char *ropbin_filepath)
 				payloadurl[4] = 's';
 			}
 
+			payloadsize = 0;
 			log_printf(LOGTAR_ALL, "Downloading the actual payload with HTTPC...\n");
 			ret = http_download_content(payloadurl, &payloadsize);
 			httpcExit();
