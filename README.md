@@ -30,7 +30,7 @@ Hence the name, this is a vuln with theme-data loading for theme-shuffling. Home
 # Usage notes for sdiconhax
 With sdiconhax installed, when Home Menu does a normal boot all writes to extdata SaveData.dat are blocked. This is only for normal boots, not when \*hax payload was booted *from* menuhax. This *had* to be blocked because the haxx data was getting reset every time Home Menu wrote to this file. This blocks *anything* from being done with this file, hence you can't run menuhax-install/deletion with this unless you booted \*hax payload from menuhax.
 
-Also note that you can't do/use any of the following without Home Menu entering a crash-boot-loop: exit from hbmenu for returning to Home Menu, menuhax-thread hax-payload boot(due to restarting homemenu), or returning from any system-applets on Old3DS(web-browser etc). Basically, anything that causes the Home Menu process to restart.
+Also note that you can't do/use any of the following without Home Menu entering a crash-boot-loop: exit from hbmenu for returning to Home Menu, menuhax-thread hax-payload boot(due to restarting homemenu), or returning from any system-applets on Old3DS(web-browser etc). This will also happen when a regular-application crashes when trying to return to Home Menu. Basically, anything that causes the Home Menu process to restart.
 
 If you use the menuhax-thread keycombo, the non-icon-data areas of SaveData.dat will be written to FS prior to terminating the process, however see above regarding this thread. This is mostly useful for when you changed theme-settings. Icon-related data is not saved because the written data would be reset anyway, and the haxx didn't trigger properly.
 
