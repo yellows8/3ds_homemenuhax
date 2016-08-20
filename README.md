@@ -34,7 +34,7 @@ Also note that you can't do/use any of the following without Home Menu entering 
 
 If you use the menuhax-thread keycombo, the non-icon-data areas of SaveData.dat will be written to FS prior to terminating the process, however see above regarding this thread. This is mostly useful for when you changed theme-settings. Icon-related data is not saved because the written data would be reset anyway, and the haxx didn't trigger properly.
 
-Due to the above, you can't change anything related to SD icon layout(including presents) and have it persist after a Home Menu process restart. You can only do so when sdiconhax isn't installed.
+Due to the above, you can't change anything related to SD icon layout(including presents) and have it persist after a Home Menu process restart. You can only do so when sdiconhax isn't installed(uninstall, change layout, then install again). Deleting/renaming the main Home Menu extdata directory will of course reset this SD icon layout data.
 
 If you enter the power-off screen then return to Home Menu, the icon layout will be reset with presents however this will not be saved to FS.
 
