@@ -77,7 +77,7 @@ Whenever the Home Menu version installed on your system changes where the instal
 ## Splash-screen
 This app can setup an image for displaying on the screens when menuhax triggers, if you use the app option for that. Using this is highly recommended(in some cases \*hax payload booting may be more successful with this than without it). When the file for this isn't setup, junk will be displayed on the top-screen(from elsewhere in VRAM). The input image can be either be the default one, or from SD.  
 
-The input PNGs for this are located at SD directory "/3ds/menuhax_manager/splashscreen/"(all PNGs stored under "/3ds/menuhax_manager/" are automatically moved into this splashscreen directory if they exist). The PNG dimensions must be either LENx240 or 240xLEN, where LEN is one of: 400, 800, or 1120. See the menuhax_manaager/imagedisplay_example_\*.png files, in this repo. See also #26.
+The input PNGs for this are located at SD directory "{CurrentWorkingDirectory}/splashscreen/"(all PNGs stored under "{CurrentWorkingDirectory}" are automatically moved into this splashscreen directory if they exist). "CurrentWorkingDirectory" is normally "/3ds/menuhax_manager" unless it's running from elsewhere. The PNG dimensions must be either LENx240 or 240xLEN, where LEN is one of: 400, 800, or 1120. See the menuhax_manaager/imagedisplay_example_\*.png files, in this repo. See also #26.
 
 ## Deletion
 The hax can be deleted by menuhax_manager with the app option for that.  
@@ -101,13 +101,13 @@ The only theme-change you can do without menuhax being disabled, is selecting a 
 * themehax: Any theme you select must be a DLC-theme as a regular theme. Theme shuffling isn't usable.
 * shufflehax: You must select exactly two DLC-themes via theme-shuffling, no regular-theme. You can't successfully select the same DLC-theme twice. Normally Home Menu won't allow you to select only one theme for theme-shuffling, but in this case it does, do not try this because Home Menu will just reset the theme-data settings in this case.
 
-When you're selecting a "Basic: {color}" theme with the menuhax_manager option mentioned above, there's an option to dump the theme-data to '/3ds/menuhax_manager/'. This isn't needed unless you want to use that theme-data with other tools/etc. Note that this menu in menuhax_manager is only usable when the app is running via \*hax payload >=v2.0.
+When you're selecting a "Basic: {color}" theme with the menuhax_manager option mentioned above, there's an option to dump the theme-data to {CurrentWorkingDirectory}. "CurrentWorkingDirectory" is normally "/3ds/menuhax_manager" unless it's running from elsewhere. This isn't needed unless you want to use that theme-data with other tools/etc. Note that this menu in menuhax_manager is only usable when the app is running via \*hax payload >=v2.0.
 
 If you want to revert the theme to "no-theme" with menuhax still installed, you can select the menuhax_manager "Delete" menu option, then select the option for this. After doing so, you have to enter the Home Menu theme-settings menu again if you want to setup more themes later.
 
 With menuhax setup, Home Menu uses seperate theme-cache extdata filenames for everything except for BGM. These seperate filenames are the same as the original except that the first character is replaced with 'y'(see also source code). As a result, other custom-theme installation tools will not be compatible with installing to these seperate files, without an update for them to support this. Using those tools without being updated for this, will result in menuhax being overwritten with the custom-theme.
 
-For custom-theme installation, the theme-data must be located at SD "/3ds/menuhax_manager/body_LZ.bin". If used, the BGM must be located at SD "/3ds/menuhax_manager/bgm.bcstm".
+For custom-theme installation, the theme-data must be located at SD "{CurrentWorkingDirectory}/body_LZ.bin". If used, the BGM must be located at SD "{CurrentWorkingDirectory}/bgm.bcstm". "CurrentWorkingDirectory" is normally "/3ds/menuhax_manager" unless it's running from elsewhere.
 
 If Home Menu is already using a theme with BGM, before installing a custom theme using BGM, you must first switch to a non-BGM theme and run menuhax_manager again. If this theme switch wasn't done via Home Menu itself, the Home Menu process must be restarted(like with a system-reboot for example). This applies to all custom theme installation tools, not just menuhax_manager.
 
