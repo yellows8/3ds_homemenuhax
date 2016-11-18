@@ -24,8 +24,9 @@ The decompression code only has an input-size parameter, no output size paramete
 Hence the name, this is a vuln with theme-data loading for theme-shuffling. Home Menu does a file-read from extdata for loading the compressed input-theme-data, with a size field loaded from extdata ThemeManage. This size is not validated at all.
 
 ## Vuln fix sysupdate(s)
-* The 10.2.0-X sysupdate [fixed](https://3dbrew.org/wiki/10.2.0-28) the vuln with theme decompression(themehax).
+* The 10.2.0-X sysupdate [fixed](https://www.3dbrew.org/wiki/10.2.0-28) the vuln with theme decompression(themehax).
 * The 10.6.0-X sysupdate [fixed](https://www.3dbrew.org/wiki/10.6.0-31) shufflehax.
+* The 11.1.0-X sysupdate [fixed](https://www.3dbrew.org/wiki/11.1.0-34) sdiconhax.
 
 # Usage notes for sdiconhax
 With sdiconhax installed, when Home Menu does a normal boot all writes to extdata SaveData.dat are blocked. This is only for normal boots, not when \*hax payload was booted *from* menuhax. This *had* to be blocked because the haxx data was getting reset every time Home Menu wrote to this file. This blocks *anything* from being done with this file, hence you can't run menuhax-install/deletion with this unless you booted \*hax payload from menuhax.
@@ -41,7 +42,7 @@ If you enter the power-off screen then return to Home Menu, the icon layout will
 Do not change the system language with System Settings with sdiconhax installed. If you do so, you will have to delete the Home Menu extdata as mentioned in the Summary section above.
 
 # Supported System Versions
-As of menuhax v3.0, system-versions 9.0.0-X..11.0.0-X are all supported. During installation it automatically detects which exploit to install. See also the above sections.
+As of menuhax v3.0, system-versions 9.0.0-X..11.0.0-X are all supported. During installation it automatically detects which exploit to install. See also the above sections. Support for 11.1.0-X and above is very unlikely, since as of November 2016 [bossbannerhax](https://www.3dbrew.org/wiki/3DS_Userland_Flaws) was the last known Home Menu vuln.
 
 The initial release archive only supported USA, EUR, and JPN. TWN and CHN aren't supported currently. KOR builds which are *actually* usable are included starting with v3.0, via sdiconhax for 9.6.0-X..11.0.0-X(the theme-data exploit KOR builds were removed since themes aren't actually usable with KOR).
 
