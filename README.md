@@ -42,7 +42,7 @@ If you enter the power-off screen then return to Home Menu, the icon layout will
 Do not change the system language with System Settings with sdiconhax installed. If you do so, you will have to delete the Home Menu extdata as mentioned in the Summary section above.
 
 # Supported System Versions
-As of menuhax v3.0, system-versions 9.0.0-X..11.0.0-X are all supported. During installation it automatically detects which exploit to install. See also the above sections. Support for 11.1.0-X and above is very unlikely, since as of November 2016 [bossbannerhax](https://www.3dbrew.org/wiki/3DS_Userland_Flaws) was the last known Home Menu vuln.
+As of menuhax v3.0, system-versions 9.0.0-X..11.0.0-X are all supported. During installation it automatically detects which exploit to install. See also the above sections. Note that as of November 2016 [bossbannerhax](https://www.3dbrew.org/wiki/3DS_Userland_Flaws) was the last known Home Menu vuln.
 
 The initial release archive only supported USA, EUR, and JPN. TWN and CHN aren't supported currently. KOR builds which are *actually* usable are included starting with v3.0, via sdiconhax for 9.6.0-X..11.0.0-X(the theme-data exploit KOR builds were removed since themes aren't actually usable with KOR).
 
