@@ -6,7 +6,7 @@ These exploits trigger during Home Menu startup.
 Although this triggers during Home Menu boot, this can't cause any true bricks: just remove the \*SD card if any booting issues ever occur(or delete/rename the main Home Menu [extdata](https://www.3dbrew.org/wiki/Extdata) directory). Note that this also applies when the ROP causes a crash(the installed exploit itself), like when the ROP is for a different version of Home Menu(this can also happen if you boot into a nandimage which has a different Home Menu version, but still uses the exact same SD data). In some(?) cases Home Menu crashes with this just result in Home Menu displaying the usual error dialog for system-applet crashes.
 
 # Old3DS return-to-menu
-On Old3DS with applications which trigger a firmlaunch due to requiring more memory for the APPLICATION memregion, pressing the HOME button will result in a hang due to Home Menu crashing with menuhax installed. This includes Super Smash Bros and Monster Hunter.
+On Old3DS with applications which trigger a firmlaunch due to requiring more memory for the APPLICATION memregion, pressing the HOME button will result in a hang due to Home Menu crashing with menuhax installed. This include Super Smash Bros, Monster Hunter as well as Pokemon Sun and Moon.
 
 The only way this could ever be resolved is with a Home Menu vuln which doesn't involve linearmem pre-\*hax-payload, unlike all of the ones used in this repo publicly currently.
 
