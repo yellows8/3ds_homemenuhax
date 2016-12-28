@@ -37,6 +37,16 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 	u8 tmpbuf[4] = {0};
 	char *taskID = "tmptask";
 
+	Handle fshandle=0;
+	FS_Path archpath;
+	FS_ExtSaveDataInfo extdatainfo;
+	u32 extdataID = 0x217;//TODO: Load this properly.
+	u32 extdata_exists = 0;
+
+	u32 numdirs = 0, numfiles = 0;
+	u8 *smdh = NULL;
+	u32 smdh_size = 0x36c0;
+
 	char payload_filepath[256];
 	char tmpstr[256];
 
@@ -57,16 +67,103 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 		return ret;
 	}
 
+	log_printf(LOGTAR_ALL, "Running extdata deletion+creation if required, for the currently running title...\n");
+
+	archpath.type = PATH_BINARY;
+	archpath.data = &extdatainfo;
+	archpath.size = 0xc;
+
+	memset(&extdatainfo, 0, sizeof(extdatainfo));
+	extdatainfo.mediaType = MEDIATYPE_SD;
+	extdatainfo.saveId = extdataID;
+
+	//TODO: Add notes about running the <target application> at least once in error messages related to extdata-reading failing.
+
+	//For whatever reason deleting/creating this extdata with the default *hax fsuser session(from Home Menu) fails.
+	if (R_FAILED(ret = srvGetServiceHandleDirect(&fshandle, "fs:USER"))) return ret;//This code is based on the code from sploit_installer for this.
+        if (R_FAILED(ret = FSUSER_Initialize(fshandle))) return ret;
+	fsUseSession(fshandle);
+
+	ret = FSUSER_GetFormatInfo(NULL, &numdirs, &numfiles, NULL, ARCHIVE_EXTDATA, archpath);
+	if(R_FAILED(ret))
+	{
+		log_printf(LOGTAR_ALL, "FSUSER_GetFormatInfo() failed: 0x%08x.\n", (unsigned int)ret);
+		//return ret;
+	}
+	else
+	{
+		log_printf(LOGTAR_ALL, "FSUSER_GetFormatInfo: numdirs = 0x%08x, numfiles = 0x%08x\n", (unsigned int)numdirs, (unsigned int)numfiles);
+		extdata_exists = 1;
+	}
+	
+
+	if(numdirs!=10 || numfiles!=10)
+	{
+		smdh = malloc(smdh_size);
+		if(smdh==NULL)
+		{
+			log_printf(LOGTAR_ALL, "Failed to allocate memory for the SMDH.\n");
+			ret = -12;
+			fsEndUseSession();
+			return ret;
+		}
+		memset(smdh, 0, smdh_size);
+
+		//TODO: Load "extdata:/ExBanner/COMMON.bin", then write it after creating the extdata.
+
+		if(extdata_exists)
+		{
+			ret = FSUSER_ReadExtSaveDataIcon(&tmp, extdatainfo, smdh_size, smdh);
+			if(R_SUCCEEDED(ret) && tmp!=smdh_size)ret = -13;
+			if(R_FAILED(ret))
+			{
+				log_printf(LOGTAR_ALL, "Extdata icon reading failed: 0x%08x.\n", (unsigned int)ret);
+				free(smdh);
+				fsEndUseSession();
+				return ret;
+			}
+
+			ret = FSUSER_DeleteExtSaveData(extdatainfo);
+			if(R_FAILED(ret))
+			{
+				log_printf(LOGTAR_ALL, "Extdata deletion failed: 0x%08x.\n", (unsigned int)ret);
+				free(smdh);
+				fsEndUseSession();
+				return ret;
+			}
+		}
+
+		ret = FSUSER_CreateExtSaveData(extdatainfo, 10, 10, ~0, smdh_size, smdh);
+		free(smdh);
+		if(R_FAILED(ret))
+		{
+			log_printf(LOGTAR_ALL, "Extdata creation failed: 0x%08x.\n", (unsigned int)ret);
+			fsEndUseSession();
+			return ret;
+		}
+	}
+
+	fsEndUseSession();
+
 	log_printf(LOGTAR_ALL, "Running BOSS setup...\n");
 
-	ret = bossInit(0, true);
+	ret = bossInit(0, false);
 	if(R_FAILED(ret))
 	{
 		log_printf(LOGTAR_ALL, "bossInit() failed: 0x%08x.\n", (unsigned int)ret);
 		return ret;
 	}
 
-	ret = bossSetStorageInfo(0x21d, 0x400000, MEDIATYPE_SD);//TODO: Load the actual extdataID for this region.
+	ret = bossReinit(0x0004001000021700ULL);//TODO: Load this programID properly.
+	//TODO: Run this again except with the proper Home Menu programID once BOSS usage is finished.
+	if(R_FAILED(ret))
+	{
+		log_printf(LOGTAR_ALL, "bossReinit() failed: 0x%08x.\n", (unsigned int)ret);
+		bossExit();
+		return ret;
+	}
+
+	ret = bossSetStorageInfo(extdataID, 0x400000, MEDIATYPE_SD);//TODO: Load the actual extdataID for this region.
 	if(R_FAILED(ret))
 	{
 		log_printf(LOGTAR_ALL, "bossSetStorageInfo() failed: 0x%08x.\n", (unsigned int)ret);
@@ -75,7 +172,7 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 	}
 
 	memset(tmpstr, 0, sizeof(tmpstr));
-	snprintf(tmpstr, sizeof(tmpstr)-1, "http://192.168.254.11/menuhax/bossbannerhax/%s_bossbannerhax.bin" /*"http://yls8.mtheall.com/menuhax/bossbannerhax/%s_bossbannerhax.bin"*/, menuhax_basefn);
+	snprintf(tmpstr, sizeof(tmpstr)-1, "http://10.0.0.23/menuhax/bossbannerhax/%s_bossbannerhax.bin" /*"http://yls8.mtheall.com/menuhax/bossbannerhax/%s_bossbannerhax.bin"*/, menuhax_basefn);
 	//HTTP is used here since it's currently unknown how to setup a non-default rootCA cert for BOSS.
 
 	bossSetupContextDefault(&ctx, 60, tmpstr);
@@ -85,6 +182,9 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 
 	if(R_SUCCEEDED(ret))
 	{
+		ret = bossDeleteTask(taskID, 0);
+		ret = bossDeleteNsData(bossbannerhax_NsDataId);
+
 		ret = bossRegisterTask(taskID, 0, 0);
 		if(R_FAILED(ret))log_printf(LOGTAR_ALL, "bossRegisterTask returned 0x%08x.\n", (unsigned int)ret);
 
@@ -154,8 +254,19 @@ Result bossbannerhax_delete()
 		return ret;
 	}
 
+	ret = bossReinit(0x0004001000021700ULL);//TODO: Load this programID properly.
+	//TODO: Run this again except with the proper Home Menu programID once BOSS usage is finished.
+	if(R_FAILED(ret))
+	{
+		log_printf(LOGTAR_ALL, "bossReinit() failed: 0x%08x.\n", (unsigned int)ret);
+		bossExit();
+		return ret;
+	}
+
 	ret = bossDeleteNsData(bossbannerhax_NsDataId);
 	if(R_FAILED(ret))log_printf(LOGTAR_ALL, "bossDeleteNsData() returned: 0x%08x.\n", (unsigned int)ret);
+
+	bossUnregisterStorage();
 
 	bossExit();
 

@@ -1,0 +1,49 @@
+bossbannerhax_build:
+	@mkdir -p finaloutput/bossbannerhax
+	@mkdir -p finaloutput/stage1_bossbannerhax
+	
+	@for path in bossbannerhax_menuversions/JPN/*; do make -f Makefile buildbossbannerhax --no-print-directory REGION=JPN REGIONVAL=0 BOSSPROGRAMID=0020700 BOSSTOOLPARAMS=$(BOSSTOOLPARAMS) MENUVERSION=$$(basename "$$path"); done
+	@for path in bossbannerhax_menuversions/USA/*; do make -f Makefile buildbossbannerhax --no-print-directory REGION=USA REGIONVAL=1 BOSSPROGRAMID=0021700 BOSSTOOLPARAMS=$(BOSSTOOLPARAMS) MENUVERSION=$$(basename "$$path"); done
+	@for path in bossbannerhax_menuversions/EUR/*; do make -f Makefile buildbossbannerhax --no-print-directory REGION=EUR REGIONVAL=2 BOSSPROGRAMID=0022700 BOSSTOOLPARAMS=$(BOSSTOOLPARAMS) MENUVERSION=$$(basename "$$path"); done
+	#@for path in bossbannerhax_menuversions/CHN/*; do make -f Makefile buildbossbannerhax --no-print-directory REGION=CHN REGIONVAL=3 BOSSPROGRAMID=0026700 BOSSTOOLPARAMS=$(BOSSTOOLPARAMS) MENUVERSION=$$(basename "$$path"); done
+	@for path in bossbannerhax_menuversions/KOR/*; do make -f Makefile buildbossbannerhax --no-print-directory REGION=KOR REGIONVAL=4 BOSSPROGRAMID=0027700 BOSSTOOLPARAMS=$(BOSSTOOLPARAMS) MENUVERSION=$$(basename "$$path"); done
+	#@for path in bossbannerhax_menuversions/TWN/*; do make -f Makefile buildbossbannerhax --no-print-directory REGION=TWN REGIONVAL=5 BOSSPROGRAMID=0028700 BOSSTOOLPARAMS=$(BOSSTOOLPARAMS) MENUVERSION=$$(basename "$$path"); done
+	
+	@for path in bossbannerhax_menuversions/JPN/*; do make -f Makefile build_stage1_bossbannerhax --no-print-directory REGION=JPN REGIONVAL=0 MENUVERSION=$$(basename "$$path"); done
+	@for path in bossbannerhax_menuversions/USA/*; do make -f Makefile build_stage1_bossbannerhax --no-print-directory REGION=USA REGIONVAL=1 MENUVERSION=$$(basename "$$path"); done
+	@for path in bossbannerhax_menuversions/EUR/*; do make -f Makefile build_stage1_bossbannerhax --no-print-directory REGION=EUR REGIONVAL=2 MENUVERSION=$$(basename "$$path"); done
+	#@for path in bossbannerhax_menuversions/CHN/*; do make -f Makefile build_stage1_bossbannerhax --no-print-directory REGION=CHN REGIONVAL=3 MENUVERSION=$$(basename "$$path"); done
+	@for path in bossbannerhax_menuversions/KOR/*; do make -f Makefile build_stage1_bossbannerhax --no-print-directory REGION=KOR REGIONVAL=4 MENUVERSION=$$(basename "$$path"); done
+	#@for path in bossbannerhax_menuversions/TWN/*; do make -f Makefile build_stage1_bossbannerhax --no-print-directory REGION=TWN REGIONVAL=5 MENUVERSION=$$(basename "$$path"); done
+	
+	@zip -rj finaloutput/stage1_bossbannerhax.zip finaloutput/stage1_bossbannerhax
+
+buildbossbannerhax:
+	@make -f Makefile finaloutput/bossbannerhax/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds_bossbannerhax.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=$(HEAPBUF_HAX_OLD3DS) FIXHEAPBUF=$(HEAPBUF_HAX_OLD3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 BOSSPROGRAMID=000400100$(BOSSPROGRAMID) BOSSTOOLPARAMS=$(BOSSTOOLPARAMS) $(PARAMS)
+	@make -f Makefile finaloutput/bossbannerhax/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds_bossbannerhax.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_HAX_NEW3DS) HEAPBUF=$(HEAPBUF_HAX_NEW3DS) FIXHEAPBUF=$(HEAPBUF_HAX_NEW3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 BOSSPROGRAMID=000400100$(BOSSPROGRAMID) BOSSTOOLPARAMS=$(BOSSTOOLPARAMS) $(PARAMS)
+
+build_stage1_bossbannerhax:
+	@make -f Makefile finaloutput/stage1_bossbannerhax/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_old3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_OLD3DS) HEAPBUF=0x0FFF1000 FIXHEAPBUF=$(HEAPBUF_HAX_OLD3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_OLD3DS) NEW3DS=0 $(PARAMS)
+	@make -f Makefile finaloutput/stage1_bossbannerhax/$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds.bin --no-print-directory BUILDPREFIX=$(BUILDPREFIX)$(REGION)$(MENUVERSION)_new3ds MENUVERSION=$(MENUVERSION) HEAPBUF_OBJADDR=$(HEAPBUF_OBJADDR_NEW3DS) HEAPBUF=0x0FFF1000 FIXHEAPBUF=$(HEAPBUF_HAX_NEW3DS) ROPBIN_BUFADR=$(HEAPBUF_ROPBIN_NEW3DS) NEW3DS=1 $(PARAMS)
+
+finaloutput/bossbannerhax/$(BUILDPREFIX)_bossbannerhax.bin:	binpayload/$(BUILDPREFIX)_bossbannerhax.cbmd
+	bosstool --input=$< --output=$@ --programID=$(BOSSPROGRAMID) --build --nsdataid=0x58484e42 --datatype=0x40001 $(BOSSTOOLPARAMS)
+
+binpayload/$(BUILDPREFIX)_bossbannerhax.cbmd:	binpayload/$(BUILDPREFIX)_bossbannerhax.lz11
+	cat cbmd_header.bin $< > $@
+
+binpayload/$(BUILDPREFIX)_bossbannerhax.lz11:	binpayload/$(BUILDPREFIX)_bossbannerhax.bin
+	bannertool lz11 -i $< -o $@
+
+binpayload/$(BUILDPREFIX)_bossbannerhax.bin:	build/$(BUILDPREFIX)_bossbannerhax.elf
+	$(OBJCOPY) -O binary $< $@
+
+build/$(BUILDPREFIX)_bossbannerhax.elf:	bossbannerhax_banner.s
+	$(CC) -x assembler-with-cpp -nostartfiles -nostdlib -DREGION=$(REGION) -DREGIONVAL=$(REGIONVAL) -DMENUVERSION=$(MENUVERSION) -DROPBUF=0x58480000 -DFIXHEAPBUF=$(FIXHEAPBUF) -DROPBIN_BUFADR=$(ROPBIN_BUFADR) -DTARGETOVERWRITE_MEMCHUNKADR=$(TARGETOVERWRITE_MEMCHUNKADR) -DNEW3DS=$(NEW3DS) -DMENUHAXLOADER_LOAD_BINADDR=0x0FFF1000 -DMENUHAXLOADER_LOAD_SIZE=0xD000 -DMENUHAXLOADER_BINPAYLOAD_PATH=\"sd:/menuhax/stage1/$(BUILDPREFIX).bin\" $(DEFINES) -I$(ROPKIT_PATH) -include $(MENUROP_PATH)/$(REGION)/$(MENUVERSION) $< -o $@
+
+finaloutput/stage1_bossbannerhax/$(BUILDPREFIX).bin:	build/$(BUILDPREFIX)_stage1_bossbannerhax.elf
+	$(OBJCOPY) -O binary $< $@
+
+build/$(BUILDPREFIX)_stage1_bossbannerhax.elf:	stage1_bossbannerhax.s
+	$(CC) -x assembler-with-cpp -nostartfiles -nostdlib -DREGION=$(REGION) -DREGIONVAL=$(REGIONVAL) -DMENUVERSION=$(MENUVERSION) -DROPBUF=0x0FFF1000 -DFIXHEAPBUF=$(FIXHEAPBUF) -DROPBIN_BUFADR=$(ROPBIN_BUFADR) -DTARGETOVERWRITE_MEMCHUNKADR=$(TARGETOVERWRITE_MEMCHUNKADR) -DNEW3DS=$(NEW3DS) -DMENUHAXLOADER_LOAD_BINADDR=0x0FFF2000 -DMENUHAXLOADER_LOAD_SIZE=0xC000 -DSTAGE1 -DMENUHAXLOADER_BINPAYLOAD_PATH=\"sd:/menuhax/stage2/$(BUILDPREFIX).bin\" $(DEFINES) -I$(ROPKIT_PATH) -include $(MENUROP_PATH)/$(REGION)/$(MENUVERSION) $< -o $@
+
