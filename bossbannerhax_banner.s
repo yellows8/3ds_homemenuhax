@@ -35,5 +35,5 @@ stackpivot_pcloadword:
 //.space ((object + 0x34) - .)
 .word ROPBUFLOC(object)
 
-.fill ((_start + 0x200000) - .), 4, 0x30303030 @ TODO: This size is too large, ends up hitting the end of linearmem heap.
+.fill (((_start + 0x200000) - .) / 4), 4, 0x30303030
 
