@@ -8,15 +8,13 @@ _start:
 
 ropstackstart:
 
-.word 0x80808080
-
 #include "menuhax_loader.s"
 
 @ The ROP used for RET2MENU starts here.
 
 menuhaxloader_beforethreadexit:
 
-.word 0x70707070
+.word MAINLR_SVCEXITPROCESS
 
 object:
 .word ROPBUFLOC(vtable) @ object+0, vtable ptr
