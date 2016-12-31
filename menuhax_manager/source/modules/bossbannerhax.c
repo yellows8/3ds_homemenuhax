@@ -77,8 +77,6 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 	extdatainfo.mediaType = MEDIATYPE_SD;
 	extdatainfo.saveId = extdataID;
 
-	//TODO: Add notes about running the <target application> at least once in error messages related to extdata-reading failing.
-
 	//For whatever reason deleting/creating this extdata with the default *hax fsuser session(from Home Menu) fails.
 	if (R_FAILED(ret = srvGetServiceHandleDirect(&fshandle, "fs:USER"))) return ret;//This code is based on the code from sploit_installer for this.
         if (R_FAILED(ret = FSUSER_Initialize(fshandle))) return ret;
@@ -110,6 +108,7 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 		memset(smdh, 0, smdh_size);
 
 		//TODO: Load "extdata:/ExBanner/COMMON.bin", then write it after creating the extdata.
+		//TODO: Load the extdata icon from elsewhere(ExeFS?) when the extdata doesn't exist.
 
 		if(extdata_exists)
 		{
@@ -205,7 +204,11 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 						log_printf(LOGTAR_ALL, "bossGetTaskState returned 0x%08x.\n", (unsigned int)ret);
 						break;
 					}
-					if(R_SUCCEEDED(ret))log_printf(LOGTAR_ALL, "...\n");//printf("bossGetTaskState: tmp0=0x%x, tmp2=0x%x, tmp1=0x%x.\n", (unsigned int)tmp0, (unsigned int)tmp2, (unsigned int)tmp1);
+					if(R_SUCCEEDED(ret))
+					{
+						log_printf(LOGTAR_ALL, "...\n");
+						log_printf(LOGTAR_LOG, "bossGetTaskState: status=0x%x, tmp2=0x%x, tmp1=0x%x.\n", (unsigned int)status);
+					}
 
 					if(status!=BOSSTASKSTATUS_STARTED)break;
 
@@ -247,7 +250,7 @@ Result bossbannerhax_delete()
 {
 	Result ret=0;
 
-	ret = bossInit(0, true);
+	ret = bossInit(0, false);
 	if(R_FAILED(ret))
 	{
 		log_printf(LOGTAR_ALL, "bossInit() failed: 0x%08x.\n", (unsigned int)ret);
