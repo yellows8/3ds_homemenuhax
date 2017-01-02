@@ -110,7 +110,7 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 
 	log_printf(LOGTAR_LOG, "cur_programid=0x%016llx, extdataID=0x%08x.\n", (unsigned long long)cur_programid, (unsigned int)extdataID);
 
-	log_printf(LOGTAR_ALL, "Running extdata deletion+creation if required, for the currently running title...\n");
+	log_printf(LOGTAR_ALL, "Running extdata recreation if required, for the currently running title...\n");
 
 	archpath.type = PATH_BINARY;
 	archpath.data = &extdatainfo;
@@ -128,18 +128,19 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 	ret = FSUSER_GetFormatInfo(NULL, &numdirs, &numfiles, NULL, ARCHIVE_EXTDATA, archpath);
 	if(R_FAILED(ret))
 	{
-		log_printf(LOGTAR_ALL, "FSUSER_GetFormatInfo() failed: 0x%08x.\n", (unsigned int)ret);//TODO: Switch this to LOGTAR_LOG / etc.
-		//return ret;
+		log_printf(LOGTAR_LOG, "FSUSER_GetFormatInfo() failed: 0x%08x.\n", (unsigned int)ret);
 	}
 	else
 	{
 		log_printf(LOGTAR_LOG, "FSUSER_GetFormatInfo: numdirs = 0x%08x, numfiles = 0x%08x.\n", (unsigned int)numdirs, (unsigned int)numfiles);
-		extdata_exists = 1;
+		extdata_exists = 1;//Assume the extdata doesn't exist when FSUSER_GetFormatInfo() fails.
 	}
 	
 
-	if(numdirs!=10 || numfiles!=10)
+	if(!extdata_exists || (numdirs!=10 || numfiles!=10))
 	{
+		log_printf(LOGTAR_ALL, "Recreating extdata for the currently running title...\n");
+
 		smdh = malloc(smdh_size);
 		if(smdh==NULL)
 		{
@@ -249,6 +250,10 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 			fsEndUseSession();
 			return ret;
 		}
+	}
+	else
+	{
+		log_printf(LOGTAR_ALL, "Extdata recreation for the current title isn't needed.\n");
 	}
 
 	fsEndUseSession();
