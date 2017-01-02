@@ -14,6 +14,7 @@ The only way this could ever be resolved is with a Home Menu vuln which doesn't 
 * themehax: The original vuln for this repo was discovered on December 22, 2014. This flaw was introduced with the Home Menu version which added support for themes: 9.0.0-X on Old3DS, v8.1 on JPN-New3DS. Old3DS JPN theme support was "added" 9.1.0-XJ. The release date for this exploit was September 25, 2015.
 * shufflehax: The vuln for this was discovered on January 3, 2015. The shufflehax exploit itself was finally implemented in December 2015, it was finished on the 7th-8th. The release date for this exploit was on December 27, 2015, in US-time. https://events.ccc.de/congress/2015/Fahrplan/events/7240.html Exactly one week later from release-date would be exactly one year since the vuln was discovered. Theme-shuffling and this vuln were introduced with 9.3.0-X.
 * sdiconhax: For vuln details, see source and [here](https://www.3dbrew.org/wiki/3DS_Userland_Flaws). This was exploited in June 2016.
+* bossbannerhax: For vuln details, see source and [here](https://www.3dbrew.org/wiki/3DS_Userland_Flaws). This was exploited in December 2016.
 
 ## Vuln used with themehax
 Home Menu allocates a 0x2a0000-byte heap buffer using the ctrsdk heap code: offset 0x0 size 0x150000 is for the output decompressed data, offset 0x150000 size 0x150000 is for the input compressed data. Immediately after this buffer is a CTRSDK heap freemem memchunkhdr, successfully overwriting it results a crash(when the data written there is junk) in the CTRSDK heap memchunk handling code with the linked-lists.
@@ -41,8 +42,11 @@ If you enter the power-off screen then return to Home Menu, the icon layout will
 
 Do not change the system language with System Settings with sdiconhax installed. If you do so, you will have to delete the Home Menu extdata as mentioned in the Summary section above.
 
+# Usage notes for bossbannerhax
+This does not trigger during Home Menu boot. This triggers when the Face Raiders icon is selected by the user, which triggers loading the exbanner data(Face Raiders is just the ideal target title for this among the system titles with exbanner-usage enabled).
+
 # Supported System Versions
-As of menuhax v3.0, system-versions 9.0.0-X..11.0.0-X are all supported. During installation it automatically detects which exploit to install. See also the above sections. Note that as of November 2016 [bossbannerhax](https://www.3dbrew.org/wiki/3DS_Userland_Flaws) was the last known Home Menu vuln.
+As of menuhax v3.2, system-versions 9.0.0-X..11.2.0-X are all supported. During installation it automatically detects which exploit to install. See also the above sections. Note that as of November 2016 [bossbannerhax](https://www.3dbrew.org/wiki/3DS_Userland_Flaws) was the last known Home Menu vuln.
 
 The initial release archive only supported USA, EUR, and JPN. TWN and CHN aren't supported currently. KOR builds which are *actually* usable are included starting with v3.0, via sdiconhax for 9.6.0-X..11.0.0-X(the theme-data exploit KOR builds were removed since themes aren't actually usable with KOR).
 
