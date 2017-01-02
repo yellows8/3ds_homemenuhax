@@ -27,6 +27,22 @@ void register_module_bossbannerhax()
 	register_module(&module);
 }
 
+Result bossbannerhax_getprograminfo(u64 *programID, u32 *extdataID)
+{
+	Result ret=0;
+	bool new3dsflag=false;
+
+	ret = APT_GetProgramID(programID);
+	if(R_FAILED(ret))return ret;
+
+	APT_CheckNew3DS(&new3dsflag);
+
+	if(new3dsflag)*programID |= 0x20000000;//Various get-programID cmds won't return the programID /w this bitmask set on new3ds, so set it manually. Needed since Home Menu uses the titleID raw from AM(?) with BOSS exbanner-loading, while normally the new3ds programID bitmask is cleared with BOSS.
+	if(extdataID)*extdataID = (((u32)*programID) & 0x0fffff00) >> 8;
+
+	return 0;
+}
+
 Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 {
 	Result ret=0;
@@ -40,8 +56,9 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 	Handle fshandle=0;
 	FS_Path archpath;
 	FS_ExtSaveDataInfo extdatainfo;
-	u32 extdataID = 0x217;//TODO: Load this properly.
+	u32 extdataID = 0;
 	u32 extdata_exists = 0;
+	u64 cur_programid = 0;
 
 	u32 numdirs = 0, numfiles = 0;
 	u8 *smdh = NULL;
@@ -66,6 +83,16 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 		log_printf(LOGTAR_ALL, "Failed to copy stage1 to SD: 0x%08x.\n", (unsigned int)ret);
 		return ret;
 	}
+
+	ret = bossbannerhax_getprograminfo(&cur_programid, &extdataID);
+
+	if(R_FAILED(ret))
+	{
+		log_printf(LOGTAR_ALL, "bossbannerhax_getprograminfo() failed: 0x%08x.\n", (unsigned int)ret);
+		return ret;
+	}
+
+	log_printf(LOGTAR_LOG, "cur_programid=0x%016llx, extdataID=0x%08x.\n", (unsigned long long)cur_programid, (unsigned int)extdataID);
 
 	log_printf(LOGTAR_ALL, "Running extdata deletion+creation if required, for the currently running title...\n");
 
@@ -153,7 +180,7 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 		return ret;
 	}
 
-	ret = bossReinit(0x0004001000021700ULL);//TODO: Load this programID properly.
+	ret = bossReinit(cur_programid);
 	//TODO: Run this again except with the proper Home Menu programID once BOSS usage is finished.
 	if(R_FAILED(ret))
 	{
@@ -162,7 +189,7 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 		return ret;
 	}
 
-	ret = bossSetStorageInfo(extdataID, 0x400000, MEDIATYPE_SD);//TODO: Load the actual extdataID for this region.
+	ret = bossSetStorageInfo(extdataID, 0x400000, MEDIATYPE_SD);
 	if(R_FAILED(ret))
 	{
 		log_printf(LOGTAR_ALL, "bossSetStorageInfo() failed: 0x%08x.\n", (unsigned int)ret);
@@ -207,7 +234,7 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 					if(R_SUCCEEDED(ret))
 					{
 						log_printf(LOGTAR_ALL, "...\n");
-						log_printf(LOGTAR_LOG, "bossGetTaskState: status=0x%x, tmp2=0x%x, tmp1=0x%x.\n", (unsigned int)status);
+						log_printf(LOGTAR_LOG, "bossGetTaskState: status=0x%x.\n", (unsigned int)status);
 					}
 
 					if(status!=BOSSTASKSTATUS_STARTED)break;
@@ -249,6 +276,17 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 Result bossbannerhax_delete()
 {
 	Result ret=0;
+	u64 cur_programid=0;
+
+	ret = bossbannerhax_getprograminfo(&cur_programid, NULL);
+
+	if(R_FAILED(ret))
+	{
+		log_printf(LOGTAR_ALL, "bossbannerhax_getprograminfo() failed: 0x%08x.\n", (unsigned int)ret);
+		return ret;
+	}
+
+	log_printf(LOGTAR_LOG, "cur_programid=0x%016llx.\n", (unsigned long long)cur_programid);
 
 	ret = bossInit(0, false);
 	if(R_FAILED(ret))
@@ -257,7 +295,7 @@ Result bossbannerhax_delete()
 		return ret;
 	}
 
-	ret = bossReinit(0x0004001000021700ULL);//TODO: Load this programID properly.
+	ret = bossReinit(cur_programid);
 	//TODO: Run this again except with the proper Home Menu programID once BOSS usage is finished.
 	if(R_FAILED(ret))
 	{
