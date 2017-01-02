@@ -135,7 +135,7 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 		memset(smdh, 0, smdh_size);
 
 		//TODO: Load "extdata:/ExBanner/COMMON.bin", then write it after creating the extdata.
-		//TODO: Load the extdata icon from elsewhere(ExeFS?) when the extdata doesn't exist.
+		//TODO: Load the extdata icon from current-title RomFS when the extdata doesn't exist.
 
 		if(extdata_exists)
 		{
