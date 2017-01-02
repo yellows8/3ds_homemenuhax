@@ -64,11 +64,27 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 	u8 *smdh = NULL;
 	u32 smdh_size = 0x36c0;
 
+	struct romfs_mount *mount = NULL;
+	Handle filehandle = 0;
+	char iconpath[256];
+
+	u32 file_lowpath_data[0xc>>2];
+
+	FS_Path archpath_romfs = { PATH_EMPTY, 1, (u8*)"" };
+	FS_Path fileLowPath;
+
 	char payload_filepath[256];
 	char tmpstr[256];
 
 	memset(payload_filepath, 0, sizeof(payload_filepath));
 	memset(tmpstr, 0, sizeof(tmpstr));
+	memset(iconpath, 0, sizeof(iconpath));
+
+	memset(file_lowpath_data, 0, sizeof(file_lowpath_data));
+
+	fileLowPath.type = PATH_BINARY;
+	fileLowPath.size = 0xc;
+	fileLowPath.data = (u8*)file_lowpath_data;
 
 	snprintf(payload_filepath, sizeof(payload_filepath)-1, "romfs:/finaloutput/stage1_bossbannerhax.zip@%s.bin", menuhax_basefn);
 	snprintf(tmpstr, sizeof(tmpstr)-1, "sdmc:/menuhax/stage1/%s.bin", menuhax_basefn);
@@ -112,12 +128,12 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 	ret = FSUSER_GetFormatInfo(NULL, &numdirs, &numfiles, NULL, ARCHIVE_EXTDATA, archpath);
 	if(R_FAILED(ret))
 	{
-		log_printf(LOGTAR_ALL, "FSUSER_GetFormatInfo() failed: 0x%08x.\n", (unsigned int)ret);
+		log_printf(LOGTAR_ALL, "FSUSER_GetFormatInfo() failed: 0x%08x.\n", (unsigned int)ret);//TODO: Switch this to LOGTAR_LOG / etc.
 		//return ret;
 	}
 	else
 	{
-		log_printf(LOGTAR_ALL, "FSUSER_GetFormatInfo: numdirs = 0x%08x, numfiles = 0x%08x\n", (unsigned int)numdirs, (unsigned int)numfiles);
+		log_printf(LOGTAR_LOG, "FSUSER_GetFormatInfo: numdirs = 0x%08x, numfiles = 0x%08x.\n", (unsigned int)numdirs, (unsigned int)numfiles);
 		extdata_exists = 1;
 	}
 	
@@ -135,7 +151,6 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 		memset(smdh, 0, smdh_size);
 
 		//TODO: Load "extdata:/ExBanner/COMMON.bin", then write it after creating the extdata.
-		//TODO: Load the extdata icon from current-title RomFS when the extdata doesn't exist.
 
 		if(extdata_exists)
 		{
@@ -157,6 +172,73 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 				fsEndUseSession();
 				return ret;
 			}
+		}
+		else
+		{
+			//Load the extdata-icon from the current-title RomFS. While there's a common "banner.icn" file in all regions of this title, it isn't used for non-JPN. This is intended for face-raiders.
+
+			memset(tmpstr, 0, sizeof(tmpstr));
+
+			switch(extdataID)//This is actually for checking the region from the programID but extdataID is calculated the same way here anyway.
+			{
+				case 0x20d://Filepath doesn't include region for JPN.
+				break;
+
+				case 0x21d://USA
+					strncpy(tmpstr, "US", sizeof(tmpstr)-1);
+				break;
+
+				case 0x22d://EUR
+					strncpy(tmpstr, "EU", sizeof(tmpstr)-1);
+				break;
+
+				case 0x26d://CHN
+					strncpy(tmpstr, "CN", sizeof(tmpstr)-1);
+				break;
+
+				case 0x27d://KOR
+					strncpy(tmpstr, "KR", sizeof(tmpstr)-1);
+				break;
+
+				case 0x28d://TWN
+					strncpy(tmpstr, "TW", sizeof(tmpstr)-1);
+				break;
+
+				default:
+					log_printf(LOGTAR_ALL, "The title currently being run under isn't supported for loading the extdata icon.\n");
+				return -15;
+			}
+
+			snprintf(iconpath, sizeof(iconpath)-1, "romfs:/hal/banner/banner%s.icn", tmpstr);
+
+			ret = FSUSER_OpenFileDirectly(&filehandle, ARCHIVE_ROMFS, archpath_romfs, fileLowPath, FS_OPEN_READ, 0x0);
+			if(ret!=0)
+			{
+				log_printf(LOGTAR_ALL, "Failed to open the RomFS image for the current process: 0x%08x.\n", (unsigned int)ret);
+				free(smdh);
+				fsEndUseSession();
+				return ret;
+			}
+
+			ret = romfsMountFromFile(filehandle, 0x0, &mount);
+			if(ret!=0)
+			{
+				log_printf(LOGTAR_ALL, "Failed to mount the RomFS image for the current process: 0x%08x.\n", (unsigned int)ret);
+				free(smdh);
+				fsEndUseSession();
+				return ret;
+			}
+
+			ret = archive_readfile(SDArchive, iconpath, smdh, smdh_size);
+			if(ret!=0)
+			{
+				log_printf(LOGTAR_ALL, "Failed to load the extdata icon from RomFS: 0x%08x.\n", (unsigned int)ret);
+				free(smdh);
+				fsEndUseSession();
+				return ret;
+			}
+
+			romfsUnmount(mount);
 		}
 
 		ret = FSUSER_CreateExtSaveData(extdatainfo, 10, 10, ~0, smdh_size, smdh);
