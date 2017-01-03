@@ -7,6 +7,7 @@
 
 #include "archive.h"
 #include "log.h"
+#include "menu.h"
 
 #include "modules_common.h"
 
@@ -93,14 +94,19 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 
 	memset(file_lowpath_data, 0, sizeof(file_lowpath_data));
 
+	ret = displaymessage_prompt("Do you have >=v1.2 ctr-httpwn active, or \"CFW\" running / sigchecks patched on the running system? If not, bossbannerhax can't be installed.", NULL);
+	if(ret!=0)
+	{
+		log_printf(LOGTAR_ALL, "Aborting. After exiting menuhax_manager, you can run ctr-httpwn then run menuhax_manager again.\n");
+		return ret;
+	}
+
 	fileLowPath.type = PATH_BINARY;
 	fileLowPath.size = 0xc;
 	fileLowPath.data = (u8*)file_lowpath_data;
 
 	snprintf(payload_filepath, sizeof(payload_filepath)-1, "romfs:/finaloutput/stage1_bossbannerhax.zip@%s.bin", menuhax_basefn);
 	snprintf(tmpstr, sizeof(tmpstr)-1, "sdmc:/menuhax/stage1/%s.bin", menuhax_basefn);
-
-	//TODO: Display a message regarding the requirements for actually installing bossbannerhax.
 
 	log_printf(LOGTAR_ALL, "Copying stage1 to SD...\n");
 	log_printf(LOGTAR_LOG, "Src path = '%s', dst = '%s'.\n", payload_filepath, tmpstr);
