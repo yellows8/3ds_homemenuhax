@@ -1166,7 +1166,9 @@ Result install_menuhax(char *ropbin_filepath)
 
 	log_printf(LOGTAR_ALL, "Detected system-version: %s %d.%d.%d-%d %s\n", new3dsflag?"New3DS":"Old3DS", cver_versionbin.mainver, cver_versionbin.minor, cver_versionbin.build, nver_versionbin.mainver, regionids_table[region]);
 
-	ret = displaymessage_prompt("Do you want to override the detected system-version? Normally using this will cause Home Menu to fail to boot until the intended Home Menu version is installed(unless an older exploit is used).", NULL);
+	ret = archive_getfilesize(SDArchive, "enable_sysveroverride_option.txt", &payloadsize);
+
+	if(ret==0)ret = displaymessage_prompt("Do you want to override the detected system-version? This option should not be used unless you're installing a different Home Menu title version later.", NULL);
 	if(ret==0)
 	{
 		ret = select_sysinfo_menu(&new3dsflag, &region, &cver_versionbin, &nver_versionbin);

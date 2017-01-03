@@ -79,6 +79,9 @@ During installation there's an option for skipping \*hax payload setup. Normally
 
 Whenever the Home Menu version installed on your system changes where the installed exploit is for a different version, or when you want to update the \*hax payload, you must run the installation again. For the former you can do the following: you can remove the SD card before booting the system, then once booted insert the SD card then boot into the \*hax payload via a different method(https://www.3dbrew.org/wiki/Homebrew_Exploits).
 
+## System-version override
+During installation there's an option to override what system-version is used for installing. This is only enabled if there's a "enable_sysveroverride_option.txt" file(contents don't matter) detected in the same directory as menuhax_manager.3dsx(normally SD "/3ds/menuhax_manager/"). This should only ever be used if you're installing a different Home Menu version later(see the Summary section regarding Home Menu version mismatch).
+
 ## Splash-screen
 This app can setup an image for displaying on the screens when menuhax triggers, if you use the app option for that. Using this is highly recommended(in some cases \*hax payload booting may be more successful with this than without it). When the file for this isn't setup, junk will be displayed on the top-screen(from elsewhere in VRAM). The input image can be either be the default one, or from SD.  
 
