@@ -1044,7 +1044,7 @@ Result select_sysinfo_menu(bool *new3dsflag, u8 *region, OS_VersionBin *cver_ver
 
 Result parse_csv(char *filebuf, u16 *titleversion)
 {
-	char *strptr;
+	char *strptr, *strptr2;
 	int i;
 	unsigned int tmpval = 0;
 
@@ -1063,9 +1063,8 @@ Result parse_csv(char *filebuf, u16 *titleversion)
 		if(strptr==NULL)return -3;
 	}
 
-	strptr = strrchr(strptr, ' ');
-	if(strptr==NULL)return -4;
-	strptr++;
+	strptr2 = strrchr(strptr, ' ');
+	if(strptr2)strptr = strptr2+1;
 
 	if(sscanf(strptr, "v%u", &tmpval)!=1)return -5;
 
