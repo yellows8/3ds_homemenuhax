@@ -30,7 +30,7 @@ void register_module_bossbannerhax()
 	register_module(&module);
 }
 
-Result bossbannerhax_getprograminfo(u64 *programID, u32 *extdataID)
+Result bossbannerhax_getprograminfo(u64 *programID, u32 *extdataID, u64 *menu_programid)
 {
 	Result ret=0;
 	bool new3dsflag=false;
@@ -43,12 +43,18 @@ Result bossbannerhax_getprograminfo(u64 *programID, u32 *extdataID)
 	if(new3dsflag)*programID |= 0x20000000;//Various get-programID cmds won't return the programID /w this bitmask set on new3ds, so set it manually. Needed since Home Menu uses the titleID raw from AM(?) with BOSS exbanner-loading, while normally the new3ds programID bitmask is cleared with BOSS.
 	if(extdataID)*extdataID = (((u32)*programID) & 0x0fffff00) >> 8;
 
+	if(menu_programid)
+	{
+		ret = APT_GetAppletInfo(APPID_HOMEMENU, menu_programid, NULL, NULL, NULL, NULL);
+		if(R_FAILED(ret))return ret;
+	}
+
 	return 0;
 }
 
 Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 {
-	Result ret=0;
+	Result ret=0, ret2=0;
 
 	bossContext ctx;
 	u8 status=0;
@@ -62,6 +68,7 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 	u32 extdataID = 0;
 	u32 extdata_exists = 0;
 	u64 cur_programid = 0;
+	u64 menu_programid=0;
 
 	u32 numdirs = 0, numfiles = 0;
 	u8 *smdh = NULL;
@@ -93,6 +100,8 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 	snprintf(payload_filepath, sizeof(payload_filepath)-1, "romfs:/finaloutput/stage1_bossbannerhax.zip@%s.bin", menuhax_basefn);
 	snprintf(tmpstr, sizeof(tmpstr)-1, "sdmc:/menuhax/stage1/%s.bin", menuhax_basefn);
 
+	//TODO: Display a message regarding the requirements for actually installing bossbannerhax.
+
 	log_printf(LOGTAR_ALL, "Copying stage1 to SD...\n");
 	log_printf(LOGTAR_LOG, "Src path = '%s', dst = '%s'.\n", payload_filepath, tmpstr);
 
@@ -104,7 +113,7 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 		return ret;
 	}
 
-	ret = bossbannerhax_getprograminfo(&cur_programid, &extdataID);
+	ret = bossbannerhax_getprograminfo(&cur_programid, &extdataID, &menu_programid);
 
 	if(R_FAILED(ret))
 	{
@@ -331,10 +340,10 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 	}
 
 	ret = bossReinit(cur_programid);
-	//TODO: Run this again except with the proper Home Menu programID once BOSS usage is finished.
 	if(R_FAILED(ret))
 	{
 		log_printf(LOGTAR_ALL, "bossReinit() failed: 0x%08x.\n", (unsigned int)ret);
+		bossReinit(menu_programid);
 		bossExit();
 		return ret;
 	}
@@ -343,6 +352,7 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 	if(R_FAILED(ret))
 	{
 		log_printf(LOGTAR_ALL, "bossSetStorageInfo() failed: 0x%08x.\n", (unsigned int)ret);
+		bossReinit(menu_programid);
 		bossExit();
 		return ret;
 	}
@@ -418,6 +428,9 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 		}
 	}
 
+	ret2 = bossReinit(menu_programid);
+	log_printf(LOGTAR_LOG, "bossReinit() with menu programID(0x%016llx) returned: 0x%08x.\n", (unsigned long long)menu_programid, (unsigned int)ret2);
+
 	bossExit();
 
 	return ret;
@@ -425,10 +438,11 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 
 Result bossbannerhax_delete()
 {
-	Result ret=0;
+	Result ret=0, ret2=0;
 	u64 cur_programid=0;
+	u64 menu_programid=0;
 
-	ret = bossbannerhax_getprograminfo(&cur_programid, NULL);
+	ret = bossbannerhax_getprograminfo(&cur_programid, NULL, &menu_programid);
 
 	if(R_FAILED(ret))
 	{
@@ -446,10 +460,10 @@ Result bossbannerhax_delete()
 	}
 
 	ret = bossReinit(cur_programid);
-	//TODO: Run this again except with the proper Home Menu programID once BOSS usage is finished.
 	if(R_FAILED(ret))
 	{
 		log_printf(LOGTAR_ALL, "bossReinit() failed: 0x%08x.\n", (unsigned int)ret);
+		bossReinit(menu_programid);
 		bossExit();
 		return ret;
 	}
@@ -458,6 +472,9 @@ Result bossbannerhax_delete()
 	if(R_FAILED(ret))log_printf(LOGTAR_ALL, "bossDeleteNsData() returned: 0x%08x.\n", (unsigned int)ret);
 
 	bossUnregisterStorage();
+
+	ret2 = bossReinit(menu_programid);
+	log_printf(LOGTAR_LOG, "bossReinit() with menu programID(0x%016llx) returned: 0x%08x.\n", (unsigned long long)menu_programid, (unsigned int)ret2);
 
 	bossExit();
 
