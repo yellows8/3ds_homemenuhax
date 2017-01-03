@@ -176,7 +176,6 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 				return ret;
 			}
 
-			//TODO: While transferring this exbanner data to the new extdata seems to "work", Home Menu doesn't display it after bossbannerhax is deleted.
 			ret = archive_getfilesize(Other_Extdata, "/ExBanner/COMMON.bin", &tmpsize);
 			log_printf(LOGTAR_LOG, "archive_getfilesize for extdata-exbanner: 0x%08x, size=0x%08x.\n", (unsigned int)ret, (unsigned int)tmpsize);
 
@@ -296,15 +295,23 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 				return ret;
 			}
 
-			ret = archive_writefile(Other_Extdata, "/COMMON.bin", filebuffer, tmpsize, tmpsize);
+			ret = archive_mkdir(Other_Extdata, "/ExBanner");
+			if(ret!=0)
+			{
+				log_printf(LOGTAR_ALL, "Failed to create the exbanner directory: 0x%08x.\n", (unsigned int)ret);
+				archive_closeotherextdata();
+				fsEndUseSession();
+				return ret;
+			}
+
+			ret = archive_writefile(Other_Extdata, "/ExBanner/COMMON.bin", filebuffer, tmpsize, tmpsize);
+			archive_closeotherextdata();
 			if(ret!=0)
 			{
 				log_printf(LOGTAR_ALL, "Failed to write the extdata-exbanner: 0x%08x.\n", (unsigned int)ret);
 				fsEndUseSession();
 				return ret;
 			}
-
-			archive_closeotherextdata();
 		}
 	}
 	else

@@ -12,6 +12,7 @@ Result archive_openotherextdata(FS_ExtSaveDataInfo *extdatainfo);
 void archive_closeotherextdata(void);
 bool archive_getavailable(Archive archive);
 Result archive_deletefile(Archive archive, char *path);
+Result archive_mkdir(Archive archive, char *path);
 Result archive_getfilesize(Archive archive, char *path, u32 *outsize);
 Result archive_readfile(Archive archive, char *path, u8 *buffer, u32 size);
 Result archive_writefile(Archive archive, char *path, u8 *buffer, u32 size, u32 createsize);

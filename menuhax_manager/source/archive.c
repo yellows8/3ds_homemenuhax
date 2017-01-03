@@ -231,6 +231,23 @@ int fszip_readzipfile(const char *path, u32 *outsize, u8 *buffer, u32 size)
 	return ret;
 }
 
+Result archive_mkdir(Archive archive, char *path)
+{
+	Result ret=0;
+
+	if(archive==SDArchive)
+	{
+		if(mkdir(path, 0777)==-1)return errno;
+
+		return 0;
+	}
+
+	ret = FSUSER_CreateDirectory(extdata_archives[archive], fsMakePath(PATH_ASCII, path), 0);
+	if(ret!=0)return ret;
+
+	return ret;
+}
+
 Result archive_getfilesize(Archive archive, char *path, u32 *outsize)
 {
 	Result ret=0;
