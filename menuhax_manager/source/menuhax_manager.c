@@ -1515,6 +1515,7 @@ Result setup_sdcfg()
 {
 	Result ret=0;
 	u32 kDown, padval=0;
+	u32 cmp_pad[4];
 	int menuindex = 0;
 	int draw;
 	unsigned long long nanosec = 1000000000ULL;
@@ -1630,11 +1631,9 @@ Result setup_sdcfg()
 		break;
 	}
 
-	if(menuindex<3)memset(sdcfg.padvalues, 0, sizeof(sdcfg.padvalues));
-
 	if(menuindex<=2 || menuindex==5)
 	{
-		log_printf(LOGTAR_ALL, "Press the button(s) you want to select for the PAD state value as described above(no New3DS-only buttons). If you want to select <no-buttons>, don't press any buttons. Then, while the buttons are being pressed, if any, touch the bottom-screen.\n");
+		log_printf(LOGTAR_ALL, "Press the button(s) you want to select for the PAD state value as described above(no New3DS-only buttons). If you want to select <no-buttons>, don't press any buttons. Then, while the buttons are being pressed, if any, touch the bottom-screen. The PAD state must not be any keycombo used by the system.\n");
 		if(menuindex==5)log_printf(LOGTAR_ALL, "Selecting <no-buttons> will disable the menuhax thread. Minus <no-buttons>, you must select more than one button.\n");
 
 		while(1)
@@ -1665,7 +1664,23 @@ Result setup_sdcfg()
 
 		if(menuindex!=5 || (menuindex==5 && pos2!=1))
 		{
-			*ptr = padval;
+			cmp_pad[0] = KEY_R | KEY_L | KEY_X;//See here for these 3: https://www.3dbrew.org/wiki/Home_Menu#Auto-Boot_Function
+			cmp_pad[1] = KEY_R | KEY_L | KEY_Y;
+			cmp_pad[2] = KEY_R | KEY_X | KEY_Y | KEY_A | KEY_B;
+			cmp_pad[3] = KEY_L | KEY_R | KEY_A | KEY_DUP;//configmem UPDATEFLAG
+			if(padval == (KEY_R | KEY_L))
+			{
+				log_printf(LOGTAR_ALL, "This PAD config matches the keycombo used by Home Menu for triggering the camera-applet, the PAD config won't be updated.\n");
+			}
+			else if(menuindex!=5 && (padval == cmp_pad[0] || padval == cmp_pad[1] || padval == cmp_pad[2] || padval == cmp_pad[3]))
+			{
+				log_printf(LOGTAR_ALL, "This PAD config matches one of the keycombos checked by the system during boot, the PAD config won't be updated.\n");
+			}
+			else
+			{
+				if(menuindex<3)memset(sdcfg.padvalues, 0, sizeof(sdcfg.padvalues));
+				*ptr = padval;
+			}
 		}
 		else
 		{
