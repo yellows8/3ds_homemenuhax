@@ -123,7 +123,41 @@ void close_extdata()
 
 	for(pos=0; pos<TotalExtdataArchives; pos++)
 	{
-		if(extdata_initialized & (1<<pos))FSUSER_CloseArchive(extdata_archives[pos]);
+		if(extdata_initialized & (1<<pos))
+		{
+			FSUSER_CloseArchive(extdata_archives[pos]);
+			extdata_initialized &= ~(1<<pos);
+		}
+	}
+}
+
+Result archive_openotherextdata(FS_ExtSaveDataInfo *extdatainfo)
+{
+	FS_Path archpath;
+	Result ret=0;
+
+	if(extdata_initialized & 0x4)return -1;
+
+	memset(&archpath, 0, sizeof(FS_Path));
+	archpath.type = PATH_BINARY;
+	archpath.size = 0xc;
+	archpath.data = extdatainfo;
+
+	ret = FSUSER_OpenArchive(&extdata_archives[Other_Extdata], ARCHIVE_EXTDATA, archpath);
+	if(ret!=0)return ret;
+	extdata_initialized |= 0x4;
+
+	return 0;
+}
+
+void archive_closeotherextdata(void)
+{
+	u32 pos = Other_Extdata;
+
+	if(extdata_initialized & (1<<pos))
+	{
+		FSUSER_CloseArchive(extdata_archives[pos]);
+		extdata_initialized &= ~(1<<pos);
 	}
 }
 

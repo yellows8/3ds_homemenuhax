@@ -15,6 +15,9 @@ Result bossbannerhax_delete();
 
 static u32 bossbannerhax_NsDataId = 0x58484e42;
 
+extern u8 *filebuffer;
+extern u32 filebuffer_maxsize;
+
 void register_module_bossbannerhax()
 {
 	module_entry module = {
@@ -63,6 +66,7 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 	u32 numdirs = 0, numfiles = 0;
 	u8 *smdh = NULL;
 	u32 smdh_size = 0x36c0;
+	u32 tmpsize=0;
 
 	struct romfs_mount *mount = NULL;
 	Handle filehandle = 0;
@@ -151,8 +155,6 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 		}
 		memset(smdh, 0, smdh_size);
 
-		//TODO: Load "extdata:/ExBanner/COMMON.bin", then write it after creating the extdata.
-
 		if(extdata_exists)
 		{
 			ret = FSUSER_ReadExtSaveDataIcon(&tmp, extdatainfo, smdh_size, smdh);
@@ -164,6 +166,39 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 				fsEndUseSession();
 				return ret;
 			}
+
+			ret = archive_openotherextdata(&extdatainfo);
+			if(ret!=0)
+			{
+				log_printf(LOGTAR_ALL, "Failed to open the extdata for the currently running title: 0x%08x.\n", (unsigned int)ret);
+				free(smdh);
+				fsEndUseSession();
+				return ret;
+			}
+
+			//TODO: While transferring this exbanner data to the new extdata seems to "work", Home Menu doesn't display it after bossbannerhax is deleted.
+			ret = archive_getfilesize(Other_Extdata, "/ExBanner/COMMON.bin", &tmpsize);
+			log_printf(LOGTAR_LOG, "archive_getfilesize for extdata-exbanner: 0x%08x, size=0x%08x.\n", (unsigned int)ret, (unsigned int)tmpsize);
+
+			if(ret==0)
+			{
+				if(tmpsize > filebuffer_maxsize)tmpsize = filebuffer_maxsize;
+
+				ret = archive_readfile(Other_Extdata, "/ExBanner/COMMON.bin", filebuffer, tmpsize);
+				if(ret!=0)
+				{
+					log_printf(LOGTAR_ALL, "Failed to read the extdata-exbanner: 0x%08x.\n", (unsigned int)ret);
+					free(smdh);
+					fsEndUseSession();
+					return ret;
+				}
+			}
+			else
+			{
+				tmpsize = 0;
+			}
+
+			archive_closeotherextdata();
 
 			ret = FSUSER_DeleteExtSaveData(extdatainfo);
 			if(R_FAILED(ret))
@@ -249,6 +284,27 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 			log_printf(LOGTAR_ALL, "Extdata creation failed: 0x%08x.\n", (unsigned int)ret);
 			fsEndUseSession();
 			return ret;
+		}
+
+		if(tmpsize!=0)
+		{
+			ret = archive_openotherextdata(&extdatainfo);
+			if(ret!=0)
+			{
+				log_printf(LOGTAR_ALL, "Failed to open the newly created extdata for the currently running title: 0x%08x.\n", (unsigned int)ret);
+				fsEndUseSession();
+				return ret;
+			}
+
+			ret = archive_writefile(Other_Extdata, "/COMMON.bin", filebuffer, tmpsize, tmpsize);
+			if(ret!=0)
+			{
+				log_printf(LOGTAR_ALL, "Failed to write the extdata-exbanner: 0x%08x.\n", (unsigned int)ret);
+				fsEndUseSession();
+				return ret;
+			}
+
+			archive_closeotherextdata();
 		}
 	}
 	else

@@ -189,7 +189,7 @@ $(CURDIR)/$(ROMFS)	:
 	@mkdir -p $(TOPDIR)/$(ROMFS)
 	@cp $(TOPDIR)/blanktheme.lz $(TOPDIR)/$(ROMFS)/blanktheme.lz
 	@cp $(TOPDIR)/default_imagedisplay.png $(TOPDIR)/$(ROMFS)/default_imagedisplay.png
-	@mkdir $(TOPDIR)/$(ROMFS)/finaloutput
+	@mkdir -p $(TOPDIR)/$(ROMFS)/finaloutput
 	@cp -R $(TOPDIR)/../finaloutput/*.zip $(TOPDIR)/$(ROMFS)/finaloutput
 
 #---------------------------------------------------------------------------------

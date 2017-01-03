@@ -1,12 +1,15 @@
 typedef enum {
 	HomeMenu_Extdata,
 	Theme_Extdata,
+	Other_Extdata,
 	TotalExtdataArchives,
 	SDArchive = TotalExtdataArchives
 } Archive;
 
-Result open_extdata();
-void close_extdata();
+Result open_extdata(void);
+void close_extdata(void);
+Result archive_openotherextdata(FS_ExtSaveDataInfo *extdatainfo);
+void archive_closeotherextdata(void);
 bool archive_getavailable(Archive archive);
 Result archive_deletefile(Archive archive, char *path);
 Result archive_getfilesize(Archive archive, char *path, u32 *outsize);
