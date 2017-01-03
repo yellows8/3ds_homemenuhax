@@ -4,8 +4,8 @@
 
 #include "menuhax_ropinclude.s"
 
-_start: @ Start of "CGFX", magicnum isn't validated.
-.word 0, 0, 0, 0, 0 @ Used for some sort of size calculation.
+_start: @ Start of the exbanner data.
+.word 0, 0, 0, 0, 0 @ Texture width/height/format, and expiration-timestamp. Since the expiration-timestamp is zero, the non-timestamp data in this exbanner is all unused.
 
 @ The banner loading is done by a seperate thread from main-thread, however the below heap data is used by the main-thread.
 
@@ -44,6 +44,6 @@ ropstackstart:
 
 #include "menuhax_loader.s"
 
-@ When decompressing CGFX from the BOSS CBMD, Home Menu doesn't validate the decompressed-size from the LZ11 header. The buffer size is 0x20224-bytes. Hence, the below triggers a buffer overflow. Only the last word here actually triggers a crash when invalid, or at least immediately.
+@ When decompressing exbanners from the BOSS CBMD, Home Menu doesn't validate the decompressed-size from the LZ11 header. The buffer size is 0x20224-bytes. Hence, the below triggers a buffer overflow. Only the last word here actually triggers a crash when invalid, or at least immediately.
 .fill (((_start + 0x20224+0x24) - .) / 4), 4, ROPBUFLOC(object+0x20)
 
