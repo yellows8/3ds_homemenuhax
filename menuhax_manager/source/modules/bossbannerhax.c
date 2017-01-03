@@ -364,7 +364,7 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 	}
 
 	memset(tmpstr, 0, sizeof(tmpstr));
-	snprintf(tmpstr, sizeof(tmpstr)-1, "http://10.0.0.23/menuhax/bossbannerhax/%s_bossbannerhax.bin" /*"http://yls8.mtheall.com/menuhax/bossbannerhax/%s_bossbannerhax.bin"*/, menuhax_basefn);
+	snprintf(tmpstr, sizeof(tmpstr)-1, "http://yls8.mtheall.com/menuhax/bossbannerhax/%s_bossbannerhax.bin", menuhax_basefn);
 	//HTTP is used here since it's currently unknown how to setup a non-default rootCA cert for BOSS.
 
 	bossSetupContextDefault(&ctx, 60, tmpstr);
