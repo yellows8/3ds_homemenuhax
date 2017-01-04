@@ -45,6 +45,8 @@ Do not change the system language with System Settings with sdiconhax installed.
 # Usage notes for bossbannerhax
 This does not trigger during Home Menu boot. This triggers when the Face Raiders icon is selected by the user, which triggers loading the exbanner data(Face Raiders is just the ideal target title for this among the system titles with exbanner-usage enabled).
 
+Normal {return to homemenu code} is not supported with bossbannerhax. It will terminate Home Menu via svcExitProcess instead, resulting in the usual crash message. This doesn't matter much since the exploit only triggers when selecting the icon listed above.
+
 # Supported System Versions
 As of menuhax v3.2, system-versions 9.0.0-X..11.2.0-X are all supported. During installation it automatically detects which exploit to install. See also the above sections. Note that as of November 2016 [bossbannerhax](https://www.3dbrew.org/wiki/3DS_Userland_Flaws) was the last known Home Menu vuln.
 
@@ -64,6 +66,8 @@ Right before it jumps to executing the loaded ropbin, this delays with a default
 If the menuhax-thread options are setup via the menuhax_manager configuration menu(specifically the PAD config), during a normal boot to Home Menu menuhax will start a new thread which runs with just ROP.
 
 This thread executes a loop. First it runs svcSleepThread, delaying with the user-specified value. Then it verifies that Home Menu is active by comparing the GSPGPU service session handle with 0x0. Then it checks if the pressed PAD buttons match the value specified in config. If so, the config file is updated so that menuhax automatically boots \*hax payload on next boot, then svcExitProcess is executed so that Home Menu restarts.
+
+This is not usable with bossbannerhax due to no ret2menu.
 
 # Installation
 To install menuhax you must use the menuhax_manager app. You must already have a way to boot into the \*hax payload for running this app(which can include menuhax if it's already setup):

