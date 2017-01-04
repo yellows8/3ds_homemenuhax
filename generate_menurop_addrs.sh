@@ -94,6 +94,18 @@ function process_region
 					echo "$printstr" >> "menurop/$1/$version"
 				fi
 
+				printstr=`ropgadget_patternfinder $dir/*exefs/code.bin --baseaddr=0x100000 --patterntype=sha256 --patterndata=a501715840cfe3acf3ba0903c7e457ef73cf9358c38dca29f73b2919f0381eb2 --patterndatamask=ffffffffffffffff000000ffffffffffffffffff000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000ffffffffffffffffff --patternsha256size=0x44 --dataload=0x124 "--plainout=#define ROP_LOADR4_FROMOBJR0_CALLERFUNC_SLVAL "`
+
+				if [[ $? -eq 0 ]]; then
+					echo "$printstr" >> "menurop/$1/$version"
+				fi
+
+				printstr=`ropgadget_patternfinder $dir/*exefs/code.bin --baseaddr=0x100000 --patterntype=sha256 --patterndata=a501715840cfe3acf3ba0903c7e457ef73cf9358c38dca29f73b2919f0381eb2 --patterndatamask=ffffffffffffffff000000ffffffffffffffffff000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000ffffffffffffffffff --patternsha256size=0x44 --dataload=0x128 "--plainout=#define ROP_LOADR4_FROMOBJR0_CALLERFUNC_R9VAL "`
+
+				if [[ $? -eq 0 ]]; then
+					echo "$printstr" >> "menurop/$1/$version"
+				fi
+
 				findthemestr_filepath "$1" "FILEPATHPTR_THEME_SHUFFLE_BODYRD" "810b64901687c68a2685b1e39b9a2660ed745eefcff85623b0303a95bd29a372" "0x30"
 				findthemestr_filepath "$1" "FILEPATHPTR_THEME_REGULAR_THEMEMANAGE" "1bcc1fb0802e1bce26f4a8a9a2492fb85e47f40de6eea2b3380cafe08e1f80ea" "0x2e"
 				findthemestr_filepath "$1" "FILEPATHPTR_THEME_REGULAR_BODYCACHE" "1e677c0cec6485761901d967ed7677cda1b4cf6571de439fad1e9236f975e6a3" "0x2a"
