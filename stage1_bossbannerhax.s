@@ -4,6 +4,8 @@
 
 #include "menuhax_ropinclude.s"
 
+#define BOSSBANNERHAX_SPRETADDR 0x0fffff98//Address of SP right before the original stack-pivot was done.
+
 _start:
 
 ropstackstart:

