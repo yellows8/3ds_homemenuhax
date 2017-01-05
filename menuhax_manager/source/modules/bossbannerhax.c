@@ -94,7 +94,7 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 
 	memset(file_lowpath_data, 0, sizeof(file_lowpath_data));
 
-	ret = displaymessage_prompt("Is >=v1.2 ctr-httpwn active, or \"CFW\" running / sigchecks patched on the running system? If not, bossbannerhax can't be installed.", NULL);
+	ret = displaymessage_prompt("Is >=v1.2 ctr-httpwn active(with the included bosshaxx active), or \"CFW\" running / sigchecks patched on the running system? If not, bossbannerhax can't be installed.", NULL);
 	if(ret!=0)
 	{
 		log_printf(LOGTAR_ALL, "Aborting. After exiting menuhax_manager, you can run ctr-httpwn then run menuhax_manager again.\n");
