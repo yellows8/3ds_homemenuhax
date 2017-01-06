@@ -43,9 +43,13 @@ If you enter the power-off screen then return to Home Menu, the icon layout will
 Do not change the system language with System Settings with sdiconhax installed. If you do so, you will have to delete the Home Menu extdata as mentioned in the Summary section above.
 
 # Usage notes for bossbannerhax
+This is used for system-version >=v11.1.
+
 This does not trigger during Home Menu boot. This triggers when the Face Raiders icon is selected by the user, which triggers loading the exbanner data(Face Raiders is just the ideal target title for this among the system titles with exbanner-usage enabled).
 
 Normal {return to homemenu code} is not supported with bossbannerhax. It will terminate Home Menu via svcExitProcess instead, resulting in the usual crash message. This doesn't matter much since the exploit only triggers when selecting the icon listed above.
+
+For deleting bossbannerhax you should use menuhax_manager. But if you really want to delete it manually, even though face-raiders BOSS data(non-hax-data) won't be completely deleted, you can manually delete the Face Raiders extdata(you could even do this with System Settings if you want). Nothing else on SD is required for bossbannerhax deletion.
 
 # Supported System Versions
 As of menuhax v3.2, system-versions 9.0.0-X..11.2.0-X are all supported. During installation it automatically detects which exploit to install. See also the above sections. Note that as of November 2016 [bossbannerhax](https://www.3dbrew.org/wiki/3DS_Userland_Flaws) was the last known Home Menu vuln.
