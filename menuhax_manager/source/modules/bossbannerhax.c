@@ -25,7 +25,7 @@ void register_module_bossbannerhax()
 		.name = "bossbannerhax",
 		.haxinstall = bossbannerhax_install,
 		.haxdelete = bossbannerhax_delete,
-		.themeflag = false
+		.themeflag = true
 	};
 
 	register_module(&module);
