@@ -51,6 +51,8 @@ Normal {return to homemenu code} is not supported with bossbannerhax. It will te
 
 For deleting bossbannerhax you should use menuhax_manager. But if you really want to delete it manually, even though face-raiders BOSS data(non-hax-data) won't be completely deleted, you can manually delete the Face Raiders extdata(you could even do this with System Settings if you want). Nothing else on SD is required for bossbannerhax deletion.
 
+For installing bossbannerhax, either ctr-httpwn >=v1.2(with bosshaxx) must be already active, or the system must be running "CFW" with sigchecks patched.
+
 # Supported System Versions
 As of menuhax v3.2, system-versions 9.0.0-X..11.2.0-X are all supported. During installation it automatically detects which exploit to install. See also the above sections. Note that as of November 2016 [bossbannerhax](https://www.3dbrew.org/wiki/3DS_Userland_Flaws) was the last known Home Menu vuln.
 
