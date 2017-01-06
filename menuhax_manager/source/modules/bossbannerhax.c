@@ -411,7 +411,7 @@ Result bossbannerhax_install(char *menuhax_basefn, s16 menuversion)
 
 			if(R_SUCCEEDED(ret) && status==BOSSTASKSTATUS_ERROR)
 			{
-				log_printf(LOGTAR_ALL, "BOSS task failed.\n");
+				log_printf(LOGTAR_ALL, "BOSS task failed. This usually indicates a network failure.\n");
 				ret = -9;
 			}
 
