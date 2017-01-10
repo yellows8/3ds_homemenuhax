@@ -45,7 +45,7 @@ Do not change the system language with System Settings with sdiconhax installed.
 # Usage notes for bossbannerhax
 This is used for system-version >=v11.1.
 
-This does not trigger during Home Menu boot. This triggers when the Face Raiders icon is selected by the user, which triggers loading the exbanner data(Face Raiders is just the ideal target title for this among the system titles with exbanner-usage enabled).
+This does not trigger during Home Menu boot. This triggers when the Face Raiders icon is selected by the user, which triggers loading the exbanner data(Face Raiders is just the ideal target title for this among the system titles with exbanner-usage enabled). The usual PAD-config for actually running it still applies.
 
 Normal {return to homemenu code} is not supported with bossbannerhax. It will terminate Home Menu via svcExitProcess instead, resulting in the usual crash message. This doesn't matter much since the exploit only triggers when selecting the icon listed above.
 
