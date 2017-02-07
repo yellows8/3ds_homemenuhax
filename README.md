@@ -28,6 +28,7 @@ Hence the name, this is a vuln with theme-data loading for theme-shuffling. Home
 * The 10.2.0-X sysupdate [fixed](https://www.3dbrew.org/wiki/10.2.0-28) the vuln with theme decompression(themehax).
 * The 10.6.0-X sysupdate [fixed](https://www.3dbrew.org/wiki/10.6.0-31) shufflehax.
 * The 11.1.0-X sysupdate [fixed](https://www.3dbrew.org/wiki/11.1.0-34) sdiconhax.
+* The 11.3.0-X sysupdate [fixed](https://www.3dbrew.org/wiki/11.3.0-36) bossbannerhax.
 
 # Usage notes for sdiconhax
 With sdiconhax installed, when Home Menu does a normal boot all writes to extdata SaveData.dat are blocked. This is only for normal boots, not when \*hax payload was booted *from* menuhax. This *had* to be blocked because the haxx data was getting reset every time Home Menu wrote to this file. This blocks *anything* from being done with this file, hence you can't run menuhax-install/deletion with this unless you booted \*hax payload from menuhax.
@@ -43,7 +44,7 @@ If you enter the power-off screen then return to Home Menu, the icon layout will
 Do not change the system language with System Settings with sdiconhax installed. If you do so, you will have to delete the Home Menu extdata as mentioned in the Summary section above.
 
 # Usage notes for bossbannerhax
-This is used for system-version >=v11.1.
+This is used for system-version v11.1-v11.2.
 
 This does not trigger during Home Menu boot. This triggers when the Face Raiders icon is selected by the user, which triggers loading the exbanner data(Face Raiders is just the ideal target title for this among the system titles with exbanner-usage enabled). The usual PAD-config for actually running it still applies.
 
