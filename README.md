@@ -1,3 +1,5 @@
+# menuhax is obsolete.
+
 This is menuhax, exploits for the Nintendo 3DS Home Menu.
 
 # Summary
